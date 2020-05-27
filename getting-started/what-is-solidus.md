@@ -27,10 +27,10 @@ For maximum flexibility, you can decide you just want to install specific gems a
 If you don't have an existing Ruby on Rails application yet, simply create one:
 
 ```bash
-$ rails new amazing_store --skip-webpack-install
+$ rails new amazing_store --skip-javascript
 ```
 
-Solidus doesn't require Webpacker, which is why we are skipping it. You are still free to install it and use it in your store, though.
+Solidus doesn't require the JavaScript compiler shipped with Rails by default (Webpacker). You are still free to install it and use it in your store, though.
 
 Once you have generated your new Rails application, you can proceed as if you were installing Solidus [in an existing app](what-is-solidus.md#in-an-existing-app).
 
