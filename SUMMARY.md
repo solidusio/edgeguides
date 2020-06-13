@@ -18,7 +18,7 @@
 ## Advanced Solidus
 
 * [Promotions system](advanced-solidus/promotions-system.md)
-* [Permission management](advanced-solidus/permission-management.md)
+* [User permissions](advanced-solidus/permission-management.md)
 * [Tax calculation](advanced-solidus/tax-calculation.md)
 * [Payment gateways](advanced-solidus/payment-gateways.md)
 * [Inventory and fulfillment](advanced-solidus/inventory-and-fulfillment.md)
