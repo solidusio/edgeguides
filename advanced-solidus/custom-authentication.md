@@ -33,10 +33,6 @@ This will do the following:
 * Set `Spree.user_class` to your custom model's class name, so that Solidus knows to use it in association and throughout the store.
 * Implement some authentication helpers required by `solidus_backend` and `solidus_frontend` in `lib/spree/authentication_helpers.rb`.
 
-{% hint style="warning" %}
-If you use the stock `solidus_frontend` or `solidus_backend` gems, your user class **must** have a `password` column, which will not be added for you by the generator. You can set up a password column however you see fit.
-{% endhint %}
-
 At this point, you'll need to migrate your database to add the new columns:
 
 ```bash
