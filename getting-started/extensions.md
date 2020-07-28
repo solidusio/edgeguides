@@ -2,9 +2,9 @@
 
 ## When to use extensions
 
-When you first install Solidus, you will notice that the platform is complete but quite lean: there aren't any toggles to enable shiny additional features. You get what you need to start an online store, and nothing more. This is by design: we know that each brand's business domain and USP are unique, and that they require a unique implementation approach. With that said, we also know that it isn't always smart to reinvent the wheel, especially when you're dealing with a common problem that's already been solved.
+When you first install Solidus, you will notice that the platform is complete but quite lean. There aren't any toggles to enable shiny additional features. You get what you need to start an online store, and nothing more. This is by design. We know that each brand's business domain and USP are unique, and that they require a unique implementation approach. With that said, we also know that it isn't always smart to reinvent the wheel, especially when you're dealing with a common problem that's already been solved.
 
-The easiest and quickest way to augment the functionality of your store is through _extensions_. These are gems or full-fledged Rails engines that provide additional functionality for Solidus by extending and overriding parts of the core. The Solidus ecosystem has a lot of extensions for the most disparate tasks: there are extensions that add support for new payment providers or 3PL integrations, extensions that enhance your store with social features and many, many more to choose from.
+The easiest and quickest way to augment the functionality of your store is through _extensions_. These are gems or full-fledged Rails engines that provide additional functionality for Solidus by extending and overriding parts of the core. The Solidus ecosystem has a lot of extensions for many disparate tasks. There are extensions that add support for new payment providers or 3PL integrations, extensions that enhance your store with social features and many, many more to choose from.
 
 In general, if there's already an extension that solves your problem, you should evaluate it before attempting to roll your own solution. Reusing the work of the community will not only save you the effort of a custom implementation, but will also make the community stronger.
 
@@ -72,9 +72,9 @@ The order gems appear in your `Gemfile` is important in the case of Solidus exte
 
 ## Staying up-to-date
 
-Just like the core, extensions are constantly updated to add new features, enhance existing functionality, fix bugs and add compatibility with new Solidus versions. It's extremely important to keep your extensions up to date with the same diligence you reserve to the rest of your application, and having a clear process in place for continuously updating them. The easier it is to update extensions, the likelier it is you will be doing it early and often.
+Just like the core, extensions are constantly updated to add new features, enhance existing functionality, fix bugs and add compatibility with new Solidus versions. It's extremely important to keep your extensions up to date with the same diligence you reserve for the rest of your application. You should have a clear process in place for continuously updating extensions. The easier it is to update extensions, the likelier it is you will be doing it early and often.
 
-The recommended approach is to write automated tests for any functionality added by extensions to your store. While extensions do have their own test suites, you cannot always predict how an extension will interact with your own customizations or with other extensions, and it's always best to test functionality in integration and in the context of your own app.
+The recommended approach is to write automated tests for any functionality added by extensions to your store. While extensions may have their own test suites, you cannot always predict how an extension will interact with your store's customizations or with other extensions. Furthermore, it's always best to test functionality in integration and in the context of your own app.
 
 It's also recommended NOT to add any version constraints to extensions in your `Gemfile`. Instead, rely on your tests to ensure nothing's broken after an update. Ideally, the update process should be as simple as running the following commands:
 
