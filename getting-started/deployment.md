@@ -2,7 +2,7 @@
 
 ## Deploying to the cloud
 
-Deploying a Solidus application to production is not different from deploying any other Rails application. In this section, we'll cover some popular options for deploying Solidus and a few additional caveats.
+Deploying a Solidus application to production is no different from deploying any other Rails application. In this section we'll cover some popular options for deploying Solidus and a few additional caveats.
 
 ### Heroku
 
@@ -42,17 +42,17 @@ This section still needs to be written.
 
 ## External dependencies
 
-When deploying a Solidus store, there are a few external dependencies you will also need to install, or may decide to install in order to make your application more resilient and easier to scale.
+When deploying a Solidus store, there are a few external dependencies that must be installed. There are also some optional dependencies you may decide to install in order to make your application more resilient and easier to scale.
 
 ### File storage
 
 {% hint style="warning" %}
-Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of Rails' native [ActiveStorage](https://guides.rubyonrails.org/active_storage_overview.html) library. Solidus already supports ActiveStorage but, due to limitations in ActiveStorage itself, you will not be able to use it until Rails 6.1 is released with support for [public URLs](https://edgeguides.rubyonrails.org/active_storage_overview.html#public-access).
+Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of Rails' native [ActiveStorage](https://guides.rubyonrails.org/active_storage_overview.html) library. Solidus already supports ActiveStorage, but due to limitations in ActiveStorage itself you will not be able to use it until Rails 6.1 is released with support for [public URLs](https://edgeguides.rubyonrails.org/active_storage_overview.html#public-access).
 {% endhint %}
 
-When you run Solidus locally or on a single node, any files you upload \(product images, taxon icons etc.\) are stored on the filesystem. While this works great in development, it's not a viable option when deploying to cloud platforms, where clustering would cause files in one node not to be accessible by all other nodes, or files to disappear when a node reboots because of [ephemeral filesystems](https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem).
+When you run Solidus locally or on a single node, any files you upload \(product images, taxon icons etc.\) are stored on the filesystem. While this works great in development, it's not a viable option when deploying to cloud platforms where clustering may cause files in one node not to be accessible by all other nodes. You may also find that files disappear when a node reboots because of [ephemeral filesystems](https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem).
 
-When running your store in production, you will have to rely on a file storage service such as [Amazon S3](https://aws.amazon.com/it/s3/) or [Microsoft Azure Storage Service](https://azure.microsoft.com/en-us/services/storage/). Files will be uploaded to the storage service, which will also handle all concerns of high availability, security and distribution, and retrieved via a public URL.
+When running your store in production, you will have to rely on a file storage service such as [Amazon S3](https://aws.amazon.com/it/s3/) or [Microsoft Azure Storage Service](https://azure.microsoft.com/en-us/services/storage/). Files will be uploaded to the storage service, which will also handle concerns such as high availability, security and distribution, and retrieval via a public URL.
 
 Solidus supports storage services out of the box by integrating with the [Paperclip](https://github.com/thoughtbot/paperclip) gem. In order to configure Paperclip, just create an initializer like the following:
 
@@ -77,19 +77,19 @@ If you're not using S3, Paperclip provides support for the most popular storage 
 
 ### Cache store
 
-Solidus employs [fragment caching](https://guides.rubyonrails.org/caching_with_rails.html#fragment-caching) and [low-level caching](https://guides.rubyonrails.org/caching_with_rails.html#low-level-caching) pretty extensively throughout the storefront and API views. By default, Rails uses an in-memory cache adapter in production, which will essentially make all caching useless, since the cache is not shared across nodes of your application.
+Solidus employs [fragment caching](https://guides.rubyonrails.org/caching_with_rails.html#fragment-caching) and [low-level caching](https://guides.rubyonrails.org/caching_with_rails.html#low-level-caching) extensively throughout the storefront and API views. By default, Rails uses an in-memory cache adapter in production. This essentially makes all caching useless if you are running Solidus across multiple nodes, since the cache is not shared across instances.
 
-Instead of the default adapter, you should instead rely on an actual caching system. Popular options in the Rails ecosystem are [memcached](https://memcached.org/) and [Redis](https://redis.io/).
+Therefore, instead of the default adapter you should instead rely on an actual caching system. Popular options in the Rails ecosystem are [memcached](https://memcached.org/) and [Redis](https://redis.io/).
 
-The procedure for configuring your cache store with Solidus is not different from doing it in a regular Rails application, so simply refer to the [Rails caching guide](https://guides.rubyonrails.org/caching_with_rails.html#activesupport-cache-memcachestore) for more details and recommendations on how to properly set up your caching server.
+The procedure for configuring your cache store with Solidus is no different from doing it in a regular Rails application. Refer to the [Rails caching guide](https://guides.rubyonrails.org/caching_with_rails.html#activesupport-cache-memcachestore) for more details and recommendations on how to properly set up your caching server.
 
 ### Async operations
 
-Solidus schedules certain time-intensive operations in the background, to provide faster feedback to the user and avoid blocking the Web process for too long. The most common examples are transactional emails: when an email needs to be delivered to the user, Solidus will enqueue the operation rather than executing it immediately. This operation will then be run in the background by [ActiveJob](https://guides.rubyonrails.org/active_job_basics.html).
+Solidus schedules certain time-intensive operations in the background. This provides faster feedback to the user and avoids blocking the Web process for too long. The most common examples are transactional emails. When an email needs to be delivered to the user, Solidus will enqueue the operation rather than executing it immediately. This operation will then be run in the background by [ActiveJob](https://guides.rubyonrails.org/active_job_basics.html).
 
-The default ActiveJob adapter is [Async](https://api.rubyonrails.org/classes/ActiveJob/QueueAdapters/AsyncAdapter.html), which uses an in-process thread pool to schedule jobs. While a good choice for local development and testing, this is a pretty poor option for production deployments, because any pending jobs are dropped when the process restarts \([Heroku restarts dynos automatically every 24 hours](https://devcenter.heroku.com/articles/dynos#automatic-dyno-restarts), for instance\).
+The default ActiveJob adapter is [Async](https://api.rubyonrails.org/classes/ActiveJob/QueueAdapters/AsyncAdapter.html), which uses an in-process thread pool to schedule jobs. While Async is a good choice for local development and testing, it is a poor option for production deployments, as any pending jobs are dropped when the process restarts \([Heroku restarts dynos automatically every 24 hours](https://devcenter.heroku.com/articles/dynos#automatic-dyno-restarts), for instance\).
 
-Instead, you should use a production-grade queue such as [Sidekiq](https://github.com/mperham/sidekiq), which uses Redis for storing and retrieving the jobs under the hood. Using Sidekiq with ActiveJob is pretty simple. First of all, install Sidekiq by adding it to your `Gemfile`:
+Instead, you should use a production-grade queue such as [Sidekiq](https://github.com/mperham/sidekiq), which uses Redis for storing and retrieving your application's jobs under the hood. Using Sidekiq with ActiveJob is simple. First of all, install Sidekiq by adding it to your `Gemfile`:
 
 {% code title="Gemfile" %}
 ```ruby
@@ -121,15 +121,15 @@ That's it! Solidus will now use Sidekiq and Redis for all asynchronous processin
 
 ### Content delivery network
 
-It is strongly recommended to serve static assets via a [Content Delivery Network \(CDN\)](https://it.wikipedia.org/wiki/Content_Delivery_Network) rather than your own application. CDNs are a relatively simple and efficient way to instantaneously boost the performance of your application and are widely used in Web development.
+It is strongly recommended to serve static assets via a [Content Delivery Network \(CDN\)](https://it.wikipedia.org/wiki/Content_Delivery_Network) rather than your own application. CDNs are a relatively simple and efficient way to instantaneously boost the performance of your application, and are widely used in Web development.
 
-Like for many other tasks, configuring a CDN for Solidus is the same as configuring it for a regular Rails application, so you can refer to the Rails guides on [configuring a CDN](https://guides.rubyonrails.org/asset_pipeline.html#cdns).
+As with many other tasks, configuring a CDN for Solidus is the same as configuring it for a regular Rails application, so you can refer to the Rails guides on [configuring a CDN](https://guides.rubyonrails.org/asset_pipeline.html#cdns).
 
 There are many reliable CDNs, with the most popular being [Amazon CloudFront](https://aws.amazon.com/it/cloudfront/).
 
 ### Email delivery
 
-In order to send emails, Solidus needs a valid SMTP server. While you could use your domain registrar's mail server, it is usually recommended to use a more robust and feature-complete solution that will also provide useful insights and business metrics such as your deliverability, open and click-through rates.
+In order to send emails, Solidus needs a valid SMTP server. While you could use your domain registrar's mail server, it is usually recommended to use a more robust and feature-complete solution that will also provide useful insights and business metrics like deliverability, open, and click-through rates.
 
 [SendGrid](https://sendgrid.com/), [Mailgun](https://www.mailgun.com/) and [Mailchimp](https://mailchimp.com/features/transactional-email/) are all very good, battle-tested solutions for delivering transactional emails to your customers, but you are free to use any other service you wish.
 
