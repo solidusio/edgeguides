@@ -43,7 +43,6 @@ If you have an existing Ruby on Rails application, installing Solidus is fairly 
 # ...
 
 gem 'solidus'
-gem 'solidus_auth_devise'
 ```
 {% endcode %}
 
@@ -51,7 +50,7 @@ Then, install the bundle and configure Solidus:
 
 ```bash
 $ bundle install
-$ bin/rails generate spree:install
+$ bin/rails generate solidus:install
 ```
 
 The installer will prompt you for an admin email and password. You can leave the default \(email: admin@example.com, password: test123\) or enter your own.
