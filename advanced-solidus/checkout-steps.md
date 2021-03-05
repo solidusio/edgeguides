@@ -1,0 +1,208 @@
+# Checkout steps
+
+{% hint style="info" %}
+You can find a screencast that covers adding and removing checkout steps in Solidus [here](https://www.youtube.com/watch?v=p_O4d9k4qxI).
+{% endhint %}
+
+Solidus comes bundled with a robust checkout system that caters to the needs of the majority of eCommerce stores. However, this system doesn't fit the needs for every business.
+
+In this guide, we'll cover the steps you need to take to customize the checkout flow in your Solidus store.
+
+## The default checkout flow
+
+The default Solidus checkout flow follows these steps, from start to finish:
+
+1. Cart
+2. Address
+3. Delivery
+4. Payment (if needed)
+5. Confirm
+6. Complete
+
+## Removing checkout steps
+
+You'll need to decorate the order model to add or remove checkout steps. Inside the decorator, you just need to add `remove_checkout_step` and pass in the name of the step you want to remove. For example, if you wanted to remove the address step, your decorator might look like this:
+
+{% code title="app/decorators/my\_app/spree/order\_decorator.rb" %}
+```ruby
+# frozen_string_literal: true
+
+module MyApp
+  module Spree
+    module OrderDecorator
+      def self.prepended(base)
+        base.remove_checkout_step :address
+      end
+
+      ::Spree::Order.prepend self
+    end
+  end
+end
+```
+{% endcode %}
+
+Please keep in mind the following caveats for removing checkout steps:
+
+* If you remove the address step but keep the delivery step, the delivery step will break, as it expects the order to have an address.
+
+* If you remove the payment step but the order has a positive balance, the order will not be able to complete.
+
+## Adding checkout steps
+
+If you want to add a custom checkout step, you will need to call `add_checkout_step` in the order decorator, and pass in your custom step name, as well as a `before` or `after` attribute, so that the order state machine knows where to put this custom step in the checkout flow.
+
+{% code title="app/decorators/my\_app/spree/order\_decorator.rb" %}
+```ruby
+# frozen_string_literal: true
+
+module MyApp
+  module Spree
+    module OrderDecorator
+      def self.prepended(base)
+        base.insert_checkout_step :my_custom_step, {before: :confirm}
+      end
+
+      ::Spree::Order.prepend self
+    end
+  end
+end
+```
+{% endcode %}
+
+You will also need to add a view and a translation for this custom step.
+
+{% tabs %}
+{% tab title="config/locales/en.yml" %}
+{% code title="config/locales/en.yml" %}
+```yaml
+en:
+  spree:
+    order_state:
+      my_custom_step: My Custom Step
+```
+{% endcode %}
+{% endtab %}
+
+{% tab title="app/views/spree/checkout/\_my\_custom\_step.html.erb" %}
+{% code title="app/views/spree/checkout/\_my\_custom\_step.html.erb" %}
+```erb
+<div>
+  The customer will see this partial when they are on your checkout step. Be sure to add a continue button!
+</div>
+
+<div class="form-buttons" data-hook="buttons">
+  <%= submit_tag t('spree.save_and_continue'), class: 'continue button primary' %>
+  <script>Spree.disableSaveOnClick();</script>
+</div>
+```
+{% endcode %}
+{% endtab %}
+{% endtabs %}
+
+#### Before step action
+
+Before proceeding to any step, the checkout controller will check to see if a method named `before_#{checkout_step_name}` exists. If it does, it runs that method. That means that you can run custom logic before the controller moves on to your step, which can be handy if you want to set things up for the view.
+
+{% code title="app/controllers/my\_app/checkout\_controller\_decorator.rb" %}
+```ruby
+# frozen_string_literal: true
+
+module MyApp
+  module CheckoutControllerDecorator
+    def before_my_custom_step
+      @custom_object = CustomObject.new()
+    end
+
+    ::Spree::CheckoutController.prepend self
+  end
+end
+```
+{% endcode %}
+
+#### Checkout Controller Attributes
+
+If you need to permit additional attributes for your custom step, you can add the attributes to the `checkout_confirm_attributes` set in an initializer.
+
+{% code title="config/initializers/my\_app\_initializer.rb" %}
+```ruby
+Spree::PermittedAttributes.checkout_confirm_attributes << [:my_custom_attribute]
+```
+{% endcode %}
+
+The attribute set that is used changes depending on the step - `payment` uses `checkout_payment_attributes`, `address` uses `checkout_address_attributes`, and so on. `checkout_confirm_attributes` is used for the confirm step, and for any step that the checkout controller does not recognize - like our new custom step.
+
+## Conditional checkout steps
+
+You can conditionally include steps in the checkout flow if necessary, by passing a conditional in with the step in `add_checkout_step`. For example, if we only want to include our custom step if the orders total is over $50, we can pass that requirement in as a conditional:
+
+{% code title="app/decorators/my\_app/spree/order\_decorator.rb" %}
+```ruby
+# frozen_string_literal: true
+
+module MyApp
+  module Spree
+    module OrderDecorator
+      def self.prepended(base)
+        base.insert_checkout_step :my_custom_step, {
+          before: :confirm, if: -> (order) { order.total > 50 }
+        }
+      end
+
+      ::Spree::Order.prepend self
+    end
+  end
+end
+```
+{% endcode %}
+
+Now the custom step will only be displayed during checkout if the order total is above $50.00.
+
+## Overriding the state machine
+
+If the customization options above are still not enough, you can override the entire state machine and use your own. We recommend that your new state machine inherit from the old one, so that you can utilize some of the logic of the old state machine.
+
+After defining your own state machine, you can pass the class into an initializer so that Solidus knows to use your custom machine instead of the default machine.
+
+{% tabs %}
+{% tab title="config/initializers/spree.rb" %}
+{% code title="config/initializers/spree.rb" %}
+```ruby
+Spree.config do |config|
+  config.state_machines.order = "MyApp::StateMachine::Order"
+
+  # ....
+end
+```
+{% endcode %}
+{% endtab %}
+
+{% tab title="lib/my\_app/state\_machine.rb" %}
+{% code title="lib/my\_app/state\_machine.rb" %}
+```ruby
+# frozen_string_literal: true
+
+require 'spree/core/state_machines/order'
+
+module MyApp
+  class StateMachine
+    module Order
+      include ::Spree::Core::StateMachines::Order
+
+      module ClassMethods
+        include ::Spree::Core::StateMachines::Order::ClassMethods
+
+        def define_state_machine!
+          # Go crazy!
+        end
+      end
+
+      def self.included(klass)
+        klass.extend ClassMethods
+      end
+    end
+  end
+end
+```
+{% endcode %}
+{% endtab %}
+{% endtabs %}
