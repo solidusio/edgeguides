@@ -70,7 +70,7 @@ Since there isn't a permission set that does what we need, we'll need to create 
 ```ruby
 module AwesomeStore
   module PermissionSets
-    class UserUpdate < PermissionSets::Base
+    class UserUpdate < Spree::PermissionSets::Base
       def activate!
         can :update, Spree::User
       end
