@@ -6,18 +6,22 @@ Deploying a Solidus application to production is no different from deploying any
 
 ### Heroku
 
+{% hint style="warning" %}
+Heroku currently [does not support](https://devcenter.heroku.com/articles/sqlite3) the rails default database sqlite3. Heroku natively utilizes [PostgreSQL](https://www.postgresql.org/) and adaptively uses other [data storage services](https://elements.heroku.com/addons).
+{% endhint %}
+
 Deploying a Solidus store to [Heroku](https://heroku.com) is extremely simple. All you'll need is an active Heroku account and the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) on your machine.
 
 Once you have those, you should first create a new app:
 
 ```bash
-$ heroku create amazing-store
+$ heroku create your-store-name
 ```
 
 Now, push the code to your Heroku remote:
 
 ```bash
-$ git push heroku master
+$ git push heroku main
 ```
 
 Finally, set up the database schema and seeds:
@@ -47,12 +51,12 @@ When deploying a Solidus store, there are a few external dependencies that must 
 ### File storage
 
 {% hint style="warning" %}
-Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of Rails' native [ActiveStorage](https://guides.rubyonrails.org/active_storage_overview.html) library. Solidus already supports ActiveStorage, but due to limitations in ActiveStorage itself you will not be able to use it until Rails 6.1 is released with support for [public URLs](https://edgeguides.rubyonrails.org/active_storage_overview.html#public-access).
+Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of Rails' native [ActiveStorage](https://guides.rubyonrails.org/active_storage_overview.html) library. Should you be utilizing a version of rails before 6.1, your application will not be able to use ActiveStorage and therefore should use paperclip.
 {% endhint %}
 
 When you run Solidus locally or on a single node, any files you upload \(product images, taxon icons etc.\) are stored on the filesystem. While this works great in development, it's not a viable option when deploying to cloud platforms where clustering may cause files in one node not to be accessible by all other nodes. You may also find that files disappear when a node reboots because of [ephemeral filesystems](https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem).
 
-When running your store in production, you will have to rely on a file storage service such as [Amazon S3](https://aws.amazon.com/it/s3/) or [Microsoft Azure Storage Service](https://azure.microsoft.com/en-us/services/storage/). Files will be uploaded to the storage service, which will also handle concerns such as high availability, security and distribution, and retrieval via a public URL.
+When running your store in production, you will have to rely on a file storage service such as [Amazon S3](https://aws.amazon.com/s3/) or [Microsoft Azure Storage Service](https://azure.microsoft.com/en-us/services/storage/). Files will be uploaded to the storage service, which will also handle concerns such as high availability, security and distribution, and retrieval via a public URL.
 
 Solidus supports storage services out of the box by integrating with the [Paperclip](https://github.com/thoughtbot/paperclip) gem. In order to configure Paperclip, just create an initializer like the following:
 
@@ -155,4 +159,3 @@ end
 {% endcode %}
 
 You should then configure the `SENDGRID_USERNAME`, `SENDGRID_PASSWORD` and `SENDGRID_DOMAIN` environment variables with your SendGrid credentials.
-
