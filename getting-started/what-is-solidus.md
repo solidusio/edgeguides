@@ -24,10 +24,15 @@ For maximum flexibility, you can decide you just want to install specific gems a
 
 ### In a new app
 
-If you don't have an existing Ruby on Rails application yet, simply create one:
+If you don't have an existing Ruby on Rails application yet, simply create one with sqlite3 as your database:
 
 ```bash
 $ rails new amazing_store --skip-javascript
+```
+or for PostgreSQL as your database:
+
+```bash
+$ rails new amazing_store --skip-javascript --d=postgresql
 ```
 
 Solidus doesn't require the JavaScript compiler shipped with Rails by default \(Webpacker\). You are still free to install it and use it in your store, though.
@@ -36,24 +41,15 @@ Once you have generated your new Rails application, you can proceed as if you we
 
 ### In an existing app
 
-If you have an existing Ruby on Rails application, installing Solidus is fairly simple:
+If you have an existing Ruby on Rails application, installing Solidus is fairly simple. In your CLI:
 
-{% code title="Gemfile" %}
-```ruby
-# ...
-
-gem 'solidus'
-```
-{% endcode %}
-
-Then, install the bundle and configure Solidus:
 
 ```bash
-$ bundle install
+$ bundle add 'solidus' --version '~>3.0.0'
 $ bin/rails generate solidus:install
 ```
 
-The installer will prompt you for an admin email and password. You can leave the default \(email: admin@example.com, password: test123\) or enter your own.
+The installer will prompt you on a few questions before completing the installation. First it will ask if you would like to use the default authentication solution, [Devise](https://github.com/heartcombo/devise), or your implement your own. Next it will ask what payment service you would like to install with solidus. Currently, Solidus only supports Paypal and is the default option. You may install your own and avoid implementing Paypal by typing 'none' when prompted. Finally, you will be prompted for an admin email and password. You can leave the default \(email: admin@example.com, password: test123\) or enter your own.
 
 Once the installation has completed, you can now start your Rails server:
 
@@ -106,4 +102,3 @@ This will output a de-duplicated list of deprecations in your code. Once you hav
 {% hint style="info" %}
 In some cases, deprecated code may come from Solidus extensions and not your own app, meaning you can't fix the deprecation yourself. When this happens, you can open an issue in the extension's repository to let the maintainer know that they need to update their extension.
 {% endhint %}
-
