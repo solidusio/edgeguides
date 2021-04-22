@@ -133,20 +133,13 @@ The default ActiveJob adapter is [Async](https://api.rubyonrails.org/classes/Act
 
 Instead, you should use a production-grade queue such as [Sidekiq](https://github.com/mperham/sidekiq), which uses Redis for storing and retrieving your application's jobs under the hood. Using Sidekiq with ActiveJob is simple. First of all, install Sidekiq by adding it to your `Gemfile`:
 
-{% code title="Gemfile" %}
-```ruby
-# ...
-gem 'sidekiq'
-```
-{% endcode %}
-
-Now install the bundle:
 
 ```bash
-$ bundle install
+bundle add 'sidekiq'
 ```
 
-Finally, tell ActiveJob to use Sidekiq for queueing and running jobs:
+
+Next, tell ActiveJob to use Sidekiq for queueing and running jobs:
 
 {% code title="config/application.rb" %}
 ```ruby
