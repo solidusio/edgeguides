@@ -58,7 +58,45 @@ When you run Solidus locally or on a single node, any files you upload \(product
 
 When running your store in production, you will have to rely on a file storage service such as [Amazon S3](https://aws.amazon.com/s3/) or [Microsoft Azure Storage Service](https://azure.microsoft.com/en-us/services/storage/). Files will be uploaded to the storage service, which will also handle concerns such as high availability, security and distribution, and retrieval via a public URL.
 
-Solidus supports storage services out of the box by integrating with the [Paperclip](https://github.com/thoughtbot/paperclip) gem. In order to configure Paperclip, just create an initializer like the following:
+### ActiveStorage
+
+Solidus supports storage services out of the box by utilizing Rails native [ActiveStorage](https://edgeguides.rubyonrails.org/active_storage_overview.html) library. To configure ActiveStorage, navigate to your application's config folder and access `storage.yml`. Edit the configuration file so that your preferred service is uncommented and contains the correct environment variables. In the following example, we use s3 bucket:
+
+{% code title="config/storage.yml" %}
+```ruby
+amazon:
+  storage: :s3
+  bucket: <%= ENV.fetch('S3_BUCKET') %>
+  s3_host_name: <%= ENV.fetch('S3_HOST_NAME') %>
+  s3_credentials:{
+    access_key_id: <%= ENV.fetch('S3_ACCESS_KEY_ID') %>
+    secret_access_key: <%= ENV.fetch('S3_SECRET_ACCESS_KEY') %>
+    region: <%= ENV.fetch('S3_REGION') %>
+  }
+```
+{% endcode %}
+
+Next, it is necessary to edit the production environment ActiveStorage configuration to use your newly created service. Navigate to your production environment configuration and modify the following variable:
+
+{% code title="config/environment/production.rb" %}
+```ruby
+...
+# Store uploaded files on the local file system (see config/storage.yml for options).
+config.active_storage.service = :amazon
+
+...
+```
+{% endcode %}
+
+Finally, put your S3 credentials in the environment variables used in `storage.yml`.
+
+If you're not using S3, ActiveStorage provides support for the most popular storage services, either natively or through third-party plugins.
+
+That is it, you have just set up ActiveStorage!
+
+### Paper Clip
+
+Solidus versions earlier than 3.0.0 support integration with the [Paperclip](https://github.com/thoughtbot/paperclip) gem. In order to configure Paperclip, just create an initializer like the following:
 
 ```ruby
 if Rails.env.production?
