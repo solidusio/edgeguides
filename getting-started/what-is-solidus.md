@@ -61,11 +61,11 @@ You should now be able to access your storefront at [http://localhost:3000](http
 
 ## Upgrading Solidus
 
-With Solidus' maintenance policy, a release will receive security patches and other critical bugfixes for 18 months after it's released to the public. This should give you plenty of time to upgrade to new versions of Solidus before your release reaches its EOL. You can find a list of the currently supported Solidus versions on the [Security](https://solidus.io/security/) page of our website.
+With Solidus' maintenance policy, a release will receive security patches and other critical bug-fixes for 18 months after it's released to the public. This should give you plenty of time to upgrade to new versions of Solidus before your release reaches its EOL. You can find a list of the currently supported Solidus versions on the [Security](https://solidus.io/security/) page of our website.
 
 Because of the project's focus on stability and backwards compatibility, upgrading Solidus is usually a painless process: minor releases NEVER break public APIs, although they may deprecate APIs that will then be removed in the next major.
 
-When upgrading, look at the [changelog](https://github.com/solidusio/solidus/blob/master/CHANGELOG.md) and make a note of any large refactorings or changes in the public API, then update your app accordingly. You should also make sure to [update any extensions](extensions.md#staying-up-to-date) you have installed, since new releases may have come out to support the new Solidus version or take advantage of new functionality it introduces.
+When upgrading, look at the [changelog](https://github.com/solidusio/solidus/blob/master/CHANGELOG.md) and make a note of any large refactoring or public API changes, then update your app accordingly. You should also make sure to [update any extensions](extensions.md#staying-up-to-date) you have installed, since new releases may have come out to support the new Solidus version or take advantage of new functionality it introduces.
 
 ### Ruby and Rails upgrades
 

@@ -37,7 +37,7 @@ module AwesomeStore
     end
 
     private
-    
+
     def blacklisted_emails
       ENV.fetch('BLACKLISTED_EMAILS', '').split(',')
     end
@@ -106,7 +106,7 @@ In order to allow admins to remove an order from the blacklist, we'll add a butt
 
 The first step is to add our custom action to `Spree::Admin::OrdersController`. We'll use a decorator to accomplish that:
 
-{% code title="app/decorators/awesome\_store/spree/admin/oders\_controller/add\_remove\_from\_blacklist\_action.rb" %}
+{% code title="app/decorators/awesome\_store/spree/admin/orders\_controller/add\_remove\_from\_blacklist\_action.rb" %}
 ```ruby
 module AwesomeStore
   module Spree
@@ -115,9 +115,9 @@ module AwesomeStore
         module AddRemoveFromBlacklistAction
           def remove_from_blacklist
             load_order
-            
+
             @order.update!(blacklisted: false)
-            
+
             redirect_to edit_admin_order_path(@order)
           end
 
@@ -251,4 +251,3 @@ Congratulations! You have implemented your first custom feature for the Solidus 
 Of course, we have just scratched the surface of what's possible: the backend provides a lot of UI components and capabilities you may leverage. We suggest spending some time in the backend's codebase to get accustomed with all the different tools at your disposal, and doing some planning/research before every custom feature.
 
 By using a combination of custom controller actions, view overrides and automated tests, you'll be able to write custom admin features that are fully integrated with the Solidus experience, and yet are a joy to maintain and evolve over time.
-
