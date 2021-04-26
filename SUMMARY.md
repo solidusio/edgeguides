@@ -5,6 +5,7 @@
 ## Getting Started
 
 * [Installing Solidus](getting-started/what-is-solidus.md)
+  *  [Optional Installation Settings](getting-started/optional_installation_settings.md)
 * [Using extensions](getting-started/extensions.md)
 * [Deploying to production](getting-started/deployment.md)
 
@@ -25,4 +26,3 @@
 * [Custom authentication](advanced-solidus/custom-authentication.md)
 * [Indexing and search](advanced-solidus/indexing-and-search.md)
 * [Extension development](advanced-solidus/extension-development.md)
-
