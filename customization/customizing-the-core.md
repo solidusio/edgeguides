@@ -170,6 +170,8 @@ end
 {% tab title="order\_finalization\_notifier\_spec.rb" %}
 {% code title="spec/lib/awesome\_store/order\_finalization\_notifier\_spec.rb" %}
 ```ruby
+require "awesome_store/order_finalization_notifier.rb"
+
 RSpec.describe AwesomeStore::OrderFinalizationNotifier do
   it 'calls the external API' do
     order = double('Spree::Order')
@@ -268,7 +270,7 @@ module AwesomeStore
         def available?
           ENV['MAKE_PRODUCTS_UNAVAILABLE'] == 'true' && super
         end
-        
+
         ::Spree::Product.prepend self
       end
     end
@@ -322,4 +324,3 @@ As you can see, we are not only able to override the default `#available?` imple
 {% hint style="warning" %}
 You should always prefer customizing Solidus via public, standardized APIs such as the built-in customization hooks and the event bus, whenever possible. When you use a supported API, it's much less likely your customization will be broken by a future upgrade that changes the part of the code you are overriding.
 {% endhint %}
-
