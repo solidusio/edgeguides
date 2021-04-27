@@ -5,6 +5,18 @@ RSpec is highly versatile testing framework that we utilize for Solidus and in o
 bundle add 'rspec_rails'
 rails g rspec:install
 ```
+{% hint style="info" %}
+You may have to navigate to your `spec_helper.rb` located in the `spec` directory of your applications root folder and make sure that you have the following at the top of the file:
+  {% code title="Gemfile" %}
+  ```ruby
+  ENV["RAILS_ENV"] ||= 'test'
+  require File.expand_path("../../config/environment", __FILE__)
+  require 'rspec/rails'
+  #...
+  ```
+  {% endcode %}
+{% endhint %}
+
 For more information on RSpec and associated methods, please see the [official documentation](https://relishapp.com/rspec/rspec-rails/docs).
 
 ## Solidus Factories
@@ -81,4 +93,3 @@ end
 
 ```
 {% endcode %}
-
