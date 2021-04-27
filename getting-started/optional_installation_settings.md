@@ -93,14 +93,13 @@ end
 ```
 {% endcode %}
 
-Finally, edit `spec_helper.rb` to include the following config modification:
-{% code title="spec/spec_helper.rb" %}
+Finally, modify the configuration to make the methods and ability to create/build factories available:
 
+{% code title="spec/spec_helper.rb" %}
 ```ruby
 RSpec.configure do |config|
   #...
   config.include FactoryBot::Syntax::Methods
 end
-
 ```
 {% endcode %}
