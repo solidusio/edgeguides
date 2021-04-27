@@ -28,9 +28,9 @@ This will add the `rejected` boolean column to `spree_orders`.
 
 The first step is to flag an order as rejected when the email address on the order has been rejected. You can do this by creating a class whose job is to analyze an order and determine whether it should be flagged as rejected:
 
-{% code title="lib/awesome\_store/order\_analyzer.rb" %}
+{% code title="lib/amazing\_store/order\_analyzer.rb" %}
 ```ruby
-module AwesomeStore
+module AmazingStore
   class OrderAnalyzer
     def analyze(order)
       order.update!(rejected: order_rejected?(order))
@@ -55,7 +55,7 @@ You will then need to subscribe to the `order_finalized` event, which is fired w
 ```ruby
 # ...
 Spree::Event.subscribe 'order_finalized' do |payload|
-  AwesomeStore::OrderAnalyzer.new.analyze(payload[:order])
+  AmazingStore::OrderAnalyzer.new.analyze(payload[:order])
 end
 ```
 {% endcode %}
@@ -103,10 +103,9 @@ In order to allow admins to remove an order from the rejected, we'll add a butto
 
 The first step is to add our custom action to `Spree::Admin::OrdersController`. We'll use a decorator to accomplish that:
 
-
 {% code title="app/decorators/amazing\_store/spree/admin/orders\_controller/add\_remove\_from\_rejected\_action\_decorator.rb" %}
 ```ruby
-module AwesomeStore
+module AmazingStore
   module Spree
     module Admin
       module OrdersController
