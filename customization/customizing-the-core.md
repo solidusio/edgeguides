@@ -261,14 +261,14 @@ Here's our `AddGlobalHiddenFlag` decorator for `Spree::Product`, along with its 
 
 {% tabs %}
 {% tab title="add\_global\_hidden\_flag.rb" %}
-{% code title="app/decorators/awesome\_store/spree/product/add\_global\_hidden\_flag.rb" %}
+{% code title="app/decorators/awesome\_store/spree/product/add\_global\_hidden\_flag\_decorator.rb" %}
 ```ruby
 module AwesomeStore
   module Spree
     module Product
-      module AddGlobalHiddenFlag
+      module AddGlobalHiddenFlagDecorator
         def available?
-          ENV['MAKE_PRODUCTS_UNAVAILABLE'] == 'true' && super
+          ENV['MAKE_PRODUCTS_UNAVAILABLE'] == false && super
         end
 
         ::Spree::Product.prepend self
@@ -287,9 +287,9 @@ RSpec.describe Spree::Product do
   describe '#available?' do
     context 'when MAKE_PRODUCTS_UNAVAILABLE is true' do
       before do
-        allow(ENV).to receive(:[])
-          .with('MAKE_PRODUCTS_UNAVAILABLE')
-          .and_return('true')
+        stub_const 'ENV',
+          ENV.to_h
+          .merge('MAKE_PRODUCTS_UNAVAILABLE' => true)
       end
 
       it 'makes the product unavailable' do
@@ -301,9 +301,9 @@ RSpec.describe Spree::Product do
 
     context 'when MAKE_PRODUCTS_UNAVAILABLE is false' do
       before do
-        allow(ENV).to receive(:[])
-          .with('MAKE_PRODUCTS_UNAVAILABLE')
-          .and_return('false')
+        stub_const 'ENV',
+          ENV.to_h
+          .merge('MAKE_PRODUCTS_UNAVAILABLE' => false)
       end
 
       it 'makes the product available' do
