@@ -7,7 +7,7 @@ Deploying a Solidus application to production is no different from deploying any
 ### Heroku
 
 {% hint style="warning" %}
-Heroku currently [does not support](https://devcenter.heroku.com/articles/sqlite3) the rails default database sqlite3. Heroku natively utilizes [PostgreSQL](https://www.postgresql.org/) and adaptively uses other [data storage services](https://elements.heroku.com/addons).
+Heroku [does not support](https://devcenter.heroku.com/articles/sqlite3) the rails default database sqlite3. Heroku natively utilizes [PostgreSQL](https://www.postgresql.org/) and adaptively uses other [data storage services](https://elements.heroku.com/addons).
 {% endhint %}
 
 Deploying a Solidus store to [Heroku](https://heroku.com) is extremely simple. All you'll need is an active Heroku account and the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) on your machine.
@@ -15,7 +15,7 @@ Deploying a Solidus store to [Heroku](https://heroku.com) is extremely simple. A
 Once you have those, you should first create a new app:
 
 ```bash
-$ heroku create your-store-name
+$ heroku create amazing-store
 ```
 
 Now, push the code to your Heroku remote:
@@ -51,16 +51,16 @@ When deploying a Solidus store, there are a few external dependencies that must 
 ### File storage
 
 {% hint style="warning" %}
-Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of Rails' native [ActiveStorage](https://guides.rubyonrails.org/active_storage_overview.html) library. Should you be utilizing a version of rails before 6.1, your application will not be able to use ActiveStorage and therefore should use paperclip.
+Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of Rails' native [Active Storage](https://guides.rubyonrails.org/active_storage_overview.html) library. Should you be utilizing a version of rails before 6.1, your application will not be able to use Active Storage and therefore should use Paperclip.
 {% endhint %}
 
 When you run Solidus locally or on a single node, any files you upload \(product images, taxon icons etc.\) are stored on the filesystem. While this works great in development, it's not a viable option when deploying to cloud platforms where clustering may cause files in one node not to be accessible by all other nodes. You may also find that files disappear when a node reboots because of [ephemeral filesystems](https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem).
 
 When running your store in production, you will have to rely on a file storage service such as [Amazon S3](https://aws.amazon.com/s3/) or [Microsoft Azure Storage Service](https://azure.microsoft.com/en-us/services/storage/). Files will be uploaded to the storage service, which will also handle concerns such as high availability, security and distribution, and retrieval via a public URL.
 
-### ActiveStorage
+### Active Storage
 
-Solidus supports storage services out of the box by utilizing Rails native [ActiveStorage](https://edgeguides.rubyonrails.org/active_storage_overview.html) library. To configure ActiveStorage, navigate to your application's config folder and access `storage.yml`. Edit the configuration file so that your preferred service is uncommented and contains the correct environment variables. In the following example, we use s3 bucket:
+Solidus supports storage services out of the box by utilizing Rails native [Active Storage](https://edgeguides.rubyonrails.org/active_storage_overview.html) library. To configure Active Storage, navigate to your application's config folder and access `storage.yml`. Edit the configuration file so that your preferred service is uncommented and contains the correct environment variables. In the following example, we use S3 bucket:
 
 {% code title="config/storage.yml" %}
 ```ruby
@@ -76,7 +76,7 @@ amazon:
 ```
 {% endcode %}
 
-Next, it is necessary to edit the production environment ActiveStorage configuration to use your newly created service. Navigate to your production environment configuration and modify the following variable:
+Next, it is necessary to edit the production environment Active Storage configuration to use your newly created service. Navigate to your production environment configuration and modify the following variable:
 
 {% code title="config/environment/production.rb" %}
 ```ruby
@@ -90,9 +90,9 @@ config.active_storage.service = :amazon
 
 Finally, put your S3 credentials in the environment variables used in `storage.yml`.
 
-If you're not using S3, ActiveStorage provides support for the most popular storage services, either natively or through third-party plugins.
+If you're not using S3, Active Storage provides support for the most popular storage services, either natively or through third-party plugins.
 
-That is it, you have just set up ActiveStorage!
+That is it, you have just set up Active Storage!
 
 ### Paper Clip
 
@@ -143,7 +143,7 @@ Next, tell ActiveJob to use Sidekiq for queueing and running jobs:
 
 {% code title="config/application.rb" %}
 ```ruby
-module YourApp
+module AmazingStore
   class Application < Rails::Application
     # ...
     config.active_job.queue_adapter = :sidekiq
@@ -172,7 +172,7 @@ Most of these services provide a regular SMTP server you can use to deliver emai
 
 {% code title="config/application.rb" %}
 ```ruby
-module YourApp
+module AmazingStore
   class Application < Rails::Application
     # ...
     config.action_mailer.smtp_settings = {

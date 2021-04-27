@@ -62,9 +62,9 @@ Equipped with this information, we can now write our "nil" order merger, along w
 
 {% tabs %}
 {% tab title="nil\_order\_merger.rb" %}
-{% code title="app/models/awesome\_store/nil\_order\_merger.rb" %}
+{% code title="app/models/amazing\_store/nil\_order\_merger.rb" %}
 ```ruby
-module AwesomeStore
+module AmazingStore
   class NilOrderMerger
     attr_reader :order
 

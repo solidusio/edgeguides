@@ -29,11 +29,6 @@ If you don't have an existing Ruby on Rails application yet, simply create one w
 ```bash
 $ rails new amazing_store --skip-javascript
 ```
-or for PostgreSQL as your database:
-
-```bash
-$ rails new amazing_store --skip-javascript --d=postgresql
-```
 
 Solidus doesn't require the JavaScript compiler shipped with Rails by default \(Webpacker\). You are still free to install it and use it in your store, though.
 
@@ -45,7 +40,7 @@ If you have an existing Ruby on Rails application, installing Solidus is fairly 
 
 
 ```bash
-$ bundle add 'solidus' --version '~>3.0.0'
+$ bundle add 'solidus'
 $ bin/rails generate solidus:install
 ```
 

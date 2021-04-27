@@ -1,13 +1,24 @@
 # Optional Installation Settings
 ## RSpec
-RSpec is highly versatile testing framework that we utilize for Solidus and in our guide examples. To install it for your local project, simply enter the following commands while in your application's root directory:
+RSpec is highly versatile testing framework that we utilize for Solidus and in our guide examples. To install it for your local project, simply add the gem to your gemfile:
+{% code title="Gemfile" %}
+```ruby
+group :development, :test do
+  #...
+  gem 'rspec-rails'
+end
+```
+{% endcode %}
+
+Update your bundle and `Gemfile.lock` then install RSpec base files with the following commands in your shell:
+
 ```bash
-bundle add 'rspec_rails'
+bundle install
 rails g rspec:install
 ```
 {% hint style="info" %}
 You may have to navigate to your `spec_helper.rb` located in the `spec` directory of your applications root folder and make sure that you have the following at the top of the file:
-  {% code title="Gemfile" %}
+  {% code title="spec/spec_helper.rb" %}
   ```ruby
   ENV["RAILS_ENV"] ||= 'test'
   require File.expand_path("../../config/environment", __FILE__)
@@ -41,7 +52,7 @@ Next, we will need to navigate to `config/application.rb` and customize it to lo
 
 {% code title="config/application.rb" %}
 ```ruby
-module MyApplication
+module AmazingStore
   class Application < Rails::Application
 
     # … everything else
