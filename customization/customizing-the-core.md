@@ -170,7 +170,8 @@ end
 {% tab title="order\_finalization\_notifier\_spec.rb" %}
 {% code title="spec/lib/awesome\_store/order\_finalization\_notifier\_spec.rb" %}
 ```ruby
-require "awesome_store/order_finalization_notifier.rb"
+require "rails_helper"
+require "amazing_store/order_finalization_notifier.rb"
 
 RSpec.describe AwesomeStore::OrderFinalizationNotifier do
   it 'calls the external API' do
@@ -283,6 +284,8 @@ end
 {% tab title="product\_spec.rb" %}
 {% code title="spec/models/spree/product\_spec.rb" %}
 ```ruby
+require 'rails_helper'
+
 RSpec.describe Spree::Product do
   describe '#available?' do
     context 'when MAKE_PRODUCTS_UNAVAILABLE is true' do
