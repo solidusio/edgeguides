@@ -54,8 +54,8 @@ You will then need to subscribe to the `order_finalized` event, which is fired w
 {% code title="config/initializers/spree.rb" %}
 ```ruby
 # ...
-Spree::Event.subscribe 'order_finalized' do |payload|
-  AmazingStore::OrderAnalyzer.new.analyze(payload[:order])
+Spree::Event.subscribe 'order_finalized' do |event|
+  AmazingStore::OrderAnalyzer.new.analyze(event.payload[:order])
 end
 ```
 {% endcode %}
@@ -64,17 +64,21 @@ Our new business logic is pretty easy to test in integration:
 
 {% code title="spec/models/spree/order\_spec.rb" %}
 ```ruby
+require 'rails_helper'
+require 'amazing_store/order_analyzer'
+
 RSpec.describe Spree::Order do
   describe '#finalize!' do
     before do
-      allow(ENV).to receive(:fetch)
-        .with('REJECTED_EMAILS', any_args)
-        .and_return('jdoe@example.com')
+    stub_const 'ENV',
+        ENV.to_h
+        .merge('REJECTED_EMAILS' => 'jdoe@example.com')
     end
 
     context 'when the email has been rejected' do
       it 'marks the order as rejected' do
-        order = create(:order_ready_to_complete, email: 'jdoe@example.com')
+        order = create(:order_ready_to_complete)
+        order.update(email: 'jdoe@example.com')
         order.finalize!
 
         expect(order).to be_rejected
@@ -83,8 +87,8 @@ RSpec.describe Spree::Order do
 
     context 'when the email has not been rejected' do
       it 'does not mark the order as rejected' do
-        order = create(:order_ready_to_complete, email: 'hello@example.com')
-
+        order = create(:order_ready_to_complete)
+        order.update(email: 'hello@example.com')
         order.finalize!
 
         expect(order).not_to be_rejected
@@ -109,7 +113,7 @@ module AmazingStore
   module Spree
     module Admin
       module OrdersController
-        module AddRemoveFromrRejectedActionDecorator
+        module AddRemoveFromRejectedActionDecorator
           def remove_from_rejected
             load_order
 
@@ -219,14 +223,16 @@ It's finally time to write a full-fledged feature test to make sure the new butt
 
 {% code title="spec/features/admin/orders/rejected\_spec.rb" %}
 ```ruby
+require 'rails_helper'
+
 RSpec.describe 'Order rejecteding', :js do
   stub_authorization!
 
   it 'can be removed from the rejected' do
-    order = create(:completed_order, rejected: true)
+    order = create(:completed_order_with_totals, rejected: true)
     visit spree.edit_admin_order_path(order)
 
-    click_button t('spree.remove_from_rejected')
+    click_button I18n.t('spree.remove_from_rejected')
     order.reload
 
     expect(order).not_to be_rejected
