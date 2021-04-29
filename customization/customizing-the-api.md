@@ -261,14 +261,16 @@ ActiveRecord should now start keeping the number of likes in the `likes_count` c
 
 In order to expose this field to API clients, we'll need to add a JSON field to the products API. We could just copy-paste the `product.json.jbuilder` view from Solidus and add the field there, but then we would need to remember to update our custom view every time the original view is changed.
 
-Instead, Solidus provides a more manageable way to add attributes to API resources via the `ApiHelpers` module. Let's see how we can do it and test it:
+Instead, Solidus provides a more manageable way to add attributes to API resources via the `Config` class. Let's see how we can do it and test it:
 
 {% tabs %}
 {% tab title="spree.rb" %}
 {% code title="config/initializers/spree.rb" %}
 ```ruby
 # ...
-Spree::Api::ApiHelpers.product_attributes << :likes_count
+Spree::Api::Config.configure do |config|
+  config.product_attributes += [ :likes_count ]
+end
 ```
 {% endcode %}
 {% endtab %}
