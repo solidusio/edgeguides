@@ -18,6 +18,7 @@
 ## Advanced Solidus
 
 * [Promotions system](advanced-solidus/promotions-system.md)
+* [Checkout Steps](advanced-solidus/checkout-steps.md)
 * [User permissions](advanced-solidus/permission-management.md)
 * [Tax calculation](advanced-solidus/tax-calculation.md)
 * [Payment gateways](advanced-solidus/payment-gateways.md)
