@@ -96,12 +96,12 @@ RSpec.describe ProductLike do
 
   it 'validates the uniqueness of the user/product pair' do
     existing_product_like = create(:product_like)
-    
+
     product_like = build(:product_like,
       user: existing_product_like.user,
       product: existing_product_like.product,
     )
-    
+
     expect(product_like).not_to be_valid
   end
 end
@@ -128,18 +128,20 @@ Let's create our controller, along with its view, route a request spec to test i
 
 {% tabs %}
 {% tab title="product\_likes\_controller.rb" %}
-{% code title="app/controllers/api/product\_likes\_controller.rb" %}
+{% code title="app/controllers/api/products/product\_likes\_controller.rb" %}
 ```ruby
-module Api
-  class ProductLikesController < Spree::Api::BaseController
-    def create
-      @product = find_product(params[:product_id])
-      @like = ProductLike.new(product: @product, user: current_api_user)
+module Spree
+  module Api
+    class ProductLikesController < Spree::Api::BaseController
+      def create
+        @product = find_product(params[:product_id])
+        @like = ProductLike.new(product: @product, user: current_api_user)
 
-      if @like.save
-        render :show, status: :created
-      else
-        invalid_resource!(@like)
+        if @like.save
+          render :show, status: :no_content
+        else
+          invalid_resource!(@like)
+        end
       end
     end
   end
@@ -155,7 +157,7 @@ In our controller, we are relying on a few helpers Solidus provides out of the b
 {% endtab %}
 
 {% tab title="show.json.jbuilder" %}
-{% code title="app/views/api/product\_likes/show.json.jbuilder" %}
+{% code title="app/views/spree/api/product\_likes/show.json.jbuilder" %}
 ```ruby
 json.user_id(@like.user_id)
 json.partial!("spree/api/products/product", product: @like.product)
@@ -185,15 +187,22 @@ In the route, you may notice we are using a singleton resource \(`resource :prod
 {% tab title="product\_likes\_spec.rb" %}
 {% code title="spec/requests/product\_likes\_spec.rb" %}
 ```ruby
-RSpec.describe '/api/products/:slug/product_likes' do
+require 'rails_helper'
+require 'spree/api/testing_support/helpers'
+
+RSpec.describe '/api/products/:slug/product_likes', type: :request do
+  include Spree::Api::TestingSupport::Helpers
+  let(:current_api_user) { create(:user, :with_api_key) }
   before { stub_authentication! }
 
   describe 'POST /' do
+
     context 'when the user has not already liked the product' do
+
       it 'responds with 204 No Content' do
         product = create(:product)
 
-        post api_product_product_likes_path(product)
+        post spree.api_product_product_like_path(product)
 
         expect(response.status).to eq(204)
       end
@@ -201,7 +210,7 @@ RSpec.describe '/api/products/:slug/product_likes' do
       it 'likes the product' do
         product = create(:product)
 
-        post api_product_product_likes_path(product)
+        post spree.api_product_product_like_path(product)
 
         expect(ProductLike.count).to eq(1)
       end
@@ -209,17 +218,19 @@ RSpec.describe '/api/products/:slug/product_likes' do
 
     context 'when the user has already liked the product' do
       it 'responds with 422 Unprocessable Entity' do
-        product_like = create(:product_like, user: current_api_user)
+        product = create(:product)
+        product_like = create(:product_like, user: current_api_user, product: product)
 
-        post api_product_product_likes_path(product)
+        post spree.api_product_product_like_path(product)
 
         expect(response.status).to eq(422)
       end
-      
-      it 'does not re-like the product' do
-        product_like = create(:product_like, user: current_api_user)
 
-        post api_product_product_likes_path(product)
+      it 'does not re-like the product' do
+        product = create(:product)
+        product_like = create(:product_like, user: current_api_user, product: product)
+
+        post spree.api_product_product_like_path(product)
 
         expect(ProductLike.count).to eq(1)
       end
@@ -252,7 +263,7 @@ We will also need to make sure the `likes_count` column is automatically updated
 ```ruby
 class ProductLike < ApplicationRecord
   # ...
-  belongs_to :product, class_name: 'Spree::Product', counter_cache: true
+  belongs_to :product, class_name: 'Spree::Product', counter_cache: :likes_count
   # ...
 end
 ```
@@ -268,7 +279,7 @@ Instead, Solidus provides a more manageable way to add attributes to API resourc
 {% code title="config/initializers/spree.rb" %}
 ```ruby
 # ...
-Spree::Api::ApiHelpers.product_attributes << :likes_count
+Spree::Api::ApiHelpers.product_attributes << :like_count
 ```
 {% endcode %}
 {% endtab %}
@@ -276,16 +287,21 @@ Spree::Api::ApiHelpers.product_attributes << :likes_count
 {% tab title="products\_spec.rb" %}
 {% code title="spec/requests/api/products\_spec.rb" %}
 ```ruby
-RSpec.describe '/api/products' do
+require 'rails_helper'
+require 'spree/api/testing_support/helpers'
+
+RSpec.describe '/api/products', type: :request do
+  include Spree::Api::TestingSupport::Helpers
+  let(:current_api_user) { create(:user, :with_api_key) }
   before { stub_authentication! }
 
   describe 'GET /:slug' do
     it 'exposes the likes_count field' do
       product = create(:product)
-
       get spree.api_product_path(product)
 
       parsed_response = JSON.parse(response.body)
+      byebug
       expect(parsed_response).to match(a_hash_including(
         'product' => a_hash_including('likes_count' => 0),
       ))
@@ -304,4 +320,3 @@ That's all we need! We have created a new API resource and implemented a new end
 {% hint style="info" %}
 This section still needs to be written.
 {% endhint %}
-
