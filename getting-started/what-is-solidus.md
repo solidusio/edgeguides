@@ -44,7 +44,7 @@ $ bundle add 'solidus'
 $ bin/rails generate solidus:install
 ```
 
-The installer will prompt you on a few questions before completing the installation. First it will ask if you would like to use the default authentication solution, [Devise](https://github.com/heartcombo/devise), or your implement your own. Next it will ask what payment service you would like to install with solidus. Currently, Solidus only supports Paypal and is the default option. You may install your own and avoid implementing Paypal by typing 'none' when prompted. Finally, you will be prompted for an admin email and password. You can leave the default \(email: admin@example.com, password: test123\) or enter your own.
+The installer will prompt you on a few questions before completing the installation. First it will ask if you would like to use the default authentication solution, [Devise](https://github.com/heartcombo/devise), or your implement your own. Next it will ask what payment service you would like to install with solidus.Currently, Solidus comes packaged with [Paypal](https://developer.paypal.com/home) as the default and only option. Other integrated services that you tie into your application can be found and in the payment section of [Solidus extensions](https://solidus.io/extensions/). If you want to skip installing a payment service, just type 'none'. Finally, you will be prompted for an admin email and password. You can leave the default \(email: admin@example.com, password: test123\) or enter your own.
 
 Once the installation has completed, you can now start your Rails server:
 
