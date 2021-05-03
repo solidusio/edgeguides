@@ -24,7 +24,7 @@ For maximum flexibility, you can decide you just want to install specific gems a
 
 ### In a new app
 
-If you don't have an existing Ruby on Rails application yet, simply create one with sqlite3 as your database:
+If you don't have an existing Ruby on Rails application yet, simply create one with Sqlite3 as your database:
 
 ```bash
 $ rails new amazing_store --skip-javascript

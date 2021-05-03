@@ -128,7 +128,7 @@ Let's create our controller, along with its view, route a request spec to test i
 
 {% tabs %}
 {% tab title="product\_likes\_controller.rb" %}
-{% code title="app/controllers/api/products/product\_likes\_controller.rb" %}
+{% code title="app/controllers/spree/api/product\_likes\_controller.rb" %}
 ```ruby
 module Spree
   module Api
@@ -279,7 +279,7 @@ Instead, Solidus provides a more manageable way to add attributes to API resourc
 {% code title="config/initializers/spree.rb" %}
 ```ruby
 # ...
-Spree::Api::ApiHelpers.product_attributes << :like_count
+Spree::Api::Config.product_attributes << :likes_count
 ```
 {% endcode %}
 {% endtab %}
@@ -302,9 +302,7 @@ RSpec.describe '/api/products', type: :request do
 
       parsed_response = JSON.parse(response.body)
       byebug
-      expect(parsed_response).to match(a_hash_including(
-        'product' => a_hash_including('likes_count' => 0),
-      ))
+      expect(parsed_response).to match(a_hash_including('likes_count' => nil))
     end
   end
 end

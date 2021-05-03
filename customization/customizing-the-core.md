@@ -82,9 +82,9 @@ end
 {% endtab %}
 
 {% tab title="nil\_order\_merger\_spec.rb" %}
-{% code title="spec/models/awesome\_store/nil\_order\_merger\_spec.rb" %}
+{% code title="spec/models/amazing\_store/nil\_order\_merger\_spec.rb" %}
 ```ruby
-RSpec.describe AwesomeStore::NilOrderMerger do
+RSpec.describe AmazingStore::NilOrderMerger do
   subject(:order_merger) { described_class.new(order) }
 
   let(:order) { instance_spy('Spree::Order') }
@@ -121,7 +121,7 @@ Finally, now that we have the new merger, we need to tell Solidus to use it:
 ```ruby
 Spree.config do |config|
   # ...
-  config.order_merger_class = 'AwesomeStore::NilOrderMerger'
+  config.order_merger_class = 'AmazingStore::NilOrderMerger'
 end
 ```
 {% endcode %}
@@ -142,9 +142,9 @@ To accomplish this, you need to create an `OrderNotificationSubscriber` module t
 
 {% tabs %}
 {% tab title="order\_finalization\_notifier.rb" %}
-{% code title="lib/awesome\_store/order\_finalization\_notifier.rb" %}
+{% code title="lib/amazing\_store/order\_finalization\_notifier.rb" %}
 ```ruby
-module AwesomeStore
+module AmazingStore
   class OrderFinalizationNotifier
     attr_reader :event
 
@@ -168,12 +168,11 @@ end
 {% endtab %}
 
 {% tab title="order\_finalization\_notifier\_spec.rb" %}
-{% code title="spec/lib/awesome\_store/order\_finalization\_notifier\_spec.rb" %}
+{% code title="spec/lib/amazing\_store/order\_finalization\_notifier\_spec.rb" %}
 ```ruby
 require "rails_helper"
-require "amazing_store/order_finalization_notifier.rb"
 
-RSpec.describe AwesomeStore::OrderFinalizationNotifier do
+RSpec.describe AmazingStore::OrderFinalizationNotifier do
   it 'calls the external API' do
     order = double('Spree::Order')
     event = double('Spree::Event', payload: { order: order })
@@ -181,6 +180,20 @@ RSpec.describe AwesomeStore::OrderFinalizationNotifier do
     described_class.new(event).run
 
     # add some expectation here
+  end
+end
+```
+{% endcode %}
+{% endtab %}
+
+{% tab title="config/application.rb" %}
+{% code title="config/application.rb" %}
+```ruby
+module AmazingStore
+  class Application < Rails::Application
+    #... scan for and edit below
+    config.eager_load_paths << Rails.root.join("lib")
+    #...
   end
 end
 ```
@@ -198,7 +211,7 @@ Finally, you need to tell Solidus you're subscribing to the `order_finalized` ev
 ```ruby
 # ...
 Spree::Event.subscribe 'order_finalized' do |event|
-  AwesomeStore::OrderFinalizationNotifier.new(event).run
+  AmazingStore::OrderFinalizationNotifier.new(event).run
 end
 ```
 {% endcode %}
@@ -226,7 +239,7 @@ If you still want the encapsulation and testability of event handler classes, yo
 
 ```ruby
 Spree::Event.subscribe /.*\.spree/ do |event|
-  AwesomeStore::GenericEventHandler.new(event).run
+  AmazingStore::GenericEventHandler.new(event).run
 end
 ```
 
@@ -262,12 +275,12 @@ Here's our `AddGlobalHiddenFlag` decorator for `Spree::Product`, along with its 
 
 {% tabs %}
 {% tab title="add\_global\_hidden\_flag.rb" %}
-{% code title="app/decorators/awesome\_store/spree/product/add\_global\_hidden\_flag\_decorator.rb" %}
+{% code title="app/decorators/amazing\_store/spree/product/add\_global\_hidden\_flag.rb" %}
 ```ruby
-module AwesomeStore
+module AmazingStore
   module Spree
     module Product
-      module AddGlobalHiddenFlagDecorator
+      module AddGlobalHiddenFlag
         def available?
           ENV['MAKE_PRODUCTS_UNAVAILABLE'] == false && super
         end

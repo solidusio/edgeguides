@@ -1,6 +1,6 @@
 # Testing Setup
 
-Some of our tests we present in the guide examples utilize non-standard requirements that can be appended to your local rails helper. These additions will help provide an error free learning experience! Let's start with our gemfile to make sure we have required dependencies:
+Some of the tests we present in the guide examples utilize non-standard requirements that can be appended to your local rails helper. These additions will help provide an error-free learning experience! Let's start with our Gemfile to make sure we have the required dependencies:
 
 {% code title="Gemfile" %}
 ```ruby
@@ -26,7 +26,8 @@ group :test do
 
 Let's go over the installation of these gems and why we are suggesting them!
 ## RSpec
-RSpec is a highly versatile testing framework that we utilize for Solidus and in our guide examples. To install it for your local project, simply Update your bundle and install RSpec base files with the following commands in your shell:
+
+RSpec is a highly versatile testing framework that we utilize for Solidus and in our guide examples. To install it for your local project, simply update your bundle and install RSpec base files with the following commands in your shell:
 
 ```bash
 bundle install
@@ -54,7 +55,7 @@ module AmazingStore
     # Don't initialize this if factory_bot_rails is not part of the current bundle group.
     if defined?(FactoryBotRails)
       initializer after: "factory_bot.set_factory_paths" do
-        require 'spree/testing_support'
+        require 'spree/testing_support/factory_bot'
 
         # The paths for solidus factories.
         solidus_paths = Spree::TestingSupport::FactoryBot.definition_file_paths
@@ -73,7 +74,7 @@ module AmazingStore
         # alt_3: MySolidusExtension::Engine.root.join("lib/solidus_content/factories/product_factory.rb"),
         # etc.
 
-        # The application factories, according to the place in which they're stored.
+        # The application's factories, according to the place in which they're generally stored.
         app_paths = [
           Rails.root.join('lib', 'factories'),
           Rails.root.join('spec', 'factories'),
@@ -150,62 +151,7 @@ Capybara.javascript_driver = :headless_chrome
 ```
 { %endcode% }
 
-This configuration will set the default browser to a headless [Chrome](https://www.google.com/chrome/) window when running your tests. To learn about other supported drivers, please refer to capybara's [guide](https://github.com/teamcapybara/capybara/blob/2.12.0/README.md#using-capybara-with-rspec).
+This configuration will set the default browser to a headless [Chrome](https://www.google.com/chrome/) window when running your tests. To learn about other supported drivers, please refer to [Capybara's guide](https://github.com/teamcapybara/capybara/blob/2.12.0/README.md#using-capybara-with-rspec).
 ## Database Cleaner
 
-[Database Cleaner](https://github.com/DatabaseCleaner/database_cleaner) will ensure that we have a clean state after each test so there is not a possibility of running into duplicated objects or remaining object entries which may fail a test. Database cleaner has different strategies in ensuring you database is clean, but we will utilizing only the defaults in this exercise. If you would like to learn more, you can visit the Database Cleaner [guides](https://github.com/DatabaseCleaner/database_cleaner#what-strategy-is-fastest) which provides a detailed explanation of their strategies. In order to get it running for our purposes, we will need to create another helper file! If you have not already created the support file structure from the capybara installation instructions above, do so now and create a new file, `database_cleaner.rb` and input:
-
-{% code title="spec/support/database\_cleaner.rb" %}
-```ruby
-require 'capybara/rspec'
-
-RSpec.configure do |config|
-
-  config.use_transactional_fixtures = false
-
-  config.before(:suite) do
-    if config.use_transactional_fixtures?
-      raise(<<-MSG)
-        Delete line `config.use_transactional_fixtures = true` from rails_helper.rb
-        (or set it to false) to prevent uncommitted transactions being used in
-        JavaScript-dependent specs.
-
-        During testing, the app-under-test that the browser driver connects to
-        uses a different database connection to the database connection used by
-        the spec. The app's database connection would not be able to access
-        uncommitted transaction data setup over the spec's database connection.
-      MSG
-    end
-    DatabaseCleaner.clean_with(:truncation)
-  end
-
-  config.before(:each) do
-    DatabaseCleaner.strategy = :transaction
-  end
-
-  config.before(:each, type: :feature) do
-    # :rack_test driver's Rack app under test shares database connection
-    # with the specs, so continue to use transaction strategy for speed.
-    driver_shares_db_connection_with_specs = Capybara.current_driver == :rack_test
-
-    unless driver_shares_db_connection_with_specs
-      # Driver is probably for an external browser with an app
-      # under test that does *not* share a database connection with the
-      # specs, so use truncation strategy.
-      DatabaseCleaner.strategy = :truncation
-    end
-  end
-
-  config.before(:each) do
-    DatabaseCleaner.start
-  end
-
-  config.append_after(:each) do
-    DatabaseCleaner.clean
-  end
-
-end
-```
-{ %endcode% }
-
-This block instructs RSpec to run Database Cleaner to wipe your database clean after each test.
+[Database Cleaner](https://github.com/DatabaseCleaner/database_cleaner) will ensure that we have a clean state after each test so there is not a possibility of running into duplicated objects or remaining object entries which may fail a test. Database cleaner has different strategies to ensure your database is clean, If you would like to learn more, you can visit the Database Cleaner guides which provides a detailed [explanation of their strategies](https://github.com/DatabaseCleaner/database_cleaner#what-strategy-is-fastest) and how to [setup the gem](https://github.com/DatabaseCleaner/database_cleaner#rspec-with-capybara-example) on your system.

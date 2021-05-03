@@ -7,7 +7,7 @@ Deploying a Solidus application to production is no different from deploying any
 ### Heroku
 
 {% hint style="warning" %}
-Heroku [does not support](https://devcenter.heroku.com/articles/sqlite3) the rails default database sqlite3. Heroku natively utilizes [PostgreSQL](https://www.postgresql.org/) and adaptively uses other [data storage services](https://elements.heroku.com/addons).
+Heroku [does not support](https://devcenter.heroku.com/articles/sqlite3) the Rails default database Sqlite3. Heroku natively utilizes [PostgreSQL](https://www.postgresql.org/) and adaptively uses other [data storage services](https://elements.heroku.com/addons).
 {% endhint %}
 
 Deploying a Solidus store to [Heroku](https://heroku.com) is extremely simple. All you'll need is an active Heroku account and the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) on your machine.
@@ -51,7 +51,7 @@ When deploying a Solidus store, there are a few external dependencies that must 
 ### File storage
 
 {% hint style="warning" %}
-Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of Rails' native [Active Storage](https://guides.rubyonrails.org/active_storage_overview.html) library. Should you be utilizing a version of rails before 6.1, your application will not be able to use Active Storage and therefore should use Paperclip.
+Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of Rails' native [Active Storage](https://guides.rubyonrails.org/active_storage_overview.html) library. Should you be utilizing a version of Rails before 6.1, your application will not be able to use Active Storage and therefore should use Paperclip.
 {% endhint %}
 
 When you run Solidus locally or on a single node, any files you upload \(product images, taxon icons etc.\) are stored on the filesystem. While this works great in development, it's not a viable option when deploying to cloud platforms where clustering may cause files in one node not to be accessible by all other nodes. You may also find that files disappear when a node reboots because of [ephemeral filesystems](https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem).
@@ -83,7 +83,6 @@ Next, it is necessary to edit the production environment Active Storage configur
 ...
 # Store uploaded files on the local file system (see config/storage.yml for options).
 config.active_storage.service = :amazon
-
 ...
 ```
 {% endcode %}
@@ -96,7 +95,7 @@ That is it, you have just set up Active Storage!
 
 ### Paper Clip
 
-Solidus versions earlier than 3.0.0 support integration with the [Paperclip](https://github.com/thoughtbot/paperclip) gem. In order to configure Paperclip, just create an initializer like the following:
+Solidus also supports integration with the [Paperclip](https://github.com/thoughtbot/paperclip) gem if Active Storage is not the solution for your application. In order to configure Paperclip, just create an initializer like the following:
 
 ```ruby
 if Rails.env.production?

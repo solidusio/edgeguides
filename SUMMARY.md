@@ -5,7 +5,7 @@
 ## Getting Started
 
 * [Installing Solidus](getting-started/what-is-solidus.md)
-  *  [Optional Installation Settings](getting-started/optional_installation_settings.md)
+  *  [Testing Setup](getting-started/testing-setup.md)
 * [Using extensions](getting-started/extensions.md)
 * [Deploying to production](getting-started/deployment.md)
 

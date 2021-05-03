@@ -46,7 +46,7 @@ For the purpose of our custom promotion, we'll need to create a new `Query` prom
 There is no unified API for promotion handlers, but we can take inspiration from the [existing ones](https://github.com/solidusio/solidus/tree/master/core/app/models/spree/promotion_handler) and use a similar format:
 
 ```ruby
-module AwesomeStore
+module AmazingStore
   module PromotionHandler
     class Query
       attr_reader :order, :query
@@ -81,7 +81,7 @@ Our promotion handler accepts an order and the current request's query string \(
 
 You may be wondering why we have used a promotion handler to do this instead of a promotion rule to check the referral code. There are two main reasons:
 
-1. Conceptually, it is the handler's responsibility to "activate" a promotion at the right time, while a rule should simply check that the order is valid for a promotion. 
+1. Conceptually, it is the handler's responsibility to "activate" a promotion at the right time, while a rule should simply check that the order is valid for a promotion.
 2. Unlike promotion handlers, rules are activated by the promotions system automatically, and there is no way for them to access the current request.
 
 With that said, we could have definitely followed other approaches, like storing the referral code on the order itself during the request, then validating it in a promotion rule. In most cases, there are many ways to implement the same promotion — you'll have to do some research and preparation to figure out what works best for your use case.
@@ -90,7 +90,7 @@ With that said, we could have definitely followed other approaches, like storing
 As we mentioned initially, Solidus doesn't know anything about custom promotion handlers and will not call them for you: it's your responsibility to call them when needed. The next step, then, is to call our new handler upon every request by using a decorator:
 
 ```ruby
-module AwesomeStore
+module AmazingStore
   module Spree
     module StoreController
       def self.prepended(base)
@@ -102,7 +102,7 @@ module AwesomeStore
       private
 
       def activate_referral_promotions
-        AwesomeStore::PromotionHandler::Query.new(
+        AmazingStore::PromotionHandler::Query.new(
           current_order,
           request.query_parameters,
         ).activate
@@ -123,7 +123,7 @@ Now that we have our handler, let's move on and implement the promotion rule tha
 For simplicity, we'll just run a check on the order's email. However, in order to do that, we'll need to store the influencer's email somewhere on the promotion, and the best way to do that is to create a preference on the promotion rule itself:
 
 ```ruby
-module AwesomeStore
+module AmazingStore
   module Promotion
     module Rules
       class NotInfluencer < Spree::PromotionRule
@@ -159,7 +159,7 @@ Now that we have the implementation of our promotion rule, we also need to give 
 <div class="row">
   <div class="col-6">
     <div class="field">
-      <%= AwesomeStore::Promotion::Rules::NotInfluencer.human_attribute_name(:email) %>
+      <%= AmazingStore::Promotion::Rules::NotInfluencer.human_attribute_name(:email) %>
     </div>
   </div>
   <div class="col-6">
@@ -176,7 +176,7 @@ The last step is to register our new promotion rule in an initializer:
 {% code title="config/initializers/promotions.rb" %}
 ```ruby
 # ...
-Rails.application.config.spree.promotions.rules << AwesomeStore::Promotion::Rules::NotInfluencer
+Rails.application.config.spree.promotions.rules << AmazingStore::Promotion::Rules::NotInfluencer
 ```
 {% endcode %}
 
@@ -187,7 +187,7 @@ That's it! When you create a new promotion in the backend, we should now see the
 Finally, let's implement the promotion action that will grant customers a 50% shipping discount. In order to do that, we can take inspiration from the existing [`FreeShipping`](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/promotion/actions/free_shipping.rb) action:
 
 ```ruby
-class AwesomeStore::Promotion::Actions::HalfShipping < Spree::PromotionAction
+class AmazingStore::Promotion::Actions::HalfShipping < Spree::PromotionAction
   # The `perform` method is called when an action is applied to an order or line
   # item. The payload contains a lot of useful context:
   # https://github.com/solidusio/solidus/blob/master/core/app/models/spree/promotion.rb#L97
@@ -245,9 +245,8 @@ Finally, we need to register our action by adding the following to an initialize
 
 {% code title="config/initializers/promotions.rb" %}
 ```ruby
-Rails.application.config.spree.promotions.actions << AwesomeStore::Promotion::Actions::HalfShipping
+Rails.application.config.spree.promotions.actions << AmazingStore::Promotion::Actions::HalfShipping
 ```
 {% endcode %}
 
 Restart the server and you should now see your new promotion action!
-
