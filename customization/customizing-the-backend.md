@@ -28,7 +28,7 @@ This will add the `rejected` boolean column to `spree_orders`.
 
 The first step is to flag an order as rejected when the email address on the order has been rejected. You can do this by creating a class whose job is to analyze an order and determine whether it should be flagged as rejected:
 
-{% code title="lib/amazing\_store/order\_analyzer.rb" %}
+{% code title="app/models/amazing\_store/order\_analyzer.rb" %}
 ```ruby
 module AmazingStore
   class OrderAnalyzer
@@ -65,7 +65,6 @@ Our new business logic is pretty easy to test in integration:
 {% code title="spec/models/spree/order\_spec.rb" %}
 ```ruby
 require 'rails_helper'
-require 'amazing_store/order_analyzer'
 
 RSpec.describe Spree::Order do
   describe '#finalize!' do

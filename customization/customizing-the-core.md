@@ -142,7 +142,7 @@ To accomplish this, you need to create an `OrderNotificationSubscriber` module t
 
 {% tabs %}
 {% tab title="order\_finalization\_notifier.rb" %}
-{% code title="lib/amazing\_store/order\_finalization\_notifier.rb" %}
+{% code title="app/models/amazing\_store/order\_finalization\_notifier.rb" %}
 ```ruby
 module AmazingStore
   class OrderFinalizationNotifier
@@ -168,7 +168,7 @@ end
 {% endtab %}
 
 {% tab title="order\_finalization\_notifier\_spec.rb" %}
-{% code title="spec/lib/amazing\_store/order\_finalization\_notifier\_spec.rb" %}
+{% code title="spec/models/amazing\_store/order\_finalization\_notifier\_spec.rb" %}
 ```ruby
 require "rails_helper"
 
@@ -180,20 +180,6 @@ RSpec.describe AmazingStore::OrderFinalizationNotifier do
     described_class.new(event).run
 
     # add some expectation here
-  end
-end
-```
-{% endcode %}
-{% endtab %}
-
-{% tab title="config/application.rb" %}
-{% code title="config/application.rb" %}
-```ruby
-module AmazingStore
-  class Application < Rails::Application
-    #... scan for and edit below
-    config.eager_load_paths << Rails.root.join("lib")
-    #...
   end
 end
 ```
