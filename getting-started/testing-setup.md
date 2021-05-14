@@ -149,7 +149,7 @@ end
 
 Capybara.javascript_driver = :headless_chrome
 ```
-{ %endcode% }
+{% endcode %}
 
 This configuration will set the default browser to a headless [Chrome](https://www.google.com/chrome/) window when running your tests. To learn about other supported drivers, please refer to [Capybara's guide](https://github.com/teamcapybara/capybara/blob/2.12.0/README.md#using-capybara-with-rspec).
 ## Database Cleaner

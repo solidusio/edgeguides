@@ -87,7 +87,7 @@ You may be wondering why we have used a promotion handler to do this instead of 
 With that said, we could have definitely followed other approaches, like storing the referral code on the order itself during the request, then validating it in a promotion rule. In most cases, there are many ways to implement the same promotion — you'll have to do some research and preparation to figure out what works best for your use case.
 {% endhint %}
 
-As we mentioned initially, Solidus doesn't know anything about custom promotion handlers and will not call them for you: it's your responsibility to call them when needed. The next step, then, is to call our new handler upon every request by using a decorator:
+As we mentioned initially, Solidus doesn't know anything about custom promotion handlers and will not call them for you: it's your responsibility to call them when needed. The next step, then, is to call our new handler upon every request by using a override:
 
 ```ruby
 module AmazingStore

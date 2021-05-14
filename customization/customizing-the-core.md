@@ -229,7 +229,7 @@ Spree::Event.subscribe /.*\.spree/ do |event|
 end
 ```
 
-### Using decorators
+### Using Overrides
 
 Solidus is a large and complex platform and, while new built-in customization hooks and events are introduced all the time to make the platform easier to extend, there may be situations where Solidus doesn't provide an official API to customize what you need. When that's the case, Ruby's meta-programming features come to the rescue, allowing you to extend and/or override whatever you want.
 
@@ -255,13 +255,13 @@ However, we can still use plain old Ruby and the power of [`Module#prepend`](htt
 The Solidus ecosystem used to rely heavily on `#class_eval` for overrides, but `#prepend` is a much better option. In case you're curious and want to dig deeper into the internals of what's going on, there are a few tutorials on Ruby's ancestors chain and what makes `#prepend` better than its alternatives. Check out "[Ruby modules: Include vs Prepend vs Extend](https://medium.com/@leo_hetsch/ruby-modules-include-vs-prepend-vs-extend-f09837a5b073)" and "[A class\_eval monkey-patching pattern with prepend](https://bibwild.wordpress.com/2016/12/27/a-class_eval-monkey-patching-pattern-with-prepend/)". You may see old guides, tutorials and extensions still using `#class_eval`, but you should know this is a deprecated pattern.
 {% endhint %}
 
-You can customize the `Spree::Product#available?` method by writing a module that will be prepended to `Spree::Product`. In the Solidus ecosystem, we call such modules **decorators.** Decorators are usually named in a descriptive way, that expresses how the decorator extends the original class.
+You can customize the `Spree::Product#available?` method by writing a module that will be prepended to `Spree::Product`. In the Solidus ecosystem, we call such modules **overrides.** Overrides are usually named in a descriptive way, that expresses how the override extends the original class.
 
-Here's our `AddGlobalHiddenFlag` decorator for `Spree::Product`, along with its related spec:
+Here's our `AddGlobalHiddenFlag` override for `Spree::Product`, along with its related spec:
 
 {% tabs %}
 {% tab title="add\_global\_hidden\_flag.rb" %}
-{% code title="app/decorators/amazing\_store/spree/product/add\_global\_hidden\_flag.rb" %}
+{% code title="app/overrides/amazing\_store/spree/product/add\_global\_hidden\_flag.rb" %}
 ```ruby
 module AmazingStore
   module Spree

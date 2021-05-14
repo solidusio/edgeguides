@@ -104,9 +104,9 @@ At this point, we have a dead-simple order analyzer that determines whether each
 
 In order to allow admins to remove an order from the rejected, we'll add a button to the order detail page that will trigger a new controller action.
 
-The first step is to add our custom action to `Spree::Admin::OrdersController`. We'll use a decorator to accomplish that:
+The first step is to add our custom action to `Spree::Admin::OrdersController`. We'll use an override to accomplish that:
 
-{% code title="app/decorators/amazing\_store/spree/admin/orders\_controller/add\_remove\_from\_rejected\_action.rb" %}
+{% code title="app/overrides/amazing\_store/spree/admin/orders\_controller/add\_remove\_from\_rejected\_action.rb" %}
 ```ruby
 module AmazingStore
   module Spree
