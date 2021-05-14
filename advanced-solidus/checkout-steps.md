@@ -1,4 +1,4 @@
-# Checkout steps
+# Checkout Steps
 
 {% hint style="info" %}
 You can find a screencast that covers adding and removing checkout steps in Solidus [here](https://www.youtube.com/watch?v=p_O4d9k4qxI).
@@ -15,7 +15,7 @@ The default Solidus checkout flow follows these steps, from start to finish:
 1. Cart
 2. Address
 3. Delivery
-4. Payment (if needed)
+4. Payment \(if needed\)
 5. Confirm
 6. Complete
 
@@ -44,7 +44,6 @@ end
 Please keep in mind the following caveats for removing checkout steps:
 
 * If you remove the address step but keep the delivery step, the delivery step will break, as it expects the order to have an address.
-
 * If you remove the payment step but the order has a positive balance, the order will not be able to complete.
 
 ## Adding checkout steps
@@ -85,7 +84,7 @@ en:
 
 {% tab title="app/views/spree/checkout/\_my\_custom\_step.html.erb" %}
 {% code title="app/views/spree/checkout/\_my\_custom\_step.html.erb" %}
-```erb
+```text
 <div>
   The customer will see this partial when they are on your checkout step. Be sure to add a continue button!
 </div>
@@ -99,7 +98,7 @@ en:
 {% endtab %}
 {% endtabs %}
 
-#### Before step action
+### Before step action
 
 Before proceeding to any step, the checkout controller will check to see if a method named `before_#{checkout_step_name}` exists. If it does, it runs that method. That means that you can run custom logic before the controller moves on to your step, which can be handy if you want to set things up for the view.
 
@@ -119,7 +118,7 @@ end
 ```
 {% endcode %}
 
-#### Checkout Controller Attributes
+### Checkout Controller Attributes
 
 If you need to permit additional attributes for your custom step, you can add the attributes to the `checkout_confirm_attributes` set in an initializer.
 
@@ -206,3 +205,4 @@ end
 {% endcode %}
 {% endtab %}
 {% endtabs %}
+
