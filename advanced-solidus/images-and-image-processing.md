@@ -102,8 +102,21 @@ end
 {% endcode %}
 
 After appending these new styles into settings, they can be utilized in your store by passing the style when rendering the image partial. Ex:
+
 {% code title="" %}
-```erb
+```ruby
 <%= render 'spree/admin/shared/image', image: product.gallery.images.first, size: :jumbo %>
 ```
 {% endcode %}
+## Customizing MIME Type Validation
+
+Currently, web image MIME types that are accepted by ActiveStorage and Paperclip are limited to png, jpeg, jpg, and gif. Because of this, Solidus checks uploaded image files to make sure they are compatible and will raise and error letting the user know that they can not upload a non-supported format. If you are creating your own preview adapter to ActiveStorage or Paperclip, you will also need to ensure that Solidus' MIME type configuration is set to include your desired format. This is can be accomplished by simply editing the configuration option in `spree.rb`:
+
+{% code title="config/initializers/spree.rb" %}
+```ruby
+# ...
+Spree::Config.allowed_image_mime_types = %w(image/jpeg image/jpg image/png image/gif your/MIMETYPE).freeze
+# ...
+```
+{% endcode %}
+
