@@ -24,7 +24,7 @@ This is all you need for now. The rest of the requirements will be implemented i
 Solidus ships with a generator to prepare and configure your custom user class throughout the application. Just run the following:
 
 ```bash
-$ rails g spree:custom_user MyStore::User
+$ rails g spree:custom_user AmazingStore::User
 ```
 
 This will do the following:
@@ -81,7 +81,7 @@ class ApplicationController < ActionController::Base
     # you'll need some additional custom logic here.
     current_user
   end
-  
+
   # ...
 end
 ```
@@ -126,10 +126,9 @@ To add user methods to your `User` model, include `Spree::UserMethods` :
 module MyStore
   class User
     include Spree::UserMethods
-    
+
     # ...
   end
 end
 ```
 {% endcode %}
-

@@ -66,9 +66,9 @@ Let's take it one step further and assume that we also want customer service rep
 
 Since there isn't a permission set that does what we need, we'll need to create our own:
 
-{% code title="app/models/awesome\_store/permission\_sets/user\_update.rb" %}
+{% code title="app/models/amazing\_store/permission\_sets/user\_update.rb" %}
 ```ruby
-module AwesomeStore
+module AmazingStore
   module PermissionSets
     class UserUpdate < Spree::PermissionSets::Base
       def activate!
@@ -90,7 +90,7 @@ Spree.config do |config|
     Spree::PermissionSets::OrderDisplay,
     Spree::PermissionSets::UserDisplay,
     Spree::PermissionSets::ProductDisplay,
-    AwesomeStore::PermissionSets::UserUpdate,
+    AmazingStore::PermissionSets::UserUpdate,
   ]
 end
 ```
@@ -101,4 +101,3 @@ That's it! Now, customer service representatives can also update user profiles.
 {% hint style="info" %}
 Permission sets delegate a lot of their implementation to CanCanCan, which provides a very powerful API for defining which actions a user can and cannot perform. For a complete overview of what you can accomplish, refer to the [CanCanCan documentation](https://github.com/CanCanCommunity/cancancan).
 {% endhint %}
-

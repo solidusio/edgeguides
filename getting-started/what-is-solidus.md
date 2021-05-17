@@ -24,7 +24,7 @@ For maximum flexibility, you can decide you just want to install specific gems a
 
 ### In a new app
 
-If you don't have an existing Ruby on Rails application yet, simply create one:
+If you don't have an existing Ruby on Rails application yet, simply create one with Sqlite3 as your database:
 
 ```bash
 $ rails new amazing_store --skip-javascript
@@ -36,24 +36,15 @@ Once you have generated your new Rails application, you can proceed as if you we
 
 ### In an existing app
 
-If you have an existing Ruby on Rails application, installing Solidus is fairly simple:
+If you have an existing Ruby on Rails application, installing Solidus is fairly simple. In your CLI:
 
-{% code title="Gemfile" %}
-```ruby
-# ...
-
-gem 'solidus'
-```
-{% endcode %}
-
-Then, install the bundle and configure Solidus:
 
 ```bash
-$ bundle install
+$ bundle add 'solidus'
 $ bin/rails generate solidus:install
 ```
 
-The installer will prompt you for an admin email and password. You can leave the default \(email: admin@example.com, password: test123\) or enter your own.
+The installer will prompt you on a few questions before completing the installation. First it will ask if you would like to use the default authentication solution, [Devise](https://github.com/heartcombo/devise), or your implement your own. Next it will ask what payment service you would like to install with solidus.Currently, Solidus comes packaged with [Paypal](https://developer.paypal.com/home) as the default and only option. Other integrated services that you tie into your application can be found and in the payment section of [Solidus extensions](https://solidus.io/extensions/). If you want to skip installing a payment service, just type 'none'. Finally, you will be prompted for an admin email and password. You can leave the default \(email: admin@example.com, password: test123\) or enter your own.
 
 Once the installation has completed, you can now start your Rails server:
 
@@ -65,11 +56,11 @@ You should now be able to access your storefront at [http://localhost:3000](http
 
 ## Upgrading Solidus
 
-With Solidus' maintenance policy, a release will receive security patches and other critical bugfixes for 18 months after it's released to the public. This should give you plenty of time to upgrade to new versions of Solidus before your release reaches its EOL. You can find a list of the currently supported Solidus versions on the [Security](https://solidus.io/security/) page of our website.
+With Solidus' maintenance policy, a release will receive security patches and other critical bug-fixes for 18 months after it's released to the public. This should give you plenty of time to upgrade to new versions of Solidus before your release reaches its EOL. You can find a list of the currently supported Solidus versions on the [Security](https://solidus.io/security/) page of our website.
 
 Because of the project's focus on stability and backwards compatibility, upgrading Solidus is usually a painless process: minor releases NEVER break public APIs, although they may deprecate APIs that will then be removed in the next major.
 
-When upgrading, look at the [changelog](https://github.com/solidusio/solidus/blob/master/CHANGELOG.md) and make a note of any large refactorings or changes in the public API, then update your app accordingly. You should also make sure to [update any extensions](extensions.md#staying-up-to-date) you have installed, since new releases may have come out to support the new Solidus version or take advantage of new functionality it introduces.
+When upgrading, look at the [changelog](https://github.com/solidusio/solidus/blob/master/CHANGELOG.md) and make a note of any large refactoring or public API changes, then update your app accordingly. You should also make sure to [update any extensions](extensions.md#staying-up-to-date) you have installed, since new releases may have come out to support the new Solidus version or take advantage of new functionality it introduces.
 
 ### Ruby and Rails upgrades
 
@@ -106,4 +97,3 @@ This will output a de-duplicated list of deprecations in your code. Once you hav
 {% hint style="info" %}
 In some cases, deprecated code may come from Solidus extensions and not your own app, meaning you can't fix the deprecation yourself. When this happens, you can open an issue in the extension's repository to let the maintainer know that they need to update their extension.
 {% endhint %}
-

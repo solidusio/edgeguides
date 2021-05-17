@@ -45,7 +45,7 @@ The process for installing a Solidus extension is usually pretty simple and simi
 gem 'solidus'
 gem 'solidus_auth_devise'
 # ...
-gem 'solidus_awesome_extension'
+gem 'solidus_amazing_extension'
 ```
 {% endcode %}
 
@@ -55,7 +55,7 @@ Note that some extensions may have an outdated release on RubyGems or may not ha
 gem 'solidus'
 gem 'solidus_auth_devise'
 # ...
-gem 'solidus_awesome_extension', github: 'solidusio/solidus_awesome_extension'
+gem 'solidus_amazing_extension', github: 'solidusio/solidus_amazing_extension'
 ```
 
 Once you have added the gem, install your bundle:
@@ -84,4 +84,3 @@ $ bundle exec rspec
 ```
 
 Of course, this is not always possible and there may be situations where you need to lock an extension, but we recommend keeping these to a minimum.
-

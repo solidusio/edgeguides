@@ -62,9 +62,9 @@ Equipped with this information, we can now write our "nil" order merger, along w
 
 {% tabs %}
 {% tab title="nil\_order\_merger.rb" %}
-{% code title="app/models/awesome\_store/nil\_order\_merger.rb" %}
+{% code title="app/models/amazing\_store/nil\_order\_merger.rb" %}
 ```ruby
-module AwesomeStore
+module AmazingStore
   class NilOrderMerger
     attr_reader :order
 
@@ -82,9 +82,9 @@ end
 {% endtab %}
 
 {% tab title="nil\_order\_merger\_spec.rb" %}
-{% code title="spec/models/awesome\_store/nil\_order\_merger\_spec.rb" %}
+{% code title="spec/models/amazing\_store/nil\_order\_merger\_spec.rb" %}
 ```ruby
-RSpec.describe AwesomeStore::NilOrderMerger do
+RSpec.describe AmazingStore::NilOrderMerger do
   subject(:order_merger) { described_class.new(order) }
 
   let(:order) { instance_spy('Spree::Order') }
@@ -121,7 +121,7 @@ Finally, now that we have the new merger, we need to tell Solidus to use it:
 ```ruby
 Spree.config do |config|
   # ...
-  config.order_merger_class = 'AwesomeStore::NilOrderMerger'
+  config.order_merger_class = 'AmazingStore::NilOrderMerger'
 end
 ```
 {% endcode %}
@@ -142,9 +142,9 @@ To accomplish this, you need to create an `OrderNotificationSubscriber` module t
 
 {% tabs %}
 {% tab title="order\_finalization\_notifier.rb" %}
-{% code title="lib/awesome\_store/order\_finalization\_notifier.rb" %}
+{% code title="app/models/amazing\_store/order\_finalization\_notifier.rb" %}
 ```ruby
-module AwesomeStore
+module AmazingStore
   class OrderFinalizationNotifier
     attr_reader :event
 
@@ -168,9 +168,11 @@ end
 {% endtab %}
 
 {% tab title="order\_finalization\_notifier\_spec.rb" %}
-{% code title="spec/lib/awesome\_store/order\_finalization\_notifier\_spec.rb" %}
+{% code title="spec/models/amazing\_store/order\_finalization\_notifier\_spec.rb" %}
 ```ruby
-RSpec.describe AwesomeStore::OrderFinalizationNotifier do
+require "rails_helper"
+
+RSpec.describe AmazingStore::OrderFinalizationNotifier do
   it 'calls the external API' do
     order = double('Spree::Order')
     event = double('Spree::Event', payload: { order: order })
@@ -195,7 +197,7 @@ Finally, you need to tell Solidus you're subscribing to the `order_finalized` ev
 ```ruby
 # ...
 Spree::Event.subscribe 'order_finalized' do |event|
-  AwesomeStore::OrderFinalizationNotifier.new(event).run
+  AmazingStore::OrderFinalizationNotifier.new(event).run
 end
 ```
 {% endcode %}
@@ -223,11 +225,11 @@ If you still want the encapsulation and testability of event handler classes, yo
 
 ```ruby
 Spree::Event.subscribe /.*\.spree/ do |event|
-  AwesomeStore::GenericEventHandler.new(event).run
+  AmazingStore::GenericEventHandler.new(event).run
 end
 ```
 
-### Using decorators
+### Using Overrides
 
 Solidus is a large and complex platform and, while new built-in customization hooks and events are introduced all the time to make the platform easier to extend, there may be situations where Solidus doesn't provide an official API to customize what you need. When that's the case, Ruby's meta-programming features come to the rescue, allowing you to extend and/or override whatever you want.
 
@@ -253,22 +255,22 @@ However, we can still use plain old Ruby and the power of [`Module#prepend`](htt
 The Solidus ecosystem used to rely heavily on `#class_eval` for overrides, but `#prepend` is a much better option. In case you're curious and want to dig deeper into the internals of what's going on, there are a few tutorials on Ruby's ancestors chain and what makes `#prepend` better than its alternatives. Check out "[Ruby modules: Include vs Prepend vs Extend](https://medium.com/@leo_hetsch/ruby-modules-include-vs-prepend-vs-extend-f09837a5b073)" and "[A class\_eval monkey-patching pattern with prepend](https://bibwild.wordpress.com/2016/12/27/a-class_eval-monkey-patching-pattern-with-prepend/)". You may see old guides, tutorials and extensions still using `#class_eval`, but you should know this is a deprecated pattern.
 {% endhint %}
 
-You can customize the `Spree::Product#available?` method by writing a module that will be prepended to `Spree::Product`. In the Solidus ecosystem, we call such modules **decorators.** Decorators are usually named in a descriptive way, that expresses how the decorator extends the original class.
+You can customize the `Spree::Product#available?` method by writing a module that will be prepended to `Spree::Product`. In the Solidus ecosystem, we call such modules **overrides.** Overrides are usually named in a descriptive way, that expresses how the override extends the original class.
 
-Here's our `AddGlobalHiddenFlag` decorator for `Spree::Product`, along with its related spec:
+Here's our `AddGlobalHiddenFlag` override for `Spree::Product`, along with its related spec:
 
 {% tabs %}
 {% tab title="add\_global\_hidden\_flag.rb" %}
-{% code title="app/decorators/awesome\_store/spree/product/add\_global\_hidden\_flag.rb" %}
+{% code title="app/overrides/amazing\_store/spree/product/add\_global\_hidden\_flag.rb" %}
 ```ruby
-module AwesomeStore
+module AmazingStore
   module Spree
     module Product
       module AddGlobalHiddenFlag
         def available?
-          ENV['MAKE_PRODUCTS_UNAVAILABLE'] == 'true' && super
+          ENV['MAKE_PRODUCTS_UNAVAILABLE'] == false && super
         end
-        
+
         ::Spree::Product.prepend self
       end
     end
@@ -281,13 +283,15 @@ end
 {% tab title="product\_spec.rb" %}
 {% code title="spec/models/spree/product\_spec.rb" %}
 ```ruby
+require 'rails_helper'
+
 RSpec.describe Spree::Product do
   describe '#available?' do
     context 'when MAKE_PRODUCTS_UNAVAILABLE is true' do
       before do
-        allow(ENV).to receive(:[])
-          .with('MAKE_PRODUCTS_UNAVAILABLE')
-          .and_return('true')
+        stub_const 'ENV',
+          ENV.to_h
+          .merge('MAKE_PRODUCTS_UNAVAILABLE' => true)
       end
 
       it 'makes the product unavailable' do
@@ -299,9 +303,9 @@ RSpec.describe Spree::Product do
 
     context 'when MAKE_PRODUCTS_UNAVAILABLE is false' do
       before do
-        allow(ENV).to receive(:[])
-          .with('MAKE_PRODUCTS_UNAVAILABLE')
-          .and_return('false')
+        stub_const 'ENV',
+          ENV.to_h
+          .merge('MAKE_PRODUCTS_UNAVAILABLE' => false)
       end
 
       it 'makes the product available' do
@@ -322,4 +326,3 @@ As you can see, we are not only able to override the default `#available?` imple
 {% hint style="warning" %}
 You should always prefer customizing Solidus via public, standardized APIs such as the built-in customization hooks and the event bus, whenever possible. When you use a supported API, it's much less likely your customization will be broken by a future upgrade that changes the part of the code you are overriding.
 {% endhint %}
-
