@@ -37,18 +37,18 @@ Every time an order is changed, the taxation system checks whether tax adjustmen
 Here are the two main actors responsible for calculating taxes in Solidus:
 
 * The **tax calculator** is a class responsible for receiving an order and returning all the taxes that need to be applied to that order's line items and shipments. The tax calculator API is completely independent from the underlying implementation. [Here's the default calculator.](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/tax_calculator/default.rb)
-* **Amount calculators** are models that are associated to a tax rate and used to compute the tax amount for a specific line item or shipment. [Here's an example.](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/calculator/default_tax.rb)
+* **Rate calculators** are models that are associated to a tax rate and used to compute the tax amount for a specific line item or shipment. [Here's an example.](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/calculator/default_tax.rb)
 
 In a standard Solidus configuration, Solidus uses both of these concepts: the [default tax calculator](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/tax_calculator/default.rb) uses the configured tax rates to determine the tax amounts to apply to your order.
 
 If you want to customize the tax calculation logic, you may do it at two different levels:
 
-* **Write a custom amount calculator:** with this approach, admins will create a tax rate that uses your own amount calculator and tell Solidus to use that tax rate for your products and zones. The default tax calculator will call the configured tax rate, which in turn will delegate the amount computation to your custom amount calculator.
-* **Replace the tax calculator \(recommended\):** this way, Solidus will not use the amount calculators at all. This approach affords you maximum flexibility, since you'll be calculating taxes on the entire order at the same time rather than on a per-item basis.
+* **Write a custom rate calculator:** with this approach, admins will create a tax rate that uses your own rate calculator and tell Solidus to use that tax rate for your products and zones. The default tax calculator will call the configured tax rate, which in turn will delegate the amount computation to your custom rate calculator.
+* **Replace the tax calculator \(recommended\):** this way, Solidus will not use the rate calculators at all. This approach affords you maximum flexibility, since you'll be calculating taxes on the entire order at the same time rather than on a per-item basis.
 
 Because most tax calculation workflows are fairly complicated with different edge case, it is advisable to replace the tax calculator entirely if you need to customize tax calculation in your store.
 
-If, on the other hand, your logic is simple enough to fit the custom amount calculator pattern, you can go with that instead and save yourself the need to write some additional logic.
+If, on the other hand, your logic is simple enough to fit the custom rate calculator pattern, you can go with that instead and save yourself the need to write some additional logic.
 
 {% hint style="info" %}
 **TODO:** Document shipping rate tax calculators.
@@ -124,9 +124,11 @@ end
 
 Reboot your server, and Solidus should start using your custom tax calculator!
 
-### With a custom amount calculator
+### With a custom rate calculator
 
-With a custom amount calculator, store administrators configure tax rates as usual in the Solidus backend, but select your custom amount calculator instead of the default one. When a tax rate is applied to an item, the custom tax calculator will be called and your logic will be triggered.
+With a custom rate calculator, store administrators configure tax rates as usual in the Solidus backend, but select your custom rate calculator instead of the default one. When a tax rate is applied to an item, the custom tax calculator will be called and your logic will be triggered.
+
+A custom rate calculator is pretty simple, and it looks like the following:
 
 ```ruby
 class CustomCalculator < Calculator::DefaultTax
@@ -137,24 +139,78 @@ class CustomCalculator < Calculator::DefaultTax
   end
 
   def compute_line_item(line_item)
-    # ...
+    calculate(line_item.total_before_tax)
   end
 
   def compute_shipping_rate(shipping_rate)
-    # ...
+    calculate(shipping_rate.total_before_tax)
   end
 
   def compute_shipment(shipment)
+    calculate(shipment.total_before_tax)
+  end
+  
+  private
+  
+  def calculate(amount)
+    # Skip the calculation if this tax rate is not active.
+    return 0 unless calculable.active?
+
+    # e.g. do some API call here and return the tax amount
     # ...
   end
 end
 ```
 
-Register:
+As you can see, you can specify different logic for calculating taxes on line items, shipping rates and shipments, if you need to \(e.g., if you're not charging tax on shipments\). If you're using the same logic for all objects, you may further simplify the implementation:
 
+{% code title="app/models/custom\_calculator.rb" %}
 ```ruby
-Rails.application.config.spree.calculators.tax_rates << Spree::Calculator::AvalaraTransaction
+class CustomCalculator < Calculator::DefaultTax
+  class << self
+    def description
+      'My Custom Calculator'
+    end
+  end
+
+  def compute_item(item)
+    # Skip the calculation if the tax rate is not active.
+    return 0 unless calculable.active?
+
+    amount = item.total_before_tax
+
+    # e.g. do some API call here and return the tax amount
+    # ...
+  end
+
+  alias_method :compute_shipment, :compute_item
+  alias_method :compute_line_item, :compute_item
+  alias_method :compute_shipping_rate, :compute_item
+end
 ```
+{% endcode %}
 
+This is how the default tax calculator is implemented, for instance!
 
+Once you have implemented your custom rate calculator, you need to register it by adding the following to an initializer:
+
+{% code title="config/initializers/spree.rb" %}
+```ruby
+Rails.application.config.spree.calculators.tax_rates << CustomCalculator
+```
+{% endcode %}
+
+At this point, you can create a new tax rate in the admin panel and select your custom rate calculator. In the admin panel, go to **Settings -&gt; Taxes -&gt; Tax Rates** and click on **New Tax Rate**, then configure the new tax rate like this \(you may want to change the validity period, zone and tax categories\):
+
+![](../.gitbook/assets/screenshot-localhost_3000-2021.05.18-09_34_06.png)
+
+You can now save your tax rate, and your custom rate calculator will start being called for all items in one of the tax rate's tax categories, as long as they belong to the tax rate's zone!
+
+{% hint style="info" %}
+You'll notice that we entered a **Rate** of 0.0 in the configuration above, and that we disabled the **Show rate in label** option.
+
+This is because, in our custom rate calculator, the user-provided tax rate is not being used at all: instead, we are calling an external API to return the correct tax rate for us.
+
+This kind of inconsistency is one of the reasons you should almost always use a custom tax calculator instead of a custom rate calculator.
+{% endhint %}
 
