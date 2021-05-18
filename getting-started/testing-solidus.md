@@ -1,4 +1,4 @@
-# Testing Setup
+# Testing Solidus
 
 Some of the tests we present in the guide examples utilize non-standard requirements that can be appended to your local rails helper. These additions will help provide an error-free learning experience! Let's start with our Gemfile to make sure we have the required dependencies:
 

@@ -4,8 +4,8 @@
 
 ## Getting Started
 
-* [Installing Solidus](getting-started/what-is-solidus/README.md)
-  * [Testing Setup](getting-started/what-is-solidus/testing-setup.md)
+* [Installing Solidus](getting-started/what-is-solidus.md)
+* [Testing Solidus](getting-started/testing-solidus.md)
 * [Using extensions](getting-started/extensions.md)
 * [Deploying to production](getting-started/deployment.md)
 
