@@ -25,6 +25,7 @@ group :test do
 {% endcode %}
 
 Let's go over the installation of these gems and why we are suggesting them!
+
 ## RSpec
 
 RSpec is a highly versatile testing framework that we utilize for Solidus and in our guide examples. To install it for your local project, simply update your bundle and install RSpec base files with the following commands in your shell:
@@ -33,6 +34,7 @@ RSpec is a highly versatile testing framework that we utilize for Solidus and in
 bundle install
 rails g rspec:install
 ```
+
 For more information on RSpec and associated methods, please see the [official documentation](https://relishapp.com/rspec/rspec-rails/docs).
 
 ## Solidus Factories and authentication helpers
@@ -124,6 +126,7 @@ end
 {% endcode %}
 {% endtab %}
 {% endtabs %}
+
 ## Capybara and Webdrivers
 
 [Capybara](https://github.com/teamcapybara/capybara) helps you test web applications by simulating how a real user would interact with your app. This is complimented by the `webdrivers` gem to provide selenium drivers required by Capybara to test multiple browsers. However, some setup is required to utilize the features we will be testing. It is recommended that you follow [Capybara's guide](https://github.com/teamcapybara/capybara#using-capybara-with-rspec) provided by the content creators to properly setup this library.
@@ -152,6 +155,8 @@ Capybara.javascript_driver = :headless_chrome
 {% endcode %}
 
 This configuration will set the default browser to a headless [Chrome](https://www.google.com/chrome/) window when running your tests. To learn about other supported drivers, please refer to [Capybara's guide](https://github.com/teamcapybara/capybara/blob/2.12.0/README.md#using-capybara-with-rspec).
+
 ## Database Cleaner
 
 [Database Cleaner](https://github.com/DatabaseCleaner/database_cleaner) will ensure that we have a clean state after each test so there is not a possibility of running into duplicated objects or remaining object entries which may fail a test. Database cleaner has different strategies to ensure your database is clean, If you would like to learn more, you can visit the Database Cleaner guides which provides a detailed [explanation of their strategies](https://github.com/DatabaseCleaner/database_cleaner#what-strategy-is-fastest) and how to [setup the gem](https://github.com/DatabaseCleaner/database_cleaner#rspec-with-capybara-example) on your system.
+

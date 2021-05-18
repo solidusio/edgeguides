@@ -4,8 +4,8 @@
 
 ## Getting Started
 
-* [Installing Solidus](getting-started/what-is-solidus.md)
-  *  [Testing Setup](getting-started/testing-setup.md)
+* [Installing Solidus](getting-started/what-is-solidus/README.md)
+  * [Testing Setup](getting-started/what-is-solidus/testing-setup.md)
 * [Using extensions](getting-started/extensions.md)
 * [Deploying to production](getting-started/deployment.md)
 
@@ -19,7 +19,6 @@
 ## Advanced Solidus
 
 * [Promotions system](advanced-solidus/promotions-system.md)
-* [Checkout Steps](advanced-solidus/checkout-steps.md)
 * [User permissions](advanced-solidus/permission-management.md)
 * [Tax calculation](advanced-solidus/tax-calculation.md)
 * [Payment gateways](advanced-solidus/payment-gateways.md)
@@ -27,3 +26,8 @@
 * [Custom authentication](advanced-solidus/custom-authentication.md)
 * [Indexing and search](advanced-solidus/indexing-and-search.md)
 * [Extension development](advanced-solidus/extension-development.md)
+
+## Cookbook
+
+* [Redefining checkout steps](cookbook/redefining-checkout-steps.md)
+

@@ -318,3 +318,4 @@ That's all we need! We have created a new API resource and implemented a new end
 {% hint style="info" %}
 This section still needs to be written.
 {% endhint %}
+

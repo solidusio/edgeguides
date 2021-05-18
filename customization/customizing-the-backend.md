@@ -253,3 +253,4 @@ Congratulations! You have implemented your first custom feature for the Solidus 
 Of course, we have just scratched the surface of what's possible: the backend provides a lot of UI components and capabilities you may leverage. We suggest spending some time in the backend's codebase to get accustomed with all the different tools at your disposal, and doing some planning/research before every custom feature.
 
 By using a combination of custom controller actions, view overrides and automated tests, you'll be able to write custom admin features that are fully integrated with the Solidus experience, and yet are a joy to maintain and evolve over time.
+

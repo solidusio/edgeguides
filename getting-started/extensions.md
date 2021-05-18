@@ -84,3 +84,4 @@ $ bundle exec rspec
 ```
 
 Of course, this is not always possible and there may be situations where you need to lock an extension, but we recommend keeping these to a minimum.
+

@@ -32,12 +32,11 @@ $ rails new amazing_store --skip-javascript
 
 Solidus doesn't require the JavaScript compiler shipped with Rails by default \(Webpacker\). You are still free to install it and use it in your store, though.
 
-Once you have generated your new Rails application, you can proceed as if you were installing Solidus [in an existing app](what-is-solidus.md#in-an-existing-app).
+Once you have generated your new Rails application, you can proceed as if you were installing Solidus [in an existing app](./#in-an-existing-app).
 
 ### In an existing app
 
 If you have an existing Ruby on Rails application, installing Solidus is fairly simple. In your CLI:
-
 
 ```bash
 $ bundle add 'solidus'
@@ -60,7 +59,7 @@ With Solidus' maintenance policy, a release will receive security patches and ot
 
 Because of the project's focus on stability and backwards compatibility, upgrading Solidus is usually a painless process: minor releases NEVER break public APIs, although they may deprecate APIs that will then be removed in the next major.
 
-When upgrading, look at the [changelog](https://github.com/solidusio/solidus/blob/master/CHANGELOG.md) and make a note of any large refactoring or public API changes, then update your app accordingly. You should also make sure to [update any extensions](extensions.md#staying-up-to-date) you have installed, since new releases may have come out to support the new Solidus version or take advantage of new functionality it introduces.
+When upgrading, look at the [changelog](https://github.com/solidusio/solidus/blob/master/CHANGELOG.md) and make a note of any large refactoring or public API changes, then update your app accordingly. You should also make sure to [update any extensions](../extensions.md#staying-up-to-date) you have installed, since new releases may have come out to support the new Solidus version or take advantage of new functionality it introduces.
 
 ### Ruby and Rails upgrades
 
@@ -97,3 +96,4 @@ This will output a de-duplicated list of deprecations in your code. Once you hav
 {% hint style="info" %}
 In some cases, deprecated code may come from Solidus extensions and not your own app, meaning you can't fix the deprecation yourself. When this happens, you can open an issue in the extension's repository to let the maintainer know that they need to update their extension.
 {% endhint %}
+

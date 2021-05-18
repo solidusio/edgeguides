@@ -326,3 +326,4 @@ As you can see, we are not only able to override the default `#available?` imple
 {% hint style="warning" %}
 You should always prefer customizing Solidus via public, standardized APIs such as the built-in customization hooks and the event bus, whenever possible. When you use a supported API, it's much less likely your customization will be broken by a future upgrade that changes the part of the code you are overriding.
 {% endhint %}
+

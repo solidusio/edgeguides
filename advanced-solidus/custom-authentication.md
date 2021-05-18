@@ -1,7 +1,7 @@
 # Custom authentication
 
 {% hint style="info" %}
-You can use the official [`solidus_auth_devise`  ](https://github.com/solidusio/solidus_auth_devise)gem to provide a `Spree::User` model and basic authentication for Solidus. See its documentation for additional setup instructions.
+You can use the official [`solidus_auth_devise` ](https://github.com/solidusio/solidus_auth_devise)gem to provide a `Spree::User` model and basic authentication for Solidus. See its documentation for additional setup instructions.
 {% endhint %}
 
 Solidus requires a `User` model in order to take advantage of all its features. This model can have any name, and Solidus can integrate with your application's existing authentication system.
@@ -117,7 +117,7 @@ end
 
 ## Adding Solidus user methods
 
-The [`Spree::UserMethods` module  ](https://github.com/solidusio/solidus/blob/master/core/app/models/concerns/spree/user_methods.rb)provides extensive integration for a `User` model, creating associations and allowing it to interact with major models in Solidus like `Spree::Order`.
+The [`Spree::UserMethods` module ](https://github.com/solidusio/solidus/blob/master/core/app/models/concerns/spree/user_methods.rb)provides extensive integration for a `User` model, creating associations and allowing it to interact with major models in Solidus like `Spree::Order`.
 
 To add user methods to your `User` model, include `Spree::UserMethods` :
 
@@ -132,3 +132,4 @@ module MyStore
 end
 ```
 {% endcode %}
+

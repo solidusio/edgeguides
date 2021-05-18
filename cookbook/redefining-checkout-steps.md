@@ -1,4 +1,4 @@
-# Checkout Steps
+# Redefining checkout steps
 
 {% hint style="info" %}
 You can find a screencast that covers adding and removing checkout steps in Solidus [here](https://www.youtube.com/watch?v=p_O4d9k4qxI).

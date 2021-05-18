@@ -182,7 +182,7 @@ Rails.application.config.spree.promotions.rules << AmazingStore::Promotion::Rule
 
 That's it! When you create a new promotion in the backend, we should now see the _Not Influencer_ promotion rule.
 
-##  Implementing a new action
+## Implementing a new action
 
 Finally, let's implement the promotion action that will grant customers a 50% shipping discount. In order to do that, we can take inspiration from the existing [`FreeShipping`](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/promotion/actions/free_shipping.rb) action:
 
@@ -213,7 +213,7 @@ class AmazingStore::Promotion::Actions::HalfShipping < Spree::PromotionAction
       true
     end
 
-    # `perform` needs to return true if any adjustments have been applied by
+    # `perform` needs to return true if any adjustments have been applied by
     # the promotion action. Otherwise, it should return false.
     results.any? { |result| result == true }
   end
@@ -250,3 +250,4 @@ Rails.application.config.spree.promotions.actions << AmazingStore::Promotion::Ac
 {% endcode %}
 
 Restart the server and you should now see your new promotion action!
+

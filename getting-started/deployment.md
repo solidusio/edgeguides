@@ -30,8 +30,7 @@ You're all set! Your Solidus store should now be running on Heroku.
 
 {% hint style="warning" %}
 Heroku [does not support](https://devcenter.heroku.com/articles/sqlite3) the Rails default database Sqlite3. Heroku natively utilizes [PostgreSQL](https://www.postgresql.org/) and adaptively uses other [data storage services](https://elements.heroku.com/addons). If you would like to maintain a local Sqlite3 database for development and testing while having PostgreSQL for your production database, simply update the following configurations:
-{% tabs %}
-{% tab title="Gemfile" %}
+
 {% code title="Gemfile" %}
 ```ruby
 group :production do
@@ -43,11 +42,9 @@ group :development, :test do
   gem 'sqlite3', '~> 1.4'
   # ...
 end
-
 ```
 {% endcode %}
-{% endtab %}
-{% tab title="config/database.yml" %}
+
 {% code title="config/database.yml" %}
 ```ruby
 # ...
@@ -61,8 +58,7 @@ production:
     timeout: 5000 # optional
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+
 Run `bundle update` and your application will be set to run PostgreSQL in your production environment. Be sure to also set your Heroku environment variables as well by utilizing the command `heroku config:set DB_NAME=my_database` in your shell or in Heroku's online [Dashboard](https://dashboard.heroku.com/).
 {% endhint %}
 
@@ -166,11 +162,9 @@ The default ActiveJob adapter is [Async](https://api.rubyonrails.org/classes/Act
 
 Instead, you should use a production-grade queue such as [Sidekiq](https://github.com/mperham/sidekiq), which uses Redis for storing and retrieving your application's jobs under the hood. Using Sidekiq with ActiveJob is simple. First of all, install Sidekiq by adding it to your `Gemfile`:
 
-
 ```bash
 bundle add 'sidekiq'
 ```
-
 
 Next, tell ActiveJob to use Sidekiq for queueing and running jobs:
 
@@ -223,3 +217,4 @@ end
 {% endcode %}
 
 You should then configure the `SENDGRID_USERNAME`, `SENDGRID_PASSWORD` and `SENDGRID_DOMAIN` environment variables with your SendGrid credentials.
+
