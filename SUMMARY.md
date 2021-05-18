@@ -24,10 +24,10 @@
 * [Payment gateways](advanced-solidus/payment-gateways.md)
 * [Inventory and fulfillment](advanced-solidus/inventory-and-fulfillment.md)
 * [Custom authentication](advanced-solidus/custom-authentication.md)
-* [Indexing and search](advanced-solidus/indexing-and-search.md)
 * [Extension development](advanced-solidus/extension-development.md)
 
 ## Cookbook
 
 * [Redefining checkout steps](cookbook/redefining-checkout-steps.md)
+* [Customizing the search engine](cookbook/customizing-the-search-engine.md)
 

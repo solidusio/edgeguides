@@ -1,4 +1,4 @@
-# Indexing and search
+# Customizing the search engine
 
 {% hint style="info" %}
 This guide still needs to be written.

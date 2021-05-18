@@ -62,13 +62,7 @@ production:
 Run `bundle update` and your application will be set to run PostgreSQL in your production environment. Be sure to also set your Heroku environment variables as well by utilizing the command `heroku config:set DB_NAME=my_database` in your shell or in Heroku's online [Dashboard](https://dashboard.heroku.com/).
 {% endhint %}
 
-### AWS OpsWorks
-
-{% hint style="info" %}
-This section still needs to be written.
-{% endhint %}
-
-### Kubernetes
+### AWS
 
 {% hint style="info" %}
 This section still needs to be written.
