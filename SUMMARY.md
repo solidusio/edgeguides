@@ -5,8 +5,8 @@
 ## Getting Started
 
 * [Installing Solidus](getting-started/what-is-solidus.md)
-* [Testing Solidus](getting-started/testing-solidus.md)
 * [Using extensions](getting-started/extensions.md)
+* [Testing Solidus](getting-started/testing-solidus.md)
 * [Deploying to production](getting-started/deployment.md)
 
 ## Customization
@@ -29,5 +29,5 @@
 ## Cookbook
 
 * [Redefining checkout steps](cookbook/redefining-checkout-steps.md)
-* [Customizing the search engine](cookbook/customizing-the-search-engine.md)
+* [Customizing search](cookbook/customizing-the-search-engine.md)
 

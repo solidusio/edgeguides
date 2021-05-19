@@ -181,3 +181,39 @@ In the example above, the first test, which doesn't require JavaScript, will be 
 
 For more information on system tests and Capybara, you can refer to the [RSpec guides](https://relishapp.com/rspec/rspec-rails/v/5-0/docs/system-specs/system-spec) and [Capybara's official documentation](https://github.com/teamcapybara/capybara).
 
+## Using the built-in helpers
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+## Testing your Solidus app
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Testing overrides
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Testing the storefront
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Testing the backend
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Testing event subscribers
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+

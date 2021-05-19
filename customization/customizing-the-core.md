@@ -229,7 +229,7 @@ Spree::Event.subscribe /.*\.spree/ do |event|
 end
 ```
 
-### Using Overrides
+### Using overrides
 
 Solidus is a large and complex platform and, while new built-in customization hooks and events are introduced all the time to make the platform easier to extend, there may be situations where Solidus doesn't provide an official API to customize what you need. When that's the case, Ruby's meta-programming features come to the rescue, allowing you to extend and/or override whatever you want.
 
