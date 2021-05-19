@@ -30,4 +30,5 @@
 
 * [Redefining checkout steps](cookbook/redefining-checkout-steps.md)
 * [Customizing search](cookbook/customizing-the-search-engine.md)
+* [Adding subscriptions](cookbook/adding-subscriptions.md)
 
