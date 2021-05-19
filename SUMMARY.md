@@ -25,6 +25,7 @@
 * [Inventory and fulfillment](advanced-solidus/inventory-and-fulfillment.md)
 * [Custom authentication](advanced-solidus/custom-authentication.md)
 * [Extension development](advanced-solidus/extension-development.md)
+* [State machines](advanced-solidus/state-machines.md)
 
 ## Cookbook
 
