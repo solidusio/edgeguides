@@ -183,11 +183,57 @@ For more information on system tests and Capybara, you can refer to the [RSpec g
 
 ## Using the built-in helpers
 
+Solidus comes with a set of useful helpers you can use in your tests. You can find them in the [`spree/testing_support`](https://github.com/solidusio/solidus/tree/master/core/lib/spree/testing_support) path. We suggest including the ones you need in your RSpec configuration to save some time when writing tests.
+
+### Ability helpers
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Authorization helpers
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Capybara helpers
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Flash helpers
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Order helpers
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Preference helpers
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### URL helpers
+
 {% hint style="info" %}
 This section still needs to be written.
 {% endhint %}
 
 ## Testing your Solidus app
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
+### Testing service objects
 
 {% hint style="info" %}
 This section still needs to be written.
