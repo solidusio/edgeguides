@@ -658,6 +658,10 @@ end
 ```
 {% endcode %}
 
+{% hint style="info" %}
+This helper is in the process of being ported to Solidus, so you can simply include it like you do for all the other helpers. In the meantime, though, you'll have to do some old-fashioned copy-pasting if you want to use it!
+{% endhint %}
+
 This snippet will deactivate all subscribers when running your unit tests, except for the ones you explicitly enable via the `perform_subscribers` helper. Subscribers will still be active as usual in your system and request specs, so that you make sure your application works well in integration.
 
 Here's how you can use it:
