@@ -2,6 +2,10 @@
 
 ## Introduction to the REST API
 
+{% hint style="info" %}
+We also provide a GraphQL API, if you're more into that. [Check it out!](https://github.com/solidusio-contrib/solidus_graphql_api)
+{% endhint %}
+
 Solidus comes with a complete [REST API](https://github.com/solidusio/solidus/tree/master/api) that allows you to manage all aspects of your store. In some cases, you may want to extend the API's functionality by adding new endpoints and customizing the existing ones. Like all other parts of Solidus, the API is a Rails engine, which means you can use the regular tools at your disposal to customize its behavior.
 
 {% hint style="danger" %}
@@ -312,10 +316,4 @@ end
 {% endtabs %}
 
 That's all we need! We have created a new API resource and implemented a new endpoint to manipulate it, and we have seen how to add fields to an existing API resource. If you feel adventurous, how about trying to implement an endpoint for _removing_ an existing product like?
-
-## Managing API documentation
-
-{% hint style="info" %}
-This section still needs to be written.
-{% endhint %}
 
