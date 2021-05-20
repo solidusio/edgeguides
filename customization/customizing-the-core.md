@@ -283,8 +283,6 @@ end
 {% tab title="product\_spec.rb" %}
 {% code title="spec/models/spree/product\_spec.rb" %}
 ```ruby
-require 'rails_helper'
-
 RSpec.describe Spree::Product do
   describe '#available?' do
     context 'when MAKE_PRODUCTS_UNAVAILABLE is true' do
