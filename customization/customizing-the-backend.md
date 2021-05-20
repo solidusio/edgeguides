@@ -69,9 +69,9 @@ require 'rails_helper'
 RSpec.describe Spree::Order do
   describe '#finalize!' do
     before do
-    stub_const 'ENV',
-        ENV.to_h
-        .merge('REJECTED_EMAILS' => 'jdoe@example.com')
+      stub_const('ENV', ENV.to_h.merge(
+        'REJECTED_EMAILS' => 'jdoe@example.com',
+      ))
     end
 
     context 'when the email has been rejected' do
