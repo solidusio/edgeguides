@@ -212,15 +212,53 @@ That's all we needed! The requirements have been satisfied, and it's now time to
 
 ### Using the sandbox app
 
+Because extensions are Rails engines, they can't be previewed as easily as we'd do with a customization in our main app, because there's no underlying Rails/Solidus application to run the extension. You could install your extension in an existing Solidus app and preview it there, but this can be slow and cumbersome, especially when you're still actively working on the extension.
+
+Luckily, `solidus_dev_support` provides a Rake task we can run to generate a "sandbox app", i.e. a barebones Rails + Solidus application with our extension already installed and configured. The sandbox app is extremely useful in extension development, and it's important to learn to make the best of it.
+
+To generate the sandbox app, simply run the following command:
+
+```text
+$ bin/sandbox
+```
+
+The generation might take a couple of minutes, so sit tight and relax! The process will also ask you a few times whether migrations should be run immediately or manually at a later stage — you want to run them immediately, which is also the default selection. This will save you a few seconds of work.
+
+Once the process has completed, you'll find a new `sandbox` directory in the root of your extension. This contains your new shiny sandbox app. Your extension has already been installed and configured inside the app: try looking for the `config/initializers/solidus_acme_fulfillment.rb` initializer.
+
+{% hint style="warning" %}
+The sandbox app is ephemeral and intended for development/test purposes only: the sandbox path is ignored by Git, so any changes you make there will be lost permanently if you remove the `sandbox` directory.
+{% endhint %}
+
+`solidus_dev_support` also allows you to run commands in your sandbox app from the root of your extension, just as you would do with a regular Rails application. Try spinning up a Rails server:
+
+```text
+$ rails server
+```
+
+This should boot your sandbox app and serve it at [http://localhost:3000](http://localhost:3000), so that you can preview your extension as you work on it!
+
+{% hint style="info" %}
+All `rails` commands will be delegated to the sandbox app.
+
+One exception is the `rails g` /`rails generate` command, which will be run in your extension \(since that's usually the intended behavior\). If you need to run a generator in the sandbox app, you'll have to first `cd` into the `sandbox` directory.
+
+In alternative, you can use `bin/rails-engine` and `bin/rails-sandbox` to force a command to run in the engine or in the sandbox respectively.
+{% endhint %}
+
+### Releasing the extension
+
+{% hint style="info" %}
+This step is optional, but recommended. You _could_ keep your extension in a private or public GitHub repository and download it directly from there, but you'd miss out on the benefits of properly versioning your extension, which makes it easier to maintain it and upgrade it.
+{% endhint %}
+
+* Release the extension on RubyGems
+* Release the extension privately on Gemfury
+
 ### Installing the extension
 
 * Install the extension in a store
 * Show it in action
-
-### Releasing the extension
-
-* Release the extension on RubyGems
-* Release the extension privately on Gemfury
 
 ### Testing via CircleCI
 
