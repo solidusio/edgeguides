@@ -710,3 +710,9 @@ end
 
 This will make sure only the subscriber under test is executed when the `order_finalized` event is fired. As a result, your subscriber test is now fully isolated!
 
+### Testing extensions
+
+{% hint style="info" %}
+This section still needs to be written.
+{% endhint %}
+
