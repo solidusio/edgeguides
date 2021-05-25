@@ -483,7 +483,6 @@ workflows:
             branches:
               only:
                 - master
-
 ```
 
 As you can read in the comments, the configuration above will:
@@ -492,4 +491,16 @@ As you can read in the comments, the configuration above will:
 * Test the current `master` weekly against the currently supported Solidus versions, as well as against the latest `master`, in order to ensure your extension's code is compatible with the upcoming Solidus release.
 
 The tests will be run both with MySQL and PostgreSQL, since Solidus supports both.
+
+### Write engine-specific code
+
+{% hint style="info" %}
+**TODO:** Show how to write code that's only loaded when the backend, API or frontend are available.
+{% endhint %}
+
+### Write backwards-compatible migrations
+
+{% hint style="info" %}
+**TODO:** Show how to write migrations compatible with the oldest supported Rails version.
+{% endhint %}
 
