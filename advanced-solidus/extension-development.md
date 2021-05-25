@@ -428,7 +428,68 @@ That's all you need! Users of your extension can now provide their own API seria
 
 ### Automate testing with CI
 
-* Show how to configure CircleCI with the Solidus orb
-* Show how to add the CircleCI badge
-* Support all Solidus versions that are not EOL
+{% hint style="info" %}
+[CircleCI](https://circleci.com/) is an extremely powerful platform, and an in-depth explanation of its architecture is out of the scope of this guide. The following paragraphs assume you are familiar with CircleCI and [CircleCI Orbs](https://circleci.com/docs/2.0/orb-intro/). If you are not, we recommend reading the relevant documentation first.
+{% endhint %}
+
+The Solidus ecosystem is extremely large and varied. For lots of stores with extensive customizations, upgrading as soon as a new version of Solidus is released is simply not feasible, as it would take too much work and distract the engineering department from other priorities. To give Solidus users a smooth upgrade path, we commit to maintaining all Solidus versions [for 18 months after their release](https://solidus.io/security). This ensures stores have plenty of time to upgrade their Solidus version.
+
+Official and community-maintained extensions follow the same policy: all extensions are expected to support all currently maintained Solidus versions, so that users on older Solidus versions are not "left behind" as the ecosystem moves forward. This means that all extensions should be tested against all the currently supported Solidus versions, so that no incompatible changes are inadvertently introduced in the extension's code.
+
+We know that this can be a burden for extension maintainers, so we've developed a set of tools to help with the process, like the [`@solidusio/extensions` CircleCI orb](https://circleci.com/developer/orbs/orb/solidusio/extensions). The orb will automatically test your Solidus extension against the right Solidus versions, without the need for you to update the versions list manually. The orb will even periodically test your extension against the latest `master` branch of Solidus, so that you know whether your extension is compatible with the _upcoming_ version of Solidus!
+
+{% hint style="info" %}
+If you have generated your extension with `solidus_dev_support`, your extension is already configured for testing via CircleCI, and you just need to [follow the project](https://circleci.com/docs/2.0/project-build/#adding-projects) on CircleCI!
+{% endhint %}
+
+Here's a sample CircleCI configuration for a Solidus extension:
+
+```yaml
+version: 2.1
+
+orbs:
+  solidusio_extensions: solidusio/extensions@volatile
+
+jobs:
+  # Test with MySQL
+  run-specs-with-mysql:
+    executor: solidusio_extensions/mysql
+    steps:
+      - solidusio_extensions/run-tests
+  # Test with PostgreSQL
+  run-specs-with-postgres:
+    executor: solidusio_extensions/postgres
+    steps:
+      - solidusio_extensions/run-tests
+
+workflows:
+  # Test all commits against the supported Solidus versions
+  # and the latest master branch from Solidus
+  Run specs on supported Solidus versions:
+    jobs:
+      - run-specs-with-postgres
+      - run-specs-with-mysql
+  # Weekly test the extension's master branch against the
+  # supported Solidus versions and the latest master branch
+  # from Solidus
+  Weekly run specs against master:
+    jobs:
+      - run-specs-with-postgres
+      - run-specs-with-mysql
+    triggers:
+      - schedule:
+          cron: 0 0 * * 4
+          filters:
+            branches:
+              only:
+                - master
+
+```
+
+As you can read in the comments, the configuration above will:
+
+* Test every commit in `master` and in other branches against the currently supported Solidus versions, as well as against the latest `master`, in order to ensure the correctness of any code changes you push to the extension.
+* Test the current `master` weekly against the currently supported Solidus versions, as well as against the latest `master`, in order to ensure your extension's code is compatible with the upcoming Solidus release.
+
+The tests will be run both with MySQL and PostgreSQL, since Solidus supports both.
 
