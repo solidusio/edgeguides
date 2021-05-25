@@ -1,4 +1,4 @@
-# Deploying to production
+# Deploying your store
 
 ## Deploying to the cloud
 
