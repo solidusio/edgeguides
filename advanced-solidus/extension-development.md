@@ -348,7 +348,23 @@ When designing your extension, you should always be on the lookout for ways to m
 
 Often, you can let them do this through plain old configuration switches, but sometimes you can't anticipate all the possible use cases and it's simpler and more flexible to let users provide their own implementation for certain pieces of your extension.
 
-In our [original example](extension-development.md#writing-your-first-feature), a good candidate for an extension hook would be the API serialization logic. Users may want to pass custom fields to the 3PL API, or override the ones you're setting. To accomplish this easily, you can allow them to provide their own API serializer class.
+In our [original example](extension-development.md#writing-your-first-feature), a good candidate for an extension hook would be the API serialization logic, which could be implemented as:
+
+{% code title="app/subscribers/solidus\_acme\_fulfillment/order\_subscriber.rb" %}
+```yaml
+module SolidusAcmeFulfillment
+  module OrderSubscriber
+    # ...
+  
+    def serialize_order(order)
+      SolidusAcmeFulfillment::OrderSerializer.new(order).serialize
+    end
+  end
+end
+```
+{% endcode %}
+
+Users may want to pass custom fields to the 3PL API, or override the ones you're setting. To accomplish this easily, you can allow them to provide their own API serializer class.
 
 The process is pretty simple. First of all, add a configuration option:
 
@@ -370,7 +386,7 @@ The process is pretty simple. First of all, add a configuration option:
 ```
 {% endcode %}
 
-Also make sure to add the new option to your initializer template:
+Also, make sure to add the new option to your initializer template:
 
 {% code title="lib/generators/solidus\_acme\_fulfillment/install/templates/initializer.rb" %}
 ```diff
@@ -409,9 +425,7 @@ Finally, call the configured serializer from the subscriber you've implemented:
      # ...
     
      def serialize_order(order)
--      {
--        # ...
--      }
+-      SolidusAcmeFulfillment::OrderSerializer.new(order).serialize
 +      SolidusAcmeFulfillment
 +        .config
 +        .order_serializer_class
