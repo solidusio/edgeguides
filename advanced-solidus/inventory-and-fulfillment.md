@@ -52,7 +52,9 @@ The rate estimation process follows a similar pattern:
 2. Then, it calls the **configured estimator** to calculate the shipping rates for each package.
 3. Finally, it links the shipping rates for each package to the corresponding shipment.
 
-Because the estimator is configurable, you can override the estimation logic however you want. However, for the purpose of this guide, we'll assume you're using the default `Spree::Stock::Estimator`, and we'll explain its process too:
+Because the estimator is configurable, you can override the estimation logic however you want.
+
+However, for the purpose of this guide, we'll assume you're using the default [`Spree::Stock::Estimator`](https://github.com/solidusio/solidus/blob/v3.0.1/core/app/models/spree/stock/estimator.rb), and we'll explain its process too:
 
 1. First, the estimator retrieves the list of shipping methods available for the package being estimated. This determination takes into account the current store, the order's shipping address and the currency on the shipping method's calculator.
 2. Then, it calculates the rate for each available shipping method, by using the calculator configured on the shipping method.
@@ -60,7 +62,9 @@ Because the estimator is configurable, you can override the estimation logic how
 4. Then, it selects the default shipping rate by using the configured **shipping rate selector**.
 5. Finally, it sorts the shipping rates by using the configured **shipping rate sorter**.
 
+{% hint style="warning" %}
+The default `Estimator` implementation holds a lot of experience and years of bug-fixing and community-contributed improvements. You should go with the default implementation and only override small pieces of it, such as the shipping rate selector and sorter, unless you _really_ know what you're doing.
+{% endhint %}
+
 The result of this process is a sorted list of shipping rates for the original package, with a default shipping rate already pre-selected for the user.
-
-
 
