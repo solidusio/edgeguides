@@ -20,10 +20,10 @@
 
 * [Custom authentication](advanced-solidus/custom-authentication.md)
 * [Extension development](advanced-solidus/extension-development.md)
-* [Stock and fulfillment](advanced-solidus/inventory-and-fulfillment.md)
 * [Payment gateways](advanced-solidus/payment-gateways.md)
 * [Promotions system](advanced-solidus/promotions-system.md)
 * [State machines](advanced-solidus/state-machines.md)
+* [Stock and fulfillment](advanced-solidus/inventory-and-fulfillment.md)
 * [Tax calculation](advanced-solidus/tax-calculation.md)
 * [User permissions](advanced-solidus/permission-management.md)
 
