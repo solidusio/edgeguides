@@ -32,7 +32,7 @@ Using adjustments rather than storing tax amounts directly on the taxable items 
 
 Every time an order is changed, the taxation system checks whether tax adjustments need to be changed and updates all of the taxation-relevant totals.
 
-## Custom tax calculation
+## Customizing tax calculation
 
 Here are the two main actors responsible for calculating taxes in Solidus:
 
