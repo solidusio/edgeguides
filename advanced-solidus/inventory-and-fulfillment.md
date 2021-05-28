@@ -68,3 +68,51 @@ The default `Estimator` implementation holds a lot of experience and years of bu
 
 The result of this process is a sorted list of shipping rates for the original package, with a default shipping rate already pre-selected for the user.
 
+## Customizing package creation
+
+{% hint style="info" %}
+**TODO:** Write this section.
+{% endhint %}
+
+### Stock location filter
+
+{% hint style="info" %}
+**TODO:** Write this section.
+{% endhint %}
+
+### Stock location sorter
+
+{% hint style="info" %}
+**TODO:** Write this section.
+{% endhint %}
+
+### Stock allocator
+
+{% hint style="info" %}
+**TODO:** Write this section.
+{% endhint %}
+
+### Stock splitters
+
+{% hint style="info" %}
+**TODO:** Write this section.
+{% endhint %}
+
+## Customizing rate estimation
+
+{% hint style="info" %}
+**TODO:** Write this section.
+{% endhint %}
+
+### Shipping rate selector
+
+{% hint style="info" %}
+**TODO:** Write this section.
+{% endhint %}
+
+### Shipping rate sorter
+
+{% hint style="info" %}
+**TODO:** Write this section.
+{% endhint %}
+
