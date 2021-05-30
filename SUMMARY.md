@@ -33,3 +33,7 @@
 * [Customizing search](cookbook/customizing-the-search-engine.md)
 * [Adding subscriptions](cookbook/adding-subscriptions.md)
 
+---
+
+* [RMAs and Returns](rmas-and-returns.md)
+
