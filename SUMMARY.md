@@ -22,6 +22,7 @@
 * [Extension development](advanced-solidus/extension-development.md)
 * [Payment gateways](advanced-solidus/payment-gateways.md)
 * [Promotions system](advanced-solidus/promotions-system.md)
+* [RMAs and Returns](advanced-solidus/rmas-and-returns.md)
 * [State machines](advanced-solidus/state-machines.md)
 * [Stock and fulfillment](advanced-solidus/inventory-and-fulfillment.md)
 * [Tax calculation](advanced-solidus/tax-calculation.md)
@@ -32,8 +33,4 @@
 * [Redefining checkout steps](cookbook/redefining-checkout-steps.md)
 * [Customizing search](cookbook/customizing-the-search-engine.md)
 * [Adding subscriptions](cookbook/adding-subscriptions.md)
-
----
-
-* [RMAs and Returns](rmas-and-returns.md)
 
