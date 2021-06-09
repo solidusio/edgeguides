@@ -62,10 +62,6 @@ However, for the purpose of this guide, we'll assume you're using the default [`
 4. Then, it selects the default shipping rate by using the configured **shipping rate selector**.
 5. Finally, it sorts the shipping rates by using the configured **shipping rate sorter**.
 
-{% hint style="warning" %}
-The default `Estimator` implementation holds a lot of experience and years of bug-fixing and community-contributed improvements. You should go with the default implementation and only override small pieces of it, such as the shipping rate selector and sorter, unless you _really_ know what you're doing.
-{% endhint %}
-
 The result of this process is a sorted list of shipping rates for the original package, with a default shipping rate already pre-selected for the user.
 
 ## Customizing package creation
@@ -319,19 +315,186 @@ end
 
 ## Customizing rate estimation
 
-{% hint style="danger" %}
-**TODO:** Write this section.
+As far as the rate estimation is concerned, there are two pieces you can customize:
+
+* the **estimator,** to customize how Solidus calculates shipping rates for a shipment;
+* the **shipping rate selector**, to customize how Solidus selects a default shipping rate;
+* the **shipping rate sorter**, to customize how Solidus sorts shipping rates.
+
+In the next paragraphs, we'll see a brief example for each of these customizations!
+
+### **Shipping rate estimator**
+
+{% hint style="info" %}
+The [default shipping rate estimator](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/estimator.rb) simply uses the shipping methods you have configured on your store, along with the respective calculators, to calculate the right shipping rate for each shipment/shipping method combination.
 {% endhint %}
+
+For large/complex stores, using fixed shipping rates, or attempting to re-create the shipping rate calculation logic used by carriers, is simply not feasible. When that's the case, you can override Solidus' shipping rate estimator to bypass the configured shipping methods completely and use an external data source such as an API \(e.g., [EasyPost](https://www.easypost.com/)\).
+
+Let's see an example with EasyPost:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class EasypostEstimator
+      def shipping_rates(package, _frontend_only = true)
+        # Create a new shipment with the EasyPost API and
+        easypost_rates = get_rates_from_easypost(package)
+
+        # Retrieve the rates for the EasyPost shipment
+        shipping_rates = easypost_rates.map do |easypost_rate|
+          # Turn the EasyPost rate into a Solidus shipping rate
+          build_shipping_rate(easypost_rate)
+        end
+
+        # Choose the default shipping rate through the configured shipping rate selector
+        unless shipping_rates.empty?
+          default_shipping_rate = Spree::Config.shipping_rate_selector_class.new(shipping_rates).find_default
+          default_shipping_rate.selected = true
+        end
+
+        # Sort the shipping rates through the configured shipping rate sorter
+        Spree::Config.shipping_rate_sorter_class.new(shipping_rates).sort
+      end
+
+      private
+
+      def get_rates_from_easypost(package)
+        # API integration logic here...
+      end
+
+      def build_shipping_rate(easypost_rate)
+        # Find or create a new shipping method in Solidus
+        # for this EasyPost rate
+        shipping_method = Spree::ShippingMethod.find_or_create_by(
+          carrier: easypost_rate.carrier,
+          service_level: easypost_rate.service,
+        ) do |shipping_method|
+          shipping_method.name = "#{easypost_rate.carrier} #{easypost_rate.service}"
+          shipping_method.calculator = Spree::Calculator::Shipping::FlatRate.create
+          shipping_method.shipping_categories = Spree::ShippingCategory.all
+          shipping_method.available_to_users = true
+        end
+
+        # Build a Solidus shipping rate for this EasyPost rate
+        Spree::ShippingRate.new(
+          shipping_method: shipping_method,
+          name: "#{easypost_rate.carrier} #{easypost_rate.service}",
+          cost: easypost_rate.rate,
+        )
+      end
+    end
+  end
+end
+```
+
+The API integration logic has been left out on purpose, so let's walk through the rest of the implementation:
+
+1. First, we call the EasyPost API to create a shipment and retrieve the proposed rates.
+2. Then, we transform the EasyPost rates into `Spree::ShippingRate` instances.
+3. Then, we choose the default rate through the configured shipping rate selector.
+4. Then, we sort the rates through the configured shipping rate sorter.
+5. Finally, we return the sorted rates.
+
+{% hint style="info" %}
+Notice how, in the `build_shipping_rate` method, we are finding or creating the shipping method for each EasyPost rate, since we're not relying on the shipping methods stored in the DB but reading them directly from EasyPost. An alternative would be to only generate EasyPost rates for shipping methods that already exist in the Solidus DB \(e.g., to give admins more granular control over which shipping methods to enable\).
+{% endhint %}
+
+Now that our estimator is ready, we just need to configure it:
+
+{% code title="config/initializers/spree.rb" %}
+```ruby
+Spree.config do |config|
+  # ...
+
+  config.stock.estimator_class = 'AwesomeStore::Stock::EasypostEstimator'
+end
+```
+{% endcode %}
 
 ### Shipping rate selector
 
-{% hint style="danger" %}
-**TODO:** Write this section.
+{% hint style="info" %}
+The [default shipping rate selector](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/shipping_rate_selector.rb) pre-selects the lowest-priced shipping rate for the user.
 {% endhint %}
+
+What if we wanted to pre-select the shipping rate with the quickest delivery time? We could easily accomplish this through a custom shipping rate selector:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class ShippingRateSelector
+      attr_reader :shipping_rates
+
+      def initialize(shipping_rates)
+        @shipping_rates = shipping_rates
+      end
+
+      def find_default
+        # This assumes `Spree::ShippingRate` responds to `#delivery_time`
+        # with the number of days it will take to deliver the package 
+        shipping_rates.min_by(&:delivery_time)
+      end
+    end
+  end
+end
+```
+
+The logic here is extremely simple: we accept a list of shipping rates as input, and we simply return the shipping rate that needs to be selected as the default, by looking for the shipping rate with the lowest delivery time.
+
+As usual, we now need to tell Solidus to use our shipping rate selector:
+
+{% code title="config/initializers/spree.rb" %}
+```ruby
+Spree.config do |config|
+  # ...
+
+  config.stock.shipping_rate_selector_class = 'AwesomeStore::Stock::ShippingRateSelector'
+end
+```
+{% endcode %}
 
 ### Shipping rate sorter
 
-{% hint style="danger" %}
-**TODO:** Write this section.
+{% hint style="info" %}
+The [default shipping rate sorter](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/shipping_rate_sorter.rb) sorts the shipping rates by price, from lowest to highest.
 {% endhint %}
+
+Let's say we also want to sort the shipping rates by delivery time, so that the customer can more easily make an informed decision.
+
+All we need to do is create a custom shipping rate sorter:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class ShippingRateSorter
+      attr_reader :shipping_rates
+
+      def initialize(shipping_rates)
+        @shipping_rates = shipping_rates
+      end
+
+      def sort
+        # This assumes `Spree::ShippingRate` responds to `#delivery_time`
+        # with the number of days it will take to deliver the package
+        shipping_rates.sort_by(&:delivery_time)
+      end
+    end
+  end
+end
+```
+
+As you can see, shipping rate sorters are very simple: they accept a list of shipping rates and return it sorted. In our case, we are sorting the shipping rates by a custom `delivery_time` attribute.
+
+Then, we just tell Solidus to use our custom shipping rate sorter:
+
+{% code title="config/initializers/spree.rb" %}
+```ruby
+Spree.config do |config|
+  # ...
+
+  config.stock.shipping_rate_sorter_class = 'AwesomeStore::Stock::ShippingRateSorter'
+end
+```
+{% endcode %}
 

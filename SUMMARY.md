@@ -32,5 +32,6 @@
 
 * [Redefining checkout steps](cookbook/redefining-checkout-steps.md)
 * [Customizing search](cookbook/customizing-the-search-engine.md)
+* [Calculating shipping rates through an API](cookbook/calculating-shipping-rates-through-an-api.md)
 * [Adding subscriptions](cookbook/adding-subscriptions.md)
 
