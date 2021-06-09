@@ -82,7 +82,7 @@ In the next paragraphs, we'll see a brief example for each of these customizatio
 ### Stock location filter
 
 {% hint style="info" %}
-The default stock location filter simply filters out the inactive stock locations.
+The [default stock location filter](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/location_filter/active.rb) simply filters out the inactive stock locations.
 {% endhint %}
 
 Let's say you are a giant brand with warehouses all over the US, and you only ever want to ship from the stock locations in the customer's state.
@@ -122,7 +122,7 @@ end
 ### Stock location sorter
 
 {% hint style="info" %}
-By default, stock locations are unsorted, but Solidus provides a built-in `DefaultFirst` sorter that will put the default stock location first.
+[By default,](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/location_sorter/unsorted.rb) stock locations are unsorted, but Solidus provides a built-in [`DefaultFirst`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/location_sorter/default_first.rb) sorter that will put the default stock location first.
 {% endhint %}
 
 Let's say that you ship from a mix of your own warehouses and third-party warehouses, and you want to ship from your own warehouses first in order to minimize fulfillment cost.
@@ -163,14 +163,80 @@ end
 
 ### Stock allocator
 
-{% hint style="danger" %}
-**TODO:** Write this section.
+{% hint style="info" %}
+The [default stock allocator](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/allocator/on_hand_first.rb) picks on hand inventory units before backordered inventory units.
 {% endhint %}
+
+Let's say you're a drop-shipping business, but you also hold a tiny amount of inventory on-hand for VIP customers or other special cases. In this case, you want to make sure you backorder all items and never touch your on-hand inventory unless absolutely needed \(e.g.., if the customer ordered an item that's not being produced anymore and cannot be backordered\).
+
+You could accomplish this with a custom stock allocator such as the following:
+
+{% code title="app/models/awesome\_store/stock/allocator/backordered\_first.rb" %}
+```ruby
+module AwesomeStore
+  module Stock
+    module Allocator
+      class BackorderedFirst < Spree::Stock::Allocator::Base
+        def allocate_inventory(desired)
+          # Allocate backordered inventory first
+          backordered = allocate_backordered(desired)
+          desired -= backordered.values.sum if backordered.present?
+
+          # Allocate any non-backorderable inventory from on-hand inventory
+          on_hand = allocate_on_hand(desired)
+          desired -= on_hand.values.sum if on_hand.present?
+
+          # `desired` at this point should be empty if we managed to
+          # allocate all required inventory
+          [on_hand, backordered, desired]
+        end
+
+        protected
+
+        # In these two methods, `availability` is a `Spree::Stock::Availability`
+        # instance, which maps a list of variants to their availability in the
+        # filtered stock locations
+
+        def allocate_backordered(desired)
+          allocate(availability.backorderable_by_stock_location_id, desired)
+        end
+
+        def allocate_on_hand(desired)
+          allocate(availability.on_hand_by_stock_location_id, desired)
+        end
+
+        def allocate(availability_by_location, desired)
+          # `availability_by_location` is a `Spree::StockQuantities` instance
+          # that makes it easier to perform operations on inventory units
+          availability_by_location.transform_values do |available|
+            # Find the desired inventory which is available at this location
+            packaged = available & desired
+            # Remove found inventory from desired
+            desired -= packaged
+            packaged
+          end
+        end
+      end
+    end
+  end
+end
+```
+{% endcode %}
+
+This allocator is extremely similar to Solidus' default stock allocator, but it works backwards: it allocates backordered inventory units before starting to pick on-hand inventory units.
+
+{% hint style="info" %}
+Because operations on inventory units can be a bit complicated for a developer to perform manually, Solidus provides two helper classes, [`Spree::Stock::Availability`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/availability.rb) and [`Spree::StockQuantities`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock_quantities.rb), which make it easier to reason about and perform algebraic operations on inventory units. Feel free to take a look at their source code to understand how they work in detail.
+{% endhint %}
+
+
 
 ### Stock splitters
 
 {% hint style="info" %}
-The default splitter chain will split packages by shipping category and then by availability \(i.e., by separating on hand and backordered items in different packages\).
+The default splitter chain will split packages by [shipping category](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/splitter/shipping_category.rb) and then by [availability](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/splitter/backordered.rb) \(i.e., by separating on hand and backordered items in different packages\).
+
+There's also a `Weight` splitter that is not enabled by default, which will split packages so that they are all below a certain weight threshold.
 {% endhint %}
 
 An important aspect to understand about stock splitters is that, unlike all the other components of the stock system, you can have multiple stock splitters configured at the same time to form a **splitter chain**. 
