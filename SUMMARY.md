@@ -5,6 +5,7 @@
 ## Getting Started
 
 * [Installing Solidus](getting-started/what-is-solidus.md)
+* [Upgrading Solidus](getting-started/upgrading-solidus.md)
 * [Using extensions](getting-started/extensions.md)
 * [Testing Solidus](getting-started/testing-solidus.md)
 * [Deploying your store](getting-started/deployment.md)

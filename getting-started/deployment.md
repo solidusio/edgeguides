@@ -28,46 +28,6 @@ $ heroku run rails db:schema:load db:seed
 
 You're all set! Your Solidus store should now be running on Heroku.
 
-{% hint style="warning" %}
-Heroku [does not support](https://devcenter.heroku.com/articles/sqlite3) the Rails default database Sqlite3. Heroku natively utilizes [PostgreSQL](https://www.postgresql.org/) and adaptively uses other [data storage services](https://elements.heroku.com/addons). If you would like to maintain a local Sqlite3 database for development and testing while having PostgreSQL for your production database, simply update the following configurations:
-
-{% code title="Gemfile" %}
-```ruby
-group :production do
-  gem 'pg'
-  # ...
-end
-
-group :development, :test do
-  gem 'sqlite3', '~> 1.4'
-  # ...
-end
-```
-{% endcode %}
-
-{% code title="config/database.yml" %}
-```ruby
-# ...
-production:
-    adapter: postgresql
-    encoding: unicode
-    database: <%= ENV['DB_NAME'] %>
-    username: <%= ENV['DB_USERNAME'] %>
-    password: <%= ENV['DB_PASSWORD'] %>
-    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %> # optional
-    timeout: 5000 # optional
-```
-{% endcode %}
-
-Run `bundle update` and your application will be set to run PostgreSQL in your production environment. Be sure to also set your Heroku environment variables as well by utilizing the command `heroku config:set DB_NAME=my_database` in your shell or in Heroku's online [Dashboard](https://dashboard.heroku.com/).
-{% endhint %}
-
-### AWS
-
-{% hint style="info" %}
-This section still needs to be written.
-{% endhint %}
-
 ## External dependencies
 
 When deploying a Solidus store, there are a few external dependencies that must be installed. There are also some optional dependencies you may decide to install in order to make your application more resilient and easier to scale.
