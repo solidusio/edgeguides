@@ -21,6 +21,7 @@
 
 * [Custom authentication](advanced-solidus/custom-authentication.md)
 * [Extension development](advanced-solidus/extension-development.md)
+* [Payments and refunds](advanced-solidus/payments-and-refunds.md)
 * [Promotions system](advanced-solidus/promotions-system.md)
 * [Stock and fulfillment](advanced-solidus/stock-and-fulfillment.md)
 * [Tax calculation](advanced-solidus/tax-calculation.md)
