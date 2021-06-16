@@ -124,8 +124,6 @@ Whenever a refund is created, Solidus will also immediately call `#perform!` on 
 
 ## Customizing the payment system
 
-{% embed url="https://www.youtube.com/watch?v=pWznleqof8s" %}
-
 ### Building a custom payment gateway
 
 ### Building a custom payment method
