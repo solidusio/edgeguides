@@ -117,3 +117,53 @@ Whenever a refund is created, Solidus will also immediately call `#perform!` on 
 
 ### Customizing payment cancellation
 
+If you need to customize the logic that is used for payment cancellation, you can easily do it via a configuration hook.
+
+For this example, we are going to assume that, instead of refunding customers on the original payment method, you want to offer them store credit instead.
+
+In order to accomplish this, you will first need to create a custom payment canceller:
+
+{% code title="app/models/awesome\_store/payment\_canceller.rb" %}
+```ruby
+module AwesomeStore
+  class PaymentCanceller
+    def cancel(payment)
+      # Capture the payment. If the payment has already been captured,
+      # this will be a no-op.
+      payment.capture!
+
+      # Find or create an "Order cancellation" store credit category.
+      category = Spree::StoreCreditCategory.find_or_create_by(
+        name: 'Order cancellation',
+      )
+
+      # Create a store credit for the payment amount.
+      Spree::StoreCredit.create!(
+        user: payment.order.user,
+        amount: payment.credit_allowed,
+        category: category,
+        currency: payment.currency,
+        created_by: payment.order.canceler,
+      )
+    end
+  end
+end
+```
+{% endcode %}
+
+The cancellation logic is pretty simple: first of all, we capture the payment, unless it's already been captured. Then we generate a store credit for the payment amount. Customers will then be able to spend the store credit on their next order.
+
+In order for Solidus to start using our canceller, we need to specify it in our initializer:
+
+{% code title="config/initializers/spree.rb" %}
+```ruby
+Spree.config do |config|
+  # ...
+
+  config.payment_canceller = AwesomeStore::PaymentCanceller.new
+end
+```
+{% endcode %}
+
+You can test your new canceller by placing and cancelling an order from the Solidus backend: you'll see that, instead of the payment being refunded, a store credit will be generated instead.
+
