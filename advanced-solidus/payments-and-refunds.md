@@ -124,11 +124,11 @@ Whenever a refund is created, Solidus will also immediately call `#perform!` on 
 
 ## Customizing the payment system
 
-### Building a custom payment gateway
+### Custom payment gateways
 
-### Building a custom payment method
+### Custom payment methods
 
-### Customizing payment cancellation
+### Custom payment canceller
 
 If you need to customize the logic that is used for payment cancellation, you can easily do it via a configuration hook.
 
