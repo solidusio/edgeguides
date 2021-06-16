@@ -47,7 +47,18 @@ Different payment methods support different features, depending on the underlyin
 Not all payment methods are tied to a PSP. For example, the check and store credit payment methods that Solidus ships with don't need to interact with a PSP to process payments. You can think of these as "virtual" payment methods.
 {% endhint %}
 
-Solidus doesn't know much about payment gateways. Instead, payment methods expose an API that wraps the payment gateway's API, and Solidus interacts with the payment method.
+Solidus doesn't know much about payment gateways. Instead, payment methods expose an API that wraps the payment gateway's API and looks like the following:
+
+* `#authorize(money, source, options = {})`: authorizes a certain amount on the provided payment source.
+* `#capture(money, transaction_id, options = {})`: captures a certain amount from a previously authorized transaction.
+* `#purchase(money, source, options = {})`: authorizes and captures a certain amount on the provided payment source.
+* `#void(transaction_id, money, options)`: voids a previously authorized transaction, releasing the funds.
+* `#credit(money, transaction_id, options = {})`: refunds the provided amount on a previously captured transaction.
+
+Payment methods also expose two additional methods which are not part of the standard ActiveMerchant API:
+
+* `#try_void(payment)`: attempts to void a payment, or returns `false`/`nil` \(in which case, Solidus will then refund the payment\).
+* `#create_profile(payment)`: creates a payment profile with the information from the provided payment, so that the customer can be charged for future orders.
 
 This additional level of abstraction allows Solidus to use the store's configuration to determine how to structure the API calls to the PSP, and to enrich the payload with store-specific information \(e.g., to add your store's name to your customer's credit card statement\).
 
@@ -112,6 +123,10 @@ Some stores also have other ways for a refund to be created, e.g. through a retu
 Whenever a refund is created, Solidus will also immediately call `#perform!` on the refund. This processes the refund through the original payment's payment method and updates the payment and order accordingly.
 
 ## Customizing the payment system
+
+{% embed url="https://www.youtube.com/watch?v=pWznleqof8s" %}
+
+### Building a custom payment gateway
 
 ### Building a custom payment method
 

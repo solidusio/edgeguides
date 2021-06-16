@@ -1,8 +1,6 @@
 # Redefining checkout steps
 
-{% hint style="info" %}
-You can find a screencast that covers adding and removing checkout steps in Solidus [here](https://www.youtube.com/watch?v=p_O4d9k4qxI).
-{% endhint %}
+{% embed url="https://www.youtube.com/watch?v=p\_O4d9k4qxI" %}
 
 Solidus comes bundled with a robust checkout system that caters to the needs of the majority of eCommerce stores. However, this system doesn't fit the needs for every business.
 
