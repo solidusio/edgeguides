@@ -47,20 +47,9 @@ Different payment methods support different features, depending on the underlyin
 Not all payment methods are tied to a PSP. For example, the check and store credit payment methods that Solidus ships with don't need to interact with a PSP to process payments. You can think of these as "virtual" payment methods.
 {% endhint %}
 
-Solidus doesn't know much about payment gateways. Instead, payment methods expose an API that wraps the payment gateway's API and looks like the following:
+Solidus doesn't know much about payment gateways. Instead, payment methods expose an API that delegates to the payment gateway's API.
 
-* `#authorize(money, source, options = {})`: authorizes a certain amount on the provided payment source.
-* `#capture(money, transaction_id, options = {})`: captures a certain amount from a previously authorized transaction.
-* `#purchase(money, source, options = {})`: authorizes and captures a certain amount on the provided payment source.
-* `#void(transaction_id, money, options)`: voids a previously authorized transaction, releasing the funds.
-* `#credit(money, transaction_id, options = {})`: refunds the provided amount on a previously captured transaction.
-
-Payment methods also expose two additional methods which are not part of the standard ActiveMerchant API:
-
-* `#try_void(payment)`: attempts to void a payment, or returns `false`/`nil` \(in which case, Solidus will then refund the payment\).
-* `#create_profile(payment)`: creates a payment profile with the information from the provided payment, so that the customer can be charged for future orders.
-
-This additional level of abstraction allows Solidus to use the store's configuration to determine how to structure the API calls to the PSP, and to enrich the payload with store-specific information \(e.g., to add your store's name to your customer's credit card statement\).
+This additional level of abstraction allows you to use the store's configuration to determine how to structure the API calls to the PSP, and to enrich the payload with store-specific information \(e.g., to add your store's name to your customer's credit card statement\).
 
 The abstraction also allows you to easily implement payment methods that don't use a PSP \(e.g. cash on delivery\), without Solidus having to know about this nuance.
 
@@ -124,9 +113,53 @@ When a refund is created through the UI, via a payment cancellation or a reimbur
 
 ## Customizing the payment system
 
+In the next paragraphs, we'll see how to customize different aspects of Solidus' payment system. Note that this is an advanced use case and is only required in very specific scenarios. In most cases, you'll be better off using one of the existing payment integrations.
+
 ### Custom payment gateways
 
+{% hint style="info" %}
+Most payment integrations in Solidus don't ship with a custom payment gateway. Instead, they rely on one of the payment gateways provided by [ActiveMerchant](https://github.com/activemerchant/active_merchant).
+
+If you need to integrate with a PSP that's not supported by Solidus, you should first look and see whether ActiveMerchant already provides the payment gateway you need: if that's the case, you will only need to implement a custom payment method and source.
+{% endhint %}
+
+Implementing a custom payment gateway can be useful if you're integrating with a lesser-known PSP \(e.g., a local PSP in your country\), or if you need to deeply customize an existing PSP integration.
+
+As previously mentioned, Solidus doesn't know much about payment gateways as such: instead, payment gateways are just "helper classes."
+
+When processing payments and refunds, Solidus interacts with the payment method, not the payment gateway—the payment method can then delegate the calls to the payment gateway with no modifications \([this is the default](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/payment_method.rb#L40)\), or provide its own implementation that wraps the payment gateway's API.
+
+The reason for having a separate payment gateway class is that it allows you to encapsulate the API interaction logic for your PSP and test it in isolation, whereas the payment method's implementation can deal with Solidus-specific details. Ideally, your payment gateway's implementation should be extractable and reusable outside of Solidus with little or no modification.
+
+The API exposed by a payment gateway is the following:
+
+* `#authorize(money, source, options = {})`: authorizes a certain amount on the provided payment source.
+* `#capture(money, transaction_id, options = {})`: captures a certain amount from a previously authorized transaction.
+* `#purchase(money, source, options = {})`: authorizes and captures a certain amount on the provided payment source.
+* `#void(transaction_id, options = {})`: voids a previously authorized transaction, releasing the funds that are on hold.
+* `#credit(money, transaction_id, options = {})`: refunds the provided amount on a previously captured transaction.
+
+All of these methods are expected to return an [`ActiveMerchant::Billing::Response`](https://github.com/activemerchant/active_merchant/blob/master/lib/active_merchant/billing/response.rb) object containing the result and details of the operation. Payment gateways never raise exceptions when things go wrong: they only return response objects that represent successes or failures, and Solidus handles control flow accordingly.
+
+{% hint style="warning" %}
+For historical and technical reasons, the Solidus API for payment gateways deviates from the ActiveMerchant API in a couple of ways:
+
+* The `source` parameter that will be passed to the gateway will be an instance of `Spree::PaymentSource`, while ActiveMerchant gateways expect their own models.
+* The `#credit` method in ActiveMerchant does not accept a transaction ID but a payment source, as it can be used to credit funds to a payment source even in the absence of a previous charge. What Solidus calls `#credit` is called `#refund` in ActiveMerchant.
+
+For custom payment gateways, these discrepancies are not a problem, since the gateways can be implemented to respond to the API expected by Solidus.
+
+For ActiveMerchant gateways, the payment method will wrap these methods instead of delegating them to the gateway directly, and will transform the method calls and their arguments to comply with ActiveMerchant's interface.
+{% endhint %}
+
 ### Custom payment methods
+
+Payment methods 
+
+Payment methods also expose two additional methods which are not part of the standard ActiveMerchant API:
+
+* `#try_void(payment)`: attempts to void a payment, or returns `false`/`nil` \(in which case, Solidus will then refund the payment\).
+* `#create_profile(payment)`: creates a payment profile with the information from the provided payment, so that the customer can be charged for future orders.
 
 ### Custom payment canceller
 
