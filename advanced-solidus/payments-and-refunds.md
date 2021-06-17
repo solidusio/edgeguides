@@ -350,7 +350,7 @@ TBD.
 
 ### Custom payment methods
 
-Payment methods 
+Payment methods wrap the gateway API.
 
 Payment methods also expose two additional methods which are not part of the standard ActiveMerchant API:
 
