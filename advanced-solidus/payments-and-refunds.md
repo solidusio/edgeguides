@@ -284,7 +284,7 @@ end
 ```
 
 {% hint style="info" %}
-Some PSPs, such as Stripe, provide a unique endpoint for authorizing and capturing a payment. Others will require you to perform two different requests, in which case your `#purchase`method may simply call `#authorize` and `#capture` in succession.
+Some PSPs, such as Stripe, provide a single endpoint for authorizing and capturing a payment in one request. Others will require you to perform two different requests, in which case your `#purchase`method may simply call `#authorize` and `#capture` in succession.
 {% endhint %}
 
 The rest of our gateway is trivial and pretty similar to our existing methods:
