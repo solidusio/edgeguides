@@ -120,7 +120,7 @@ In a stock Solidus store, refunds and they can be created in different ways:
 
 Some stores also have other ways for a refund to be created, e.g. through a return flow that can be initiated by the customer via the storefront or a third-party tool.
 
-Whenever a refund is created, Solidus will also immediately call `#perform!` on the refund. This processes the refund through the original payment's payment method and updates the payment and order accordingly.
+When a refund is created through the UI, via a payment cancellation or a reimbursement, Solidus will also immediately call `#perform!` on the refund. This processes the refund through the original payment's payment method and updates the payment and order accordingly.
 
 ## Customizing the payment system
 
