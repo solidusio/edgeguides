@@ -121,7 +121,188 @@ Note that this is an advanced use case and is only required in very specific sce
 
 ### Custom payment sources
 
+{% hint style="info" %}
+Not all payment methods require a custom payment source. Instead, you may want to simply rely on the existing [`Spree::CreditCard`](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/credit_card.rb) payment source, which provides some useful logic for working with "credit card" types of payment sources.
+{% endhint %}
 
+Creating a custom payment source may be needed if you are integrating with a new PSP that is not credit-card based. This will be the case, for instance, when a customer pays through their PSP account's balance rather than via a specific credit card \(e.g., "Pay with PayPal"\). It's also a common setup with financing PSPs such as Affirm or AfterPay: in this case, the PSP itself is the "source" of money.
+
+#### The payment source API
+
+Payment sources respond to a very simple API which tells Solidus what operations can or cannot be performed on the payment source. Solidus will use this information to display/hide certain actions on the backend, or to control the order processing flow:
+
+* `#actions`: returns an array of actions that can _generally_ be performed on payments with this payment source. `capture`, `void` and `credit` are standard supported actions, but you can also have custom actions here, as long as `Spree::Payment` responds to them.
+* `#can_<action>?`: for each of the actions returned by `#actions`, Solidus will attempt to call this method to verify whether that action can be taken on a payment, which will be passed to the method as the only argument. [Default implementations](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/payment_source.rb#L21) are provided for `capture`, `void` and `credit` which check the payment's state.
+* `#reusable?`: whether this payment source is reusable \(i.e., whether it can be used on future orders as well\). Solidus will use this to determine whether to add the payment source to the user's wallet after the order is placed, and to determine which sources to show from the user's wallet during the checkout flow.
+
+Next, let's see how exactly to implement these methods in a brand new payment source.
+
+#### Building a custom payment source
+
+For example, let's say we're integrating with a brand new PSP called SolidusPay which allows customers to pay with their SolidusPay account's balance, similar to what happens with PayPal. In order to model this behavior, we'll need a custom payment source model, which will be much simpler than the default credit card payment source.
+
+The first step is to generate a new model, which we'll call `SolidusPayAccount`.
+
+Our model will just have a `payment_method_id` column, which will be used to associate the payment source to the payment method that generated it, and an `account_id` column, which we'll use to store the ID of the SolidusPay account that we will later charge:
+
+```bash
+$ rails g model SolidusPayAccount payment_method_id:integer account_id:integer
+$ rails db:migrate
+```
+
+By default, Rails will generate a model that inherits from `ApplicationRecord`. Instead, we want our model to inherit from `Spree::PaymentSource`, so that we can benefit from some sensible defaults provided by Solidus for payment sources:
+
+{% code title="app/models/solidus\_pay\_account.rb" %}
+```diff
+- class SolidusPayAccount < ApplicationRecord
++ class SolidusPayAccount < Spree::PaymentSource
+  end
+```
+{% endcode %}
+
+At this point, we have our new payment source model ready. Now, let's implement the payment source API, so that Solidus knows how to use our payment source during order processing \(note that this logic is taken verbatim from `Spree::PaymentSource`, other than the `#reusable?` method which would normally return `false`\):
+
+{% code title="app/models/solidus\_pay\_account.rb" %}
+```ruby
+class SolidusPayAccount < Spree::PaymentSource
+  # SolidusPay payments can be captured, voided and refunded.
+  def actions
+    %w(capture void credit)
+  end
+
+  # A SolidusPay payment can be captured as long as it's in the checkout or pending state.
+  def can_capture?(payment)
+    payment.pending? || payment.checkout?
+  end
+
+  # We rely on the payment state machine to determine when a SolidusPay payment can be voided.
+  def can_void?(payment)
+    payment.can_void?
+  end
+  
+  # A SolidusPay payment can be refunded if it's been captured and if the
+  # un-refunded amount is greater than 0.
+  def can_credit?(payment)
+    payment.completed? && payment.credit_allowed > 0
+  end
+
+  # SolidusPay accounts can be used to pay on future orders as well.
+  def reusable?
+    true
+  end
+end
+```
+{% endcode %}
+
+At this point, we have a new payment source and Solidus knows how to use it internally.
+
+#### Providing payment source partials
+
+When you create a new payment source, Solidus has no idea how to actually display it in the storefront, backend or API. You will need to provide payment source partials so that Solidus can use them when displaying a SolidusPay payment source.
+
+{% hint style="warning" %}
+For the sake of simplicity, we are assuming paying via SolidusPay is as simple as providing your account ID in clear text. In reality, things are usually slightly more complicated and require integrating with a JS SDK or redirecting the user to an off-site page in order to get a payment token. It doesn't matter how complex your payment scenario: as long as it results in a payment source being created with the right information, Solidus can integrate with it.
+{% endhint %}
+
+The first partial we'll implement is used by Solidus when displaying the SolidusPay payment form in the checkout flow. We will just ask users for their SolidusPay account ID:
+
+{% code title="app/views/spree/checkout/payment/\_solidus\_pay.html.erb" %}
+```markup
+<% param_prefix = "payment_source[#{payment_method.id}]" %>
+
+<div class="field field-required">
+  <%= label_tag "account_id_#{payment_method.id}", 'SolidusPay Account ID' %>
+  <%= text_field_tag "#{param_prefix}[account_id]", nil, { id: "account_id_#{payment_method.id}" } %>
+</div>
+```
+{% endcode %}
+
+When users fill this form during checkout, Solidus will create a new `SolidusPayAccount` payment source with the account ID provided by the user. In general, Solidus will copy all the `#{param_prefix}[...]` attributes to the payment source, so you can add more columns to the payment source model and Solidus will set them all as long as your field names are structured properly.
+
+But what if our user already has a SolidusPay account in their wallet, and they want to use that instead? That requires another partial:
+
+{% code title="app/views/spree/checkout/existing\_payment/\_solidus\_pay.html.erb" %}
+```markup
+<tr id="<%= dom_id(wallet_payment_source, 'solidus_pay') %>">
+  <td><%= wallet_payment_source.payment_source.account_id %></td>
+  <td>
+    <%= radio_button_tag "order[wallet_payment_source_id]", wallet_payment_source.id, default, class: "existing-cc-radio" %>
+  </td>
+</tr>
+```
+{% endcode %}
+
+Here, we are simply showing a radio button which Solidus will render to the user for all SolidusPay accounts. The user can check one of the radio boxes to pay with an existing payment source.
+
+At this point, it's possible to pay with a new or existing SolidusPay account via the storefront. Let's make sure the same can be done in the backend, for orders placed manually by an admin.
+
+This is what the partial for the backend looks like:
+
+{% code title="app/views/spree/admin/payments/source\_forms/\_solidus\_pay.html.erb" %}
+```markup
+<fieldset class="no-border-bottom">
+  <legend><%= payment_method.name %></legend>
+
+  <% if previous_cards.any? %>
+    <div class="field">
+      <% previous_cards.each do |solidus_pay_account| %>
+        <label>
+          <%= radio_button_tag :card, solidus_pay_account.id, solidus_pay_account == previous_cards.first %> 
+          <%= solidus_pay_account.account_id %>
+          <br />
+        </label>
+      <% end %>
+
+      <label>
+        <%= radio_button_tag :card, 'new', false %> 
+        Use new SolidusPayAccount
+      </label>
+    </div>
+  <% end %>
+
+  <% param_prefix = "payment_source[#{payment_method.id}]" %>
+  <div class="field">
+    <%= label_tag "account_id_#{payment_method.id}", 'Account ID', class: 'required' %>
+    <%= text_field_tag "#{param_prefix}[account_id]", '', class: 'required fullwidth', id: "account_id_#{payment_method.id}" %>
+  </div>
+</fieldset>
+```
+{% endcode %}
+
+As you can see, this partial covers both new and existing payment sources. The admin can either select one of the existing payment sources, or they can enter the customer's SolidusPay account ID to create a new payment source.
+
+{% hint style="warning" %}
+For many payment sources, it won't be possible to create a new source from the backend \(e.g., it wouldn't make sense to let admins link a customer's PayPal account via the backend, since they wouldn't have the customer's PayPal credentials\). In this case, it's perfectly fine not to display the form at all, and only let admins choose from existing payment sources.
+{% endhint %}
+
+We need one more partial for the backend, which will be used by Solidus when displaying a payment source's information to admins:
+
+{% code title="app/views/spree/admin/payments/source\_views/\_solidus\_pay.html.erb" %}
+```markup
+<fieldset>
+  <legend align="center"><%= SolidusPayAccount.model_name.human %></legend>
+
+  <div class="row">
+    <div class="col-4">
+      <dl>
+        <dt>Account ID:</dt>
+        <dd><%= payment.source.account_id %></dd>
+      </dl>
+    </div>
+  </div>
+</fieldset>
+```
+{% endcode %}
+
+Here, we are just displaying the SolidusPay account ID, so that admins can easily understand which payment source was used on a particular payment.
+
+Finally, the last partial is needed to display a payment source's information via the API. Again, we'll just include the payment source's ID and the SolidusPay account ID, so that the payment source can be properly rendered by e.g. a mobile/JS application that uses the Solidus API:
+
+{% code title="app/views/spree/api/payments/source\_views/\_solidus\_pay.json.jbuilder" %}
+```ruby
+json.call(payment_source, :id, :account_id)
+```
+{% endcode %}
 
 ### Custom payment gateways
 
@@ -133,7 +314,7 @@ If you need to integrate with a PSP that's not supported by Solidus, you should 
 
 Implementing a custom payment gateway can be useful if you're integrating with a lesser-known PSP \(e.g., a local PSP in your country\), or if you need to deeply customize an existing PSP integration.
 
-#### The Payment Gateway API
+#### The payment gateway API
 
 Payment gateways expose the following API:
 
@@ -160,16 +341,14 @@ For ActiveMerchant gateways, the payment method will wrap these methods instead 
 
 #### Building your gateway
 
-To build your gateway, you just need to create a new class that responds to the Gateway API.
-
-For example, let's say that we are integrating with a brand new PSP that's called EasyPay, which has a nice RESTful API for managing payments and refunds.
+To build your gateway, you just need to create a new class that responds to the Gateway API. In this example, we'll build a new payment gateway for our beloved SolidusPay which provides a nice RESTful API for managing payments and refunds.
 
 The first step would be to build the skeleton of our gateway. For the time being, we'll just make sure we store the API key that's passed when initializing the gateway, and we'll write a small helper on top of the HTTParty gem for interacting with the PSP's API:
 
 ```ruby
-module EasyPay
+module SolidusPay
   class Gateway
-    API_URL = 'https://easypay.com/api/v1'
+    API_URL = 'https://soliduspay.com/api/v1'
 
     attr_reader :api_key
 
@@ -198,7 +377,7 @@ end
 Now that we have everything we need to interact with the API, we can start writing the actual integration. The first step in processing a payment is usually authorizing it, so we'll start with that:
 
 ```ruby
-module EasyPay
+module SolidusPay
   class Gateway
     # ...
 
@@ -252,7 +431,7 @@ The method then returns an `ActiveMerchant::Billing::Response` object that repre
 You'll notice that the payload of the request is generated in a helper method, `#payload_for_charge`. This is because the payloads for authorizing and purchasing \(i.e., authorizing and capturing in one go\) is the same, minus the `:capture` option, which we'll set to `true` when we also want to capture the amount:
 
 ```ruby
-module EasyPay
+module SolidusPay
   class Gateway
     # ...
 
@@ -287,10 +466,10 @@ end
 Some PSPs, such as Stripe, provide a single endpoint for authorizing and capturing a payment in one request. Others will require you to perform two different requests, in which case your `#purchase`method may simply call `#authorize` and `#capture` in succession.
 {% endhint %}
 
-The rest of our gateway is trivial and pretty similar to our existing methods:
+The rest of our gateway \(`#capture`, `#void` and `#credit`\) is trivial and pretty similar to our existing methods. We just call our PSP to perform a certain operation on an existing transaction:
 
 ```ruby
-module EasyPay
+module SolidusPay
   class Gateway
     # ...
 
@@ -346,7 +525,7 @@ module EasyPay
 end
 ```
 
-TBD.
+At this point, we have our custom payment gateway which encapsulates all API interaction logic with the PSP. But a payment gateway is not usable by itself: to complete our SolidusPay integration, we will also need to implement a custom payment method.
 
 ### Custom payment methods
 
