@@ -198,11 +198,11 @@ At this point, we have a new payment source and Solidus knows how to use it inte
 
 #### Providing payment source partials
 
-When you create a new payment source, Solidus has no idea how to actually display it in the storefront, backend or API. You will need to provide payment source partials so that Solidus can use them when displaying a SolidusPay payment source.
-
 {% hint style="warning" %}
-For the sake of simplicity, we are assuming paying via SolidusPay is as simple as providing your account ID in clear text. In reality, things are usually slightly more complicated and require integrating with a JS SDK or redirecting the user to an off-site page in order to get a payment token. It doesn't matter how complex your payment scenario: as long as it results in a payment source being created with the right information, Solidus can integrate with it.
+These partials assume that you haven't customized the backend, storefront or API in significant ways which would prevent them from working/displaying properly. If you have applied extensive customizations to either of these engines, make sure to adjust the partials accordingly!
 {% endhint %}
+
+When you create a new payment source, Solidus has no idea how to actually display it in the storefront, backend or API. You will need to provide payment source partials so that Solidus can use them when displaying a SolidusPay payment source.
 
 The first partial we'll implement is used by Solidus when displaying the SolidusPay payment form in the checkout flow. We will just ask users for their SolidusPay account ID:
 
@@ -218,6 +218,10 @@ The first partial we'll implement is used by Solidus when displaying the Solidus
 {% endcode %}
 
 When users fill this form during checkout, Solidus will create a new `SolidusPayAccount` payment source with the account ID provided by the user. In general, Solidus will copy all the `#{param_prefix}[...]` attributes to the payment source, so you can add more columns to the payment source model and Solidus will set them all as long as your field names are structured properly.
+
+{% hint style="warning" %}
+For the sake of simplicity, we are assuming paying via SolidusPay is as simple as providing your account ID in clear text. In reality, things are usually slightly more complicated and require integrating with a JS SDK or redirecting the user to an off-site page in order to get a payment token. It doesn't matter how complex your payment scenario: as long as it results in a payment source being created with the right information, Solidus can integrate with it.
+{% endhint %}
 
 But what if our user already has a SolidusPay account in their wallet, and they want to use that instead? That requires another partial:
 
