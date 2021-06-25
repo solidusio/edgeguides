@@ -119,6 +119,237 @@ In the next paragraphs, we'll see how to customize different aspects of Solidus'
 
 Note that this is an advanced use case and is only required in very specific scenarios. In most cases, you'll be better off using one of the existing payment integrations.
 
+### Custom payment gateways
+
+{% hint style="info" %}
+Most payment integrations in Solidus don't ship with a custom payment gateway. Instead, they rely on one of the payment gateways provided by [ActiveMerchant](https://github.com/activemerchant/active_merchant).
+
+If you need to integrate with a PSP that's not supported by Solidus, you should first look and see whether ActiveMerchant already provides the payment gateway you need: if that's the case, you will only need to implement a custom payment method and source.
+{% endhint %}
+
+Implementing a custom payment gateway can be useful if you're integrating with a lesser-known PSP \(e.g., a local PSP in your country\), or if you need to deeply customize an existing PSP integration.
+
+#### The payment gateway API
+
+Payment gateways expose the following API:
+
+* `#initialize(options)`: initializes the gateway with the provided options. By default, Solidus will pass the [payment method's preferences](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/payment_method.rb#L78) in here.
+* `#authorize(money, source, options = {})`: authorizes a certain amount on the provided payment source.
+* `#capture(money, transaction_id, options = {})`: captures a certain amount from a previously authorized transaction.
+* `#purchase(money, source, options = {})`: authorizes and captures a certain amount on the provided payment source.
+* `#void(transaction_id, [source,] options = {})`: voids a previously authorized transaction, releasing the funds that are on hold. The `source` parameter is only needed for payment gateways that support payment profiles.
+* `#credit(money, [source,] transaction_id, options = {})`: refunds the provided amount on a previously captured transaction. The `source` parameter is only needed for payment gateways that support payment profiles.
+
+All of these methods are expected to return an [`ActiveMerchant::Billing::Response`](https://github.com/activemerchant/active_merchant/blob/master/lib/active_merchant/billing/response.rb) object containing the result and details of the operation. Payment gateways never raise exceptions when things go wrong: they only return response objects that represent successes or failures, and Solidus handles control flow accordingly.
+
+{% hint style="warning" %}
+For historical and technical reasons, the Solidus API for payment gateways deviates from the ActiveMerchant API in a few ways:
+
+* The `source` parameter that is passed to a gateway will be an instance of `Spree::PaymentSource`, while ActiveMerchant gateways expect their own models.
+* The `#void` method in ActiveMerchant never accepts a payment source. Solidus will pass the payment source to `#void` if the payment method supports payment profiles.
+* The `#credit` method in ActiveMerchant gateways does not accept a transaction ID but a payment source, since it can be used to credit funds to a payment source even in the absence of a previous charge. What Solidus calls `#credit` is actually called `#refund` in ActiveMerchant.
+
+For custom payment gateways, these discrepancies are not a problem, since the gateways can be implemented to respond to the API expected by Solidus.
+
+For ActiveMerchant gateways, the payment method will wrap these methods instead of delegating them to the gateway directly, and will transform the method calls and their arguments to comply with ActiveMerchant's interface.
+{% endhint %}
+
+#### Building your gateway
+
+To build your gateway, you just need to create a new class that responds to the Gateway API. In this example, we'll build a new payment gateway for our beloved SolidusPay which provides a nice RESTful API for managing payments and refunds.
+
+The first step would be to build the skeleton of our gateway. For the time being, we'll just make sure we store the API key that's passed when initializing the gateway, and we'll write a small helper on top of the HTTParty gem for interacting with the PSP's API:
+
+{% code title="app/models/solidus\_pay/gateway.rb" %}
+```ruby
+module SolidusPay
+  class Gateway
+    API_URL = 'https://soliduspay.com/api/v1'
+
+    attr_reader :api_key
+
+    def initialize(options)
+      @api_key = options.fetch(:api_key)
+    end
+
+    private
+
+    def request(method, uri, body = {})
+      HTTParty.send(
+        method,
+        "#{API_URL}#{uri}",
+        headers: {
+          "Authorization" => "Bearer #{api_key}",
+          "Content-Type" => "application/json",
+          "Accept" => "application/json",
+        },
+        body: body.to_json,
+      )
+    end
+  end
+end
+```
+{% endcode %}
+
+Now that we have everything we need to interact with the API, we can start writing the actual integration. The first step in processing a payment is usually authorizing it, so we'll start with that:
+
+{% code title="app/models/solidus\_pay/gateway.rb" %}
+```ruby
+module SolidusPay
+  class Gateway
+    # ...
+
+    def authorize(money, account_id, options = {})
+      response = request(
+        :post,
+        "/charges",
+        payload_for_charge(money, account_id, options).merge(capture: false),
+      )
+
+      if response.success?
+        ActiveMerchant::Billing::Response.new(
+          true,
+          "Transaction Authorized",
+          {},
+          authorization: response.parsed_response['id'],
+        )
+      else
+        ActiveMerchant::Billing::Response.new(
+          false,
+          response.parsed_response['error'],
+        )
+      end
+    end
+
+    private
+
+    # ...
+
+    def payload_for_charge(money, account_id, options = {})
+      {
+        account_id: account_id,
+        amount: money,
+        currency: options[:currency],
+        description: "Payment #{options[:order_id]}",
+        billing_address: options[:billing_address],
+      }
+    end
+  end
+end
+```
+{% endcode %}
+
+The logic for the `#authorize` method is fairly straightforward: it makes a POST request to the `/api/v1/charges` endpoint of the PSP's API. The body of the request includes information about:
+
+* the amount we want to charge, which is passed in the `amount` parameter as a number of cents \(e.g., `1000` represents 10.00, `1050` represents 10.50\),
+* the payment source we want to charge, which is passed in the `account_id` parameter,
+* [metadata about the order and the payment](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/payment/processing.rb#L91), which is passed in the `options` parameter.
+
+The method then returns an `ActiveMerchant::Billing::Response` object that represents the success or failure of the operation. In the successful response, the `:authorization` option will also be included. Solidus will store the value of this option on the `response_code` attribute on the `Spree::Payment` record, so that we can reference the transaction ID when capturing/voiding/refunding it later.
+
+You'll notice that the payload of the request is generated in a helper method, `#payload_for_charge`. This is because the payloads for authorizing and purchasing \(i.e., authorizing and capturing in one go\) is the same, minus the `:capture` option, which we'll set to `true` when we also want to capture the amount:
+
+{% code title="app/models/solidus\_pay/gateway.rb" %}
+```ruby
+module SolidusPay
+  class Gateway
+    # ...
+
+    def purchase(money, account_id, options = {})
+      response = request(
+        :post,
+        "/charges",
+        payload_for_charge(money, account_id, options).merge(capture: true),
+      )
+
+      if response.success?
+        ActiveMerchant::Billing::Response.new(
+          true,
+          "Transaction Purchased",
+          {},
+          authorization: response.parsed_response['id'],
+        )
+      else
+        ActiveMerchant::Billing::Response.new(
+          false,
+          response.parsed_response['error'],
+        )
+      end
+    end
+
+    # ...
+  end
+end
+```
+{% endcode %}
+
+{% hint style="info" %}
+Some PSPs, such as Stripe, provide a single endpoint for authorizing and capturing a payment in one request. Others will require you to perform two different requests, in which case your `#purchase`method may simply call `#authorize` and `#capture` in succession.
+{% endhint %}
+
+The rest of our gateway \(`#capture`, `#void` and `#credit`\) is trivial and pretty similar to our existing methods. We just call our PSP to perform a certain operation on an existing transaction:
+
+{% code title="app/models/solidus\_pay/gateway.rb" %}
+```ruby
+module SolidusPay
+  class Gateway
+    # ...
+
+    def capture(money, transaction_id, options = {})
+      response = request(
+        :post,
+        "/charges/#{transaction_id}/capture",
+        { amount: money },
+      )
+
+      if response.success?
+        ActiveMerchant::Billing::Response.new(true, "Transaction Captured")
+      else
+        ActiveMerchant::Billing::Response.new(
+          false,
+          response.parsed_response['error'],
+        )
+      end
+    end
+
+    def void(transaction_id, options = {})
+      response = request(:post, "/charges/#{transaction_id}/refunds")
+
+      if response.success?
+        ActiveMerchant::Billing::Response.new(true, "Transaction Voided")
+      else
+        ActiveMerchant::Billing::Response.new(
+          false,
+          response.parsed_response['error'],
+        )
+      end
+    end
+
+    def credit(money, transaction_id, options = {})
+      response = request(
+        :post,
+        "/charges/#{transaction_id}/credit",
+        { amount: money },
+      )
+
+      if response.success?
+        ActiveMerchant::Billing::Response.new(true, "Transaction Credited")
+      else
+        ActiveMerchant::Billing::Response.new(
+          false,
+          response.parsed_response['error'],
+        )
+      end
+    end
+
+    # ...
+  end
+end
+```
+{% endcode %}
+
+At this point, we have our custom payment gateway which encapsulates all API interaction logic with the PSP, and we can use it as part of a custom payment method.
+
 ### Custom payment sources
 
 {% hint style="info" %}
@@ -146,25 +377,28 @@ The first step is to generate a new model, which we'll call `SolidusPayAccount`.
 Our model will just have a `payment_method_id` column, which will be used to associate the payment source to the payment method that generated it, and an `account_id` column, which we'll use to store the ID of the SolidusPay account that we will later charge:
 
 ```bash
-$ rails g model SolidusPayAccount payment_method_id:integer account_id:integer
+$ rails g model SolidusPay::Account payment_method_id:integer account_id:integer
 $ rails db:migrate
 ```
 
 By default, Rails will generate a model that inherits from `ApplicationRecord`. Instead, we want our model to inherit from `Spree::PaymentSource`, so that we can benefit from some sensible defaults provided by Solidus for payment sources:
 
-{% code title="app/models/solidus\_pay\_account.rb" %}
+{% code title="app/models/solidus\_pay/account.rb" %}
 ```diff
 - class SolidusPayAccount < ApplicationRecord
-+ class SolidusPayAccount < Spree::PaymentSource
++ class SolidusPay::Account < Spree::PaymentSource
++   self.table_name = "solidus_pay_accounts"
   end
 ```
 {% endcode %}
 
 At this point, we have our new payment source model ready. Now, let's implement the payment source API, so that Solidus knows how to use our payment source during order processing \(note that this logic is taken verbatim from `Spree::PaymentSource`, other than the `#reusable?` method which would normally return `false`\):
 
-{% code title="app/models/solidus\_pay\_account.rb" %}
+{% code title="app/models/solidus\_pay/account.rb" %}
 ```ruby
-class SolidusPayAccount < Spree::PaymentSource
+class SolidusPay::Account < Spree::PaymentSource
+  # ...
+
   # SolidusPay payments can be captured, voided and refunded.
   def actions
     %w(capture void credit)
@@ -196,13 +430,168 @@ end
 
 At this point, we have a new payment source and Solidus knows how to use it internally.
 
-#### Providing payment source partials
+### Custom payment methods
+
+Payment methods are what Solidus interacts with when processing payments and refunds. In order to take advantage of a custom payment gateway, we'll also need a custom payment method.
+
+#### The payment method API
+
+By default, `Spree::PaymentMethod` [delegates](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/payment_method.rb#L40) all gateway-specific method calls to the gateway itself. You can choose to maintain this behavior, or to wrap the calls and enrich them with your custom logic by re-defining the relevant methods \(e.g., `#authorize`, `#capture`, `#purchase` etc.\).
+
+A common setup is to code your payment gateway so that it doesn't have to know about payment sources and can be used independently, while the payment method acts as a bridge between payment sources and the calls to the payment gateway.
+
+Payment methods also expose two additional methods which are not part of the standard gateway API:
+
+* `#try_void(payment)`: attempts to void a payment, or returns `false`/`nil` \(in which case, Solidus will then refund the payment\).
+* `#create_profile(payment)` \(optional\): creates a payment profile with the information from the provided payment, so that the customer can be charged for future orders. Only used if the payment method supports payment profiles.
+
+#### Building a custom payment method
+
+The first step for building a custom payment method is to create a new model that inherits from `Spree::PaymentMethod`. Unlike for payment sources, payment methods are all stored in one table, so there's no need to use the model generator. Instead, we'll create the model class directly, with the bare minimum that's needed to make it work:
+
+{% code title="app/models/solidus\_pay/payment\_method.rb" %}
+```ruby
+class SolidusPay::PaymentMethod < Spree::PaymentMethod
+end
+```
+{% endcode %}
+
+After creating the model, it's a good idea to configure the translation for its name, so that Solidus knows how to display the payment method's name properly in the backend:
+
+{% code title="config/locales/en.yml" %}
+```yaml
+en:
+  # ...
+
+  activerecord:
+    models:
+      solidus_pay/payment_method: Solidus Pay
+```
+{% endcode %}
+
+Now that we have our new payment method, we need to tell Solidus about its existence, so that SolidusPay shows up when an admin attempts to configure a new payment method:
+
+{% code title="config/initializers/spree.rb" %}
+```ruby
+Spree.config do |config|
+  # ...
+
+  config.environment.payment_methods << 'SolidusPay::PaymentMethod'
+end
+```
+{% endcode %}
+
+At this point, if you open your Solidus backend and navigate to Settings → Payments → New Payment Method, you should see "Solidus pay" in the list of available payment methods:
+
+![](../.gitbook/assets/screenshot-localhost_3000-2021.06.22-12_35_16.png)
+
+Fill in a name for your payment method \("Solidus Pay" will do just fine\) and hit Create to create a new instance of the payment method in your Solidus store.
+
+At this point, however, the payment method is just an empty shell: it doesn't know anything about the custom source or the custom gateway we have implemented. We still need to make some adjustments in order to fully integrate it with our PSP.
+
+#### Integrating a custom payment source
+
+The first step to a complete integration is to make our payment method aware of the custom payment source model we have created earlier. This way, the payment method will know which sources to retrieve and create during the checkout flow.
+
+To integrate the payment method with our payment source, we'll implement the following methods:
+
+* `#payment_source_class`: returns the payment source class the payment method works with.
+* `#reusable_sources(order)`: given a payment source, returns whether the payment method can work with it.
+* `#supports?(source)`: ****given an order, returns the list of reusable sources on the order for the payment method.
+
+The implementation for these is pretty simple and self-explanatory:
+
+```ruby
+class SolidusPay::PaymentMethod < Spree::PaymentMethod
+  # ...
+
+  def payment_source_class
+    SolidusPay::Account
+  end
+
+  def supports?(source)
+    source.is_a?(payment_source_class)
+  end
+
+  def reusable_sources(order)
+    return [] unless order.user
+
+    order.user.wallet_payment_sources.map(&:payment_source).select do |source|
+      supports?(source) && source.reusable?
+    end
+  end
+end
+```
+
+#### Integrating a custom payment gateway
+
+In order to start using our custom payment gateway, we'll need to tell the payment method which payment gateway class to initialize. We can do this by defining a `gateway_class` method on the payment method:
+
+```ruby
+class SolidusPay::PaymentMethod < Spree::PaymentMethod
+  # ...
+
+  preference :api_key, :string
+
+  def gateway_class
+    SolidusPay::Gateway
+  end
+end
+```
+
+You will notice that we also added an `api_key` preference. This preference will be automatically configurable via the payment method UI in the Solidus admin, and will be passed to the payment gateway's `#initialize` method. By default, the payment method will delegate all `#authorize`, `#capture`, `#purchase`, `#void` and `#credit` calls to the gateway.
+
+However, there's one caveat: Solidus will pass instances of `SolidusPay::Source` to our payment method when calling `#authorize` and `#capture`, but the gateway doesn't know anything about payment sources and works directly with account IDs instead. This makes the gateway independent of Solidus, but it also means Solidus will pass the wrong type of argument to it.
+
+To accommodate this discrepancy, we'll adjust the `#authorize` and `#capture` methods on the payment method slightly, in order to transform payment sources into account IDs:
+
+```ruby
+class SolidusPay::PaymentMethod < Spree::PaymentMethod
+  # ...
+
+  def authorize(money, source, options = {})
+    gateway.authorize(money, source.account_id, options)
+  end
+
+  def purchase(money, source, options = {})
+    gateway.purchase(money, source.account_id, options)
+  end
+end
+```
+
+Finally, we need to implement the `#try_void` method. This method is supposed to attempt to void a payment or return `false` if the payment cannot be voided anymore \(in which case, Solidus will issue a refund instead\):
+
+```ruby
+class SolidusPay::PaymentMethod < Spree::PaymentMethod
+  # ...
+
+  def try_void(payment)
+    return false if payment.completed?
+
+    void(payment.source.transaction_id)
+  end
+end
+```
+
+Our `try_void` implementation is pretty simple: if the payment has already been completed \(i.e., it's been captured\), we return `false` and let Solidus issue a refund. If the payment hasn't been captured, we void the existing authorization instead.
+
+#### Providing payment method partials
 
 {% hint style="warning" %}
 These partials assume that you haven't customized the backend, storefront or API in significant ways which would prevent them from working/displaying properly. If you have applied extensive customizations to either of these engines, make sure to adjust the partials accordingly!
 {% endhint %}
 
-When you create a new payment source, Solidus has no idea how to actually display it in the storefront, backend or API. You will need to provide payment source partials so that Solidus can use them when displaying a SolidusPay payment source.
+```ruby
+class SolidusPay::PaymentMethod < Spree::PaymentMethod
+  # ...
+
+  def partial_name
+    'solidus_pay'
+  end
+end
+```
+
+When you create a new payment method, Solidus has no idea how to actually display it in the storefront, backend or API. You will need to provide payment method partials so that Solidus can use them when displaying the SolidusPay payment method.
 
 The first partial we'll implement is used by Solidus when displaying the SolidusPay payment form in the checkout flow. We will just ask users for their SolidusPay account ID:
 
@@ -307,238 +696,6 @@ Finally, the last partial is needed to display a payment source's information vi
 json.call(payment_source, :id, :account_id)
 ```
 {% endcode %}
-
-### Custom payment gateways
-
-{% hint style="info" %}
-Most payment integrations in Solidus don't ship with a custom payment gateway. Instead, they rely on one of the payment gateways provided by [ActiveMerchant](https://github.com/activemerchant/active_merchant).
-
-If you need to integrate with a PSP that's not supported by Solidus, you should first look and see whether ActiveMerchant already provides the payment gateway you need: if that's the case, you will only need to implement a custom payment method and source.
-{% endhint %}
-
-Implementing a custom payment gateway can be useful if you're integrating with a lesser-known PSP \(e.g., a local PSP in your country\), or if you need to deeply customize an existing PSP integration.
-
-#### The payment gateway API
-
-Payment gateways expose the following API:
-
-* `#initialize(options)`: initializes the gateway with the provided options. By default, Solidus will pass the [payment method's preferences](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/payment_method.rb#L78) in here.
-* `#authorize(money, source, options = {})`: authorizes a certain amount on the provided payment source.
-* `#capture(money, transaction_id, options = {})`: captures a certain amount from a previously authorized transaction.
-* `#purchase(money, source, options = {})`: authorizes and captures a certain amount on the provided payment source.
-* `#void(transaction_id, [source,] options = {})`: voids a previously authorized transaction, releasing the funds that are on hold.
-* `#credit(money, transaction_id, options = {})`: refunds the provided amount on a previously captured transaction.
-
-All of these methods are expected to return an [`ActiveMerchant::Billing::Response`](https://github.com/activemerchant/active_merchant/blob/master/lib/active_merchant/billing/response.rb) object containing the result and details of the operation. Payment gateways never raise exceptions when things go wrong: they only return response objects that represent successes or failures, and Solidus handles control flow accordingly.
-
-{% hint style="warning" %}
-For historical and technical reasons, the Solidus API for payment gateways deviates from the ActiveMerchant API in a few ways:
-
-* The `source` parameter that is passed to a gateway will be an instance of `Spree::PaymentSource`, while ActiveMerchant gateways expect their own models.
-* The `#void` method in ActiveMerchant never accepts a payment source. Solidus will pass the payment source to `#void` if the payment method supports payment profiles.
-* The `#credit` method in ActiveMerchant gateways does not accept a transaction ID but a payment source, since it can be used to credit funds to a payment source even in the absence of a previous charge. What Solidus calls `#credit` is actually called `#refund` in ActiveMerchant.
-
-For custom payment gateways, these discrepancies are not a problem, since the gateways can be implemented to respond to the API expected by Solidus.
-
-For ActiveMerchant gateways, the payment method will wrap these methods instead of delegating them to the gateway directly, and will transform the method calls and their arguments to comply with ActiveMerchant's interface.
-{% endhint %}
-
-#### Building your gateway
-
-To build your gateway, you just need to create a new class that responds to the Gateway API. In this example, we'll build a new payment gateway for our beloved SolidusPay which provides a nice RESTful API for managing payments and refunds.
-
-The first step would be to build the skeleton of our gateway. For the time being, we'll just make sure we store the API key that's passed when initializing the gateway, and we'll write a small helper on top of the HTTParty gem for interacting with the PSP's API:
-
-```ruby
-module SolidusPay
-  class Gateway
-    API_URL = 'https://soliduspay.com/api/v1'
-
-    attr_reader :api_key
-
-    def initialize(options)
-      @api_key = options.fetch(:api_key)
-    end
-
-    private
-
-    def request(method, uri, body = {})
-      HTTParty.send(
-        method,
-        "#{API_URL}#{uri}",
-        headers: {
-          "Authorization" => "Bearer #{api_key}",
-          "Content-Type" => "application/json",
-          "Accept" => "application/json",
-        },
-        body: body.to_json,
-      )
-    end
-  end
-end
-```
-
-Now that we have everything we need to interact with the API, we can start writing the actual integration. The first step in processing a payment is usually authorizing it, so we'll start with that:
-
-```ruby
-module SolidusPay
-  class Gateway
-    # ...
-
-    def authorize(money, source, options = {})
-      response = request(
-        :post,
-        "/charges",
-        payload_for_charge(money, source, options).merge(capture: false),
-      )
-
-      if response.success?
-        ActiveMerchant::Billing::Response.new(
-          true,
-          "Transaction Authorized",
-          {},
-          authorization: response.parsed_response['id'],
-        )
-      else
-        ActiveMerchant::Billing::Response.new(
-          false,
-          response.parsed_response['error'],
-        )
-      end
-    end
-
-    private
-
-    # ...
-
-    def payload_for_charge(money, source, options = {})
-      {
-        card_token: source.card_token,
-        amount: money,
-        currency: options[:currency],
-        description: "Payment #{options[:order_id]}",
-        billing_address: options[:billing_address],
-      }
-    end
-  end
-end
-```
-
-The logic for the `#authorize` method is fairly straightforward: it makes a POST request to the `/api/v1/charges` endpoint of the PSP's API. The body of the request includes information about:
-
-* the amount we want to charge, which is passed in the `amount` parameter as a number of cents \(e.g., `1000` represents 10.00, `1050` represents 10.50\),
-* the payment source we want to charge, which is passed in the `source` parameter and will be an instance of the payment source class for the payment method,
-* [metadata about the order and the payment](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/payment/processing.rb#L91), which is passed in the `options` parameter.
-
-The method then returns an `ActiveMerchant::Billing::Response` object that represents the success or failure of the operation. In the successful response, the `:authorization` option will also be included. Solidus will store the value of this option on the `response_code` attribute on the `Spree::Payment` record, so that we can reference the transaction ID when capturing/voiding/refunding it later.
-
-You'll notice that the payload of the request is generated in a helper method, `#payload_for_charge`. This is because the payloads for authorizing and purchasing \(i.e., authorizing and capturing in one go\) is the same, minus the `:capture` option, which we'll set to `true` when we also want to capture the amount:
-
-```ruby
-module SolidusPay
-  class Gateway
-    # ...
-
-    def purchase(money, source, options = {})
-      response = request(
-        :post,
-        "/charges",
-        payload_for_charge(money, source, options).merge(capture: true),
-      )
-
-      if response.success?
-        ActiveMerchant::Billing::Response.new(
-          true,
-          "Transaction Purchased",
-          {},
-          authorization: response.parsed_response['id'],
-        )
-      else
-        ActiveMerchant::Billing::Response.new(
-          false,
-          response.parsed_response['error'],
-        )
-      end
-    end
-
-    # ...
-  end
-end
-```
-
-{% hint style="info" %}
-Some PSPs, such as Stripe, provide a single endpoint for authorizing and capturing a payment in one request. Others will require you to perform two different requests, in which case your `#purchase`method may simply call `#authorize` and `#capture` in succession.
-{% endhint %}
-
-The rest of our gateway \(`#capture`, `#void` and `#credit`\) is trivial and pretty similar to our existing methods. We just call our PSP to perform a certain operation on an existing transaction:
-
-```ruby
-module SolidusPay
-  class Gateway
-    # ...
-
-    def capture(money, transaction_id, options = {})
-      response = request(
-        :post,
-        "/charges/#{transaction_id}/capture",
-        { amount: money },
-      )
-
-      if response.success?
-        ActiveMerchant::Billing::Response.new(true, "Transaction Captured")
-      else
-        ActiveMerchant::Billing::Response.new(
-          false,
-          response.parsed_response['error'],
-        )
-      end
-    end
-
-    def void(transaction_id, options = {})
-      response = request(:post, "/charges/#{transaction_id}/refunds")
-
-      if response.success?
-        ActiveMerchant::Billing::Response.new(true, "Transaction Voided")
-      else
-        ActiveMerchant::Billing::Response.new(
-          false,
-          response.parsed_response['error'],
-        )
-      end
-    end
-
-    def credit(money, transaction_id, options = {})
-      response = request(
-        :post,
-        "/charges/#{transaction_id}/credit",
-        { amount: money },
-      )
-
-      if response.success?
-        ActiveMerchant::Billing::Response.new(true, "Transaction Credited")
-      else
-        ActiveMerchant::Billing::Response.new(
-          false,
-          response.parsed_response['error'],
-        )
-      end
-    end
-
-    # ...
-  end
-end
-```
-
-At this point, we have our custom payment gateway which encapsulates all API interaction logic with the PSP. But a payment gateway is not usable by itself: to complete our SolidusPay integration, we will also need to implement a custom payment method.
-
-### Custom payment methods
-
-Payment methods wrap the gateway API.
-
-Payment methods also expose two additional methods which are not part of the standard ActiveMerchant API:
-
-* `#try_void(payment)`: attempts to void a payment, or returns `false`/`nil` \(in which case, Solidus will then refund the payment\).
-* `#create_profile(payment)`: creates a payment profile with the information from the provided payment, so that the customer can be charged for future orders.
 
 ### Custom payment canceller
 
