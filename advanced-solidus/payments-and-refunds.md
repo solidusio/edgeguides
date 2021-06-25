@@ -41,7 +41,7 @@ Payment methods represent different ways customers can pay in your store. For ex
 Different payment methods support different features, depending on the underlying PSP:
 
 * **Payment sources.** Some payment methods, like check payments or bank transfers, don't need a payment source to "draw" money from, e.g. because the payment is done off-site.
-* **Payment profiles.** Not all PSPs support vaulting \(i.e., the ability to store a payment source so that it can be charged later\), and Solidus will adjust its API calls accordingly.
+* **Payment profiles.** Some payment methods support vaulting, i.e., the ability to store a payment source so that it can be charged later. When that's the case, Solidus will attempt to vault the payment source after creating a payment for it.
 
 {% hint style="info" %}
 Not all payment methods are tied to a PSP. For example, the check and store credit payment methods that Solidus ships with don't need to interact with a PSP to process payments. You can think of these as "virtual" payment methods.
@@ -372,31 +372,31 @@ Next, let's see how exactly to implement these methods in a brand new payment so
 
 For example, let's say we're integrating with a brand new PSP called SolidusPay which allows customers to pay with their SolidusPay account's balance, similar to what happens with PayPal. In order to model this behavior, we'll need a custom payment source model, which will be much simpler than the default credit card payment source.
 
-The first step is to generate a new model, which we'll call `SolidusPayAccount`.
+The first step is to generate a new model, which we'll call `SolidusPay::Transaction`.
 
 Our model will just have a `payment_method_id` column, which will be used to associate the payment source to the payment method that generated it, and an `auth_token` column, which we'll use to store the ID of the SolidusPay auth token that we will later charge:
 
 ```bash
-$ rails g model SolidusPay::Account payment_method_id:integer auth_token:string
+$ rails g model SolidusPay::Transaction payment_method_id:integer auth_token:string
 $ rails db:migrate
 ```
 
 By default, Rails will generate a model that inherits from `ApplicationRecord`. Instead, we want our model to inherit from `Spree::PaymentSource`, so that we can benefit from some sensible defaults provided by Solidus for payment sources:
 
-{% code title="app/models/solidus\_pay/account.rb" %}
+{% code title="app/models/solidus\_pay/transaction.rb" %}
 ```diff
-- class SolidusPayAccount < ApplicationRecord
-+ class SolidusPay::Account < Spree::PaymentSource
-+   self.table_name = "solidus_pay_accounts"
+- class SolidusPay::Transaction < ApplicationRecord
++ class SolidusPay::Transaction < Spree::PaymentSource
++   self.table_name = "solidus_pay_transactions"
   end
 ```
 {% endcode %}
 
 At this point, we have our new payment source model ready. Now, let's implement the payment source API, so that Solidus knows how to use our payment source during order processing \(note that this logic is taken verbatim from `Spree::PaymentSource`, other than the `#reusable?` method which would normally return `false`\):
 
-{% code title="app/models/solidus\_pay/account.rb" %}
+{% code title="app/models/solidus\_pay/transaction.rb" %}
 ```ruby
-class SolidusPay::Account < Spree::PaymentSource
+class SolidusPay::Transaction < Spree::PaymentSource
   # ...
 
   # SolidusPay payments can be captured, voided and refunded.
@@ -503,7 +503,7 @@ class SolidusPay::PaymentMethod < Spree::PaymentMethod
   # ...
 
   def payment_source_class
-    SolidusPay::Account
+    SolidusPay::Transaction
   end
 
   def supports?(source)
@@ -693,6 +693,92 @@ Finally, the last partial is needed to display a payment source's information vi
 json.call(payment_source, :id, :auth_token)
 ```
 {% endcode %}
+
+#### Adding support for payment profiles
+
+Payment methods in Solidus can support **payment profiles**. Payment profiles provide the ability to vault a payment source, i.e. store its details permanently in the PSP so that it can be charged at a later stage. If you've ever used Stripe, this would be the equivalent of creating a Stripe customer associated to the credit card you're trying to charge \(in fact, that's exactly what the Stripe payment method in Solidus does!\).
+
+When a payment method supports payment profiles, Solidus will alter the usual payment processing flow slightly to accommodate that:
+
+* Right after creating a payment, Solidus will [call](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/payment.rb#L28) the `#create_payment_profile(payment)` method on the payment method. This method is supposed to create a payment profile for the payment source on the payment, and save its details on the payment source.
+* When [voiding](https://github.com/solidusio/solidus/blob/e878076f2ed670d07654ab6293a16588743f2fa6/core/app/models/spree/payment/processing.rb#L74) or [refunding](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/refund.rb#L60) a transaction, Solidus will pass the payment source to the `#void` or `#refund` call, so that the payment gateway can include the payment profile ID in the PSP API call, if required by the PSP.
+
+The first step for adding support for payment profiles is defining the `#payment_profiles_supported?` method in our payment method:
+
+```ruby
+class SolidusPay::PaymentMethod < Spree::PaymentMethod
+  # ...
+
+  def payment_profiles_supported?
+    true
+  end
+end
+```
+
+Next, we'll implement a `create_customer`method in our gateway, which accepts a SolidusPay auth token  and creates a new SolidusPay customer from it:
+
+```ruby
+class SolidusPay::Gateway
+  # ...
+
+  def create_customer(auth_token)
+    request(
+      :post,
+      "/customers",
+      auth_token: auth_token,
+    ).parsed_response  
+  end
+end
+```
+
+This method will return the customer's profile, and we'll assume that the customer ID we want to store will be in the `id` key.
+
+At this point, we'll need to add a column to our `SolidusPay::Transaction` model for storing the  SolidusPay customer ID:
+
+```bash
+$ rails g migration AddCustomerIdToSolidusPayTransactions customer_id:string
+$ rails db:migrate
+```
+
+{% hint style="warning" %}
+At the moment, Solidus doesn't offer native data structures for associating multiple payment sources to the same payment profile \(e.g., associating the same Stripe customer to multiple credit cards\). However, this could easily be implemented as a custom functionality \(e.g., by storing the Stripe customer ID on the user rather than the payment source\).
+{% endhint %}
+
+Finally, we'll implement the `create_profile` method on the SolidusPay payment method. This method will be called right after a new SolidusPay payment is created, and it should create a new SolidusPay customer with the payment source associated to the payment method, and store its ID on the corresponding transaction:
+
+```ruby
+class SolidusPay::PaymentMethod < Spree::PaymentMethod
+  # ...
+  
+  def create_profile(payment)
+    customer = gateway.create_customer(payment.auth_token)
+    
+    payment.source.update(customer_id: customer['id'])
+  end
+end
+```
+
+Solidus should now create a new customer profile in SolidusPay whenever we create a SolidusPay payment, and the customer ID will be correctly associated to the payment source.
+
+The last step is updating the payment gateway and payment method implementation: now that our payment method supports payment profiles, Solidus will start passing the payment source as an additional parameter to `#void` and `#credit`:
+
+```diff
+ class SolidusPay::Gateway
+   # ...
+
+-  def void(transaction_id, options = {})
++  def void(transaction_id, source, options = {})
+     # ...
+   end
+
+-  def credit(money, source, transaction_id, options = {})
++  def credit(money, source, transaction_id, options = {})
+     # ...
+   end
+ end
+```
+
+In our example, we are not doing anything with the `source` parameter and simply accept it so that Solidus' method calls don't fail. In the real world, we may want to pass the customer ID to the gateway along with the transaction ID, so that it can be included in the API payload.
 
 ### Custom payment canceller
 
