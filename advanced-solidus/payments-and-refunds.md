@@ -146,8 +146,8 @@ All of these methods are expected to return an [`ActiveMerchant::Billing::Respon
 For historical and technical reasons, the Solidus API for payment gateways deviates from the ActiveMerchant API in a few ways:
 
 * The `source` parameter that is passed to a gateway will be an instance of `Spree::PaymentSource`, while ActiveMerchant gateways expect their own models.
-* The `#void` method in ActiveMerchant never accepts a payment source. Solidus will pass the payment source to `#void` if the payment method supports payment profiles.
-* The `#credit` method in ActiveMerchant gateways does not accept a transaction ID but a payment source, since it can be used to credit funds to a payment source even in the absence of a previous charge. What Solidus calls `#credit` is actually called `#refund` in ActiveMerchant.
+* The `#void` and `#credit` method in ActiveMerchant never accepts a payment source. Solidus will pass the payment source to `#void` and `#credit` if the payment method supports payment profiles.
+* The `#credit` method in ActiveMerchant gateways does not accept a transaction ID but a payment method token \(e.g., credit card token\), since it can be used to credit funds to a payment source even in the absence of a previous charge. What Solidus calls `#credit` is actually called `#refund` in ActiveMerchant.
 
 For custom payment gateways, these discrepancies are not a problem, since the gateways can be implemented to respond to the API expected by Solidus.
 
@@ -440,10 +440,7 @@ By default, `Spree::PaymentMethod` [delegates](https://github.com/solidusio/soli
 
 A common setup is to code your payment gateway so that it doesn't have to know about payment sources and can be used independently, while the payment method acts as a bridge between payment sources and the calls to the payment gateway.
 
-Payment methods also expose two additional methods which are not part of the standard gateway API:
-
-* `#try_void(payment)`: attempts to void a payment, or returns `false`/`nil` \(in which case, Solidus will then refund the payment\).
-* `#create_profile(payment)` \(optional\): creates a payment profile with the information from the provided payment, so that the customer can be charged for future orders. Only used if the payment method supports payment profiles.
+Payment methods also expose additional methods which are Solidus-specific and not part of the standard gateway API. We'll see which in the next paragraphs.
 
 #### Building a custom payment method
 
