@@ -4,7 +4,7 @@ With Solidus' maintenance policy, a release will receive security patches and ot
 
 Because of the project's focus on stability and backwards compatibility, upgrading Solidus is usually a painless process: minor releases NEVER break public APIs, although they may deprecate APIs that will then be removed in the next major.
 
-When upgrading, look at the [changelog](https://github.com/solidusio/solidus/blob/master/CHANGELOG.md) and make a note of any large refactoring or public API changes, then update your app accordingly. You should also make sure to [update any extensions](extensions.md#staying-up-to-date) you have installed, since new releases may have come out to support the new Solidus version or take advantage of new functionality it introduces.
+When upgrading, look at the [changelog](https://github.com/solidusio/solidus/blob/v3.0/CHANGELOG.md) and make a note of any large refactoring or public API changes, then update your app accordingly. You should also make sure to [update any extensions](extensions.md#staying-up-to-date) you have installed, since new releases may have come out to support the new Solidus version or take advantage of new functionality it introduces.
 
 ### Ruby and Rails upgrades
 

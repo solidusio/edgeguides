@@ -377,7 +377,7 @@ end
 
 ### Order helpers
 
-Sometimes, you need to generate an order in a given state. Solidus ships with a set of [order factories](https://github.com/solidusio/solidus/blob/master/core/lib/spree/testing_support/factories/order_factory.rb) you can use to generate different types of orders, and these should be your first choice.
+Sometimes, you need to generate an order in a given state. Solidus ships with a set of [order factories](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/testing_support/factories/order_factory.rb) you can use to generate different types of orders, and these should be your first choice.
 
 However, you will sometimes need a bit more granularity than what the factories provide \(e.g., when testing the checkout flow\). A common use case is wanting to generate an order in a certain state, only with the information the user would have provided up until that state \(e.g., generate an order in the delivery state, only with address information\). That's exactly what the `OrderWalkthrough` helper is for.
 

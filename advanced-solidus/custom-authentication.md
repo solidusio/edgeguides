@@ -117,7 +117,7 @@ end
 
 ## Adding Solidus user methods
 
-The [`Spree::UserMethods` module ](https://github.com/solidusio/solidus/blob/master/core/app/models/concerns/spree/user_methods.rb)provides extensive integration for a `User` model, creating associations and allowing it to interact with major models in Solidus like `Spree::Order`.
+The [`Spree::UserMethods` module ](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/concerns/spree/user_methods.rb)provides extensive integration for a `User` model, creating associations and allowing it to interact with major models in Solidus like `Spree::Order`.
 
 To add user methods to your `User` model, include `Spree::UserMethods` :
 

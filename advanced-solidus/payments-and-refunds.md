@@ -28,7 +28,7 @@ Credit cards are the most common example of payment sources, and Solidus provide
 
 Each payment source is backed by its own DB table and exposes different information to Solidus about the actions that can be taken on it and whether it is reusable for future payments.
 
-Reusable payment sources can be added to a user's [wallet](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/wallet.rb), in which case they can be picked by the user for future checkouts as well.
+Reusable payment sources can be added to a user's [wallet](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/wallet.rb), in which case they can be picked by the user for future checkouts as well.
 
 ### Payment methods
 
@@ -140,7 +140,7 @@ Payment gateways expose the following API:
 * `#void(transaction_id, [source,] options = {})`: voids a previously authorized transaction, releasing the funds that are on hold. The `source` parameter is only needed for payment gateways that support payment profiles.
 * `#credit(money, [source,] transaction_id, options = {})`: refunds the provided amount on a previously captured transaction. The `source` parameter is only needed for payment gateways that support payment profiles.
 
-All of these methods are expected to return an [`ActiveMerchant::Billing::Response`](https://github.com/activemerchant/active_merchant/blob/master/lib/active_merchant/billing/response.rb) object containing the result and details of the operation. Payment gateways never raise exceptions when things go wrong: they only return response objects that represent successes or failures, and Solidus handles control flow accordingly.
+All of these methods are expected to return an [`ActiveMerchant::Billing::Response`](https://github.com/activemerchant/active_merchant/blob/v3.0/lib/active_merchant/billing/response.rb) object containing the result and details of the operation. Payment gateways never raise exceptions when things go wrong: they only return response objects that represent successes or failures, and Solidus handles control flow accordingly.
 
 {% hint style="warning" %}
 For historical and technical reasons, the Solidus API for payment gateways deviates from the ActiveMerchant API in a few ways:
@@ -353,7 +353,7 @@ At this point, we have our custom payment gateway which encapsulates all API int
 ### Custom payment sources
 
 {% hint style="info" %}
-Not all payment methods require a custom payment source. Instead, you may want to simply rely on the existing [`Spree::CreditCard`](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/credit_card.rb) payment source, which provides some useful logic for working with "credit card" types of payment sources.
+Not all payment methods require a custom payment source. Instead, you may want to simply rely on the existing [`Spree::CreditCard`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/credit_card.rb) payment source, which provides some useful logic for working with "credit card" types of payment sources.
 {% endhint %}
 
 Creating a custom payment source may be needed if you are integrating with a new PSP that is not credit-card based. This will be the case, for instance, when a customer pays through their PSP account's balance rather than via a specific credit card \(e.g., "Pay with PayPal"\). It's also a common setup with financing PSPs such as Affirm or AfterPay: in this case, the PSP itself is the "source" of money.

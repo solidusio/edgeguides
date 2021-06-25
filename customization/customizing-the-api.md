@@ -115,7 +115,7 @@ end
 {% endtabs %}
 
 {% hint style="info" %}
-You can also configure FactoryBot to auto-generate the factory when you create a new model. For more information, refer to the [FactoryBot documentation](https://github.com/thoughtbot/factory_bot/blob/master/GETTING_STARTED.md).
+You can also configure FactoryBot to auto-generate the factory when you create a new model. For more information, refer to the [FactoryBot documentation](https://github.com/thoughtbot/factory_bot/blob/v3.0/GETTING_STARTED.md).
 {% endhint %}
 
 Now that we have our model in place, we're ready to start creating an API endpoint for liking products!

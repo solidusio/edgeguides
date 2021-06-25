@@ -12,13 +12,13 @@ How you customize Solidus will have implications for the stability and maintaina
 
 Solidus provides a rich and powerful API for customizing different aspects of your store's business logic. By defining which classes get called to perform certain tasks in your store, you have the option to either enrich or completely replace Solidus' default functionality.
 
-The [`Spree::AppConfiguration`](https://github.com/solidusio/solidus/blob/master/core/lib/spree/app_configuration.rb) class has a list of all the service object classes that can be natively customized. Look for through the source code of that class and see if there's an option that resembles what you need to do. If yes, bingo!
+The [`Spree::AppConfiguration`](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/app_configuration.rb) class has a list of all the service object classes that can be natively customized. Look for through the source code of that class and see if there's an option that resembles what you need to do. If yes, bingo!
 
 {% hint style="info" %}
 `Spree::AppConfiguration` is not the only configuration class that contains service objects. Before resorting to other customization methods, search through Solidus' source code and see if there are any other options that allow you to replace the class you need.
 {% endhint %}
 
-For instance, Solidus merges a user's "guest" cart with the cart associated to their user account when they sign in. Let's suppose you don't like this default behavior, and would like to keep the two carts separate at all times instead, to avoid confusion for the user. You can see there is [an option](https://github.com/solidusio/solidus/blob/master/core/lib/spree/app_configuration.rb#L372) in the configuration that allows us to control precisely this behavior:
+For instance, Solidus merges a user's "guest" cart with the cart associated to their user account when they sign in. Let's suppose you don't like this default behavior, and would like to keep the two carts separate at all times instead, to avoid confusion for the user. You can see there is [an option](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/app_configuration.rb#L372) in the configuration that allows us to control precisely this behavior:
 
 {% code title="solidus/core/lib/spree/app\_configuration.rb" %}
 ```ruby
@@ -235,7 +235,7 @@ Solidus is a large and complex platform and, while new built-in customization ho
 
 As an example, suppose you want to introduce an environment variable that allows you to temporarily make all products unavailable in the storefront.
 
-When you look at Solidus' source code, you will notice that `Spree::Product` already has an [`#available?`](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/product.rb#L174) method to control a product's visibility. This is the original implementation:
+When you look at Solidus' source code, you will notice that `Spree::Product` already has an [`#available?`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/product.rb#L174) method to control a product's visibility. This is the original implementation:
 
 ```ruby
 # Determines if product is available. A product is available if it has not
