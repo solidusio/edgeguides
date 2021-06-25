@@ -413,7 +413,7 @@ class SolidusPay::Transaction < Spree::PaymentSource
   def can_void?(payment)
     payment.can_void?
   end
-  
+
   # A SolidusPay payment can be refunded if it's been captured and if the
   # un-refunded amount is greater than 0.
   def can_credit?(payment)
@@ -494,7 +494,7 @@ To integrate the payment method with our payment source, we'll implement the fol
 
 * `#payment_source_class`: returns the payment source class the payment method works with.
 * `#reusable_sources(order)`: given a payment source, returns whether the payment method can work with it.
-* `#supports?(source)`: ****given an order, returns the list of reusable sources on the order for the payment method.
+* `#supports?(source)`: _\*\*_given an order, returns the list of reusable sources on the order for the payment method.
 
 The implementation for these is pretty simple and self-explanatory:
 
@@ -540,7 +540,7 @@ You will notice that we also added an `api_key` preference. This preference will
 
 However, there's one caveat: Solidus will pass instances of `SolidusPay::Source` to our payment method when calling `#authorize` and `#capture`, but the gateway doesn't know anything about payment sources and works directly with auth tokens instead. This makes the gateway independent of Solidus, but it also means Solidus will pass the wrong type of argument to it.
 
-To accommodate this discrepancy, we'll adjust the `#authorize` and `#capture` methods on the payment method slightly, in order to transform payment sources into auth tokens:
+To accommodate this discrepancy, we'll adjust the `#authorize` and `#capture` methods on the payment method slightly, in order to transform payment sources into auth tokens:
 
 ```ruby
 class SolidusPay::PaymentMethod < Spree::PaymentMethod
@@ -715,7 +715,7 @@ class SolidusPay::PaymentMethod < Spree::PaymentMethod
 end
 ```
 
-Next, we'll implement a `create_customer`method in our gateway, which accepts a SolidusPay auth token  and creates a new SolidusPay customer from it:
+Next, we'll implement a `create_customer`method in our gateway, which accepts a SolidusPay auth token and creates a new SolidusPay customer from it:
 
 ```ruby
 class SolidusPay::Gateway
@@ -733,7 +733,7 @@ end
 
 This method will return the customer's profile, and we'll assume that the customer ID we want to store will be in the `id` key.
 
-At this point, we'll need to add a column to our `SolidusPay::Transaction` model for storing the  SolidusPay customer ID:
+At this point, we'll need to add a column to our `SolidusPay::Transaction` model for storing the SolidusPay customer ID:
 
 ```bash
 $ rails g migration AddCustomerIdToSolidusPayTransactions customer_id:string
@@ -749,10 +749,10 @@ Finally, we'll implement the `create_profile` method on the SolidusPay payment m
 ```ruby
 class SolidusPay::PaymentMethod < Spree::PaymentMethod
   # ...
-  
+
   def create_profile(payment)
     customer = gateway.create_customer(payment.auth_token)
-    
+
     payment.source.update(customer_id: customer['id'])
   end
 end

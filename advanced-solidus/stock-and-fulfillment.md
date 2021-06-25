@@ -111,7 +111,7 @@ Spree.config do |config|
   # ...
 
   config.stock.location_filter_class = 'AwesomeStore::Stock::LocationFilter::OrderState'
-end 
+end
 ```
 {% endcode %}
 
@@ -225,8 +225,6 @@ This allocator is extremely similar to Solidus' default stock allocator, but it 
 Because operations on inventory units can be a bit complicated for a developer to perform manually, Solidus provides two helper classes, [`Spree::Stock::Availability`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/availability.rb) and [`Spree::StockQuantities`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock_quantities.rb), which make it easier to reason about and perform algebraic operations on inventory units. Feel free to take a look at their source code to understand how they work in detail.
 {% endhint %}
 
-
-
 ### Stock splitters
 
 {% hint style="info" %}
@@ -235,7 +233,7 @@ The default splitter chain will split packages by [shipping category](https://gi
 There's also a `Weight` splitter that is not enabled by default, which will split packages so that they are all below a certain weight threshold.
 {% endhint %}
 
-An important aspect to understand about stock splitters is that, unlike all the other components of the stock system, you can have multiple stock splitters configured at the same time to form a **splitter chain**. 
+An important aspect to understand about stock splitters is that, unlike all the other components of the stock system, you can have multiple stock splitters configured at the same time to form a **splitter chain**.
 
 When the packages are ready to be split, Solidus will pass the initial list of packages to the first splitter in the chain, and each splitter is responsible for running its logic and passing the result to the next splitter in the chain, until the end of the chain is reached.
 

@@ -149,9 +149,9 @@ class CustomCalculator < Calculator::DefaultTax
   def compute_shipment(shipment)
     calculate(shipment.total_before_tax)
   end
-  
+
   private
-  
+
   def calculate(amount)
     # Skip the calculation if this tax rate is not active.
     return 0 unless calculable.active?

@@ -32,10 +32,6 @@ In general, coverage metrics are not an optimal measure of test quality, as they
 
 Rather than obsessing over test coverage, create guidelines around how to write meaningful, effective tests. High test coverage will come as a natural byproduct.
 
-{% hint style="warning" %}
-**TODO:** Suggest a code coverage monitoring setup.
-{% endhint %}
-
 ## Configuring your test environment
 
 Here's the bare minimum you'll need to get started with testing your Solidus app:
@@ -121,8 +117,6 @@ end
 
 Finally, you'll want to import the FactoryBot DSL methods. This allows you to call `create`, `build`, `build_stubbed` and `attributes_for` in your tests without prefixing them with `FactoryBot`:
 
-{% tabs %}
-{% tab title="spec/support/factory\_bot.rb" %}
 {% code title="spec/support/factory\_bot.rb" %}
 ```ruby
 RSpec.configure do |config|
@@ -130,14 +124,12 @@ RSpec.configure do |config|
 end
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
 
 For more information on FactoryBot and its usage, please see the [official documentation](https://github.com/thoughtbot/factory_bot).
 
 ### System tests: Capybara
 
-[Capybara](https://github.com/teamcapybara/capybara) is an acceptance test framework that simulates how a real user would interact with your app. Rails uses Capybara to implement [system tests](https://guides.rubyonrails.org/testing.html#system-testing), which are tests where you interact with the UI of your application rather than directly calling individual modules. 
+[Capybara](https://github.com/teamcapybara/capybara) is an acceptance test framework that simulates how a real user would interact with your app. Rails uses Capybara to implement [system tests](https://guides.rubyonrails.org/testing.html#system-testing), which are tests where you interact with the UI of your application rather than directly calling individual modules.
 
 When configured properly, system tests can also execute JavaScript code, just like a real browser would do. In order for JavaScript to be executed, you'll need to tell Capybara to switch to a JavaScript-capable browser for JS tests:
 
@@ -162,15 +154,15 @@ The configuration above tells Capybara to use the default `Rack::Test` browser f
 RSpec.describe "Product page", type: :system do
   it "shows the product's description" do
     visit "/products/solidus-shirt"
-    
+
     expect(page).to have_text("Solidus-branded T-shirt")
   end
-  
+
   it "allows me to add a product to my cart", :js do
     visit "/products/solidus-shirt"
 
     click_button "Add to Cart"
-    
+
     expect(page).to have_text("Product was added to the cart!")
   end
 end
@@ -249,13 +241,13 @@ RSpec.describe 'The product admin' do
 
     expect(page).to have_content(product.name)
   end
-  
+
   it 'does not allow me to edit products' do
     sign_in create(:user)
     product = create(:product)
-    
+
     visit spree.edit_admin_product_path(product)
-    
+
     expect(page).to have_content('Access denied')
   end
 end
@@ -327,7 +319,7 @@ RSpec.describe 'The product admin' do
     product2 = create(:product)
 
     visit spree.admin_products_path
-    
+
     within_row(1) do
       expect(column_text(1)).to eq(product1.sku)
     end
@@ -349,11 +341,11 @@ RSpec.describe 'The orders admin' do
     order = create(:order) do |o|
       create(:line_item, order: o, variant: product.master)
     end
-    
+
     visit spree.admin_orders_path
     select2_search product.sku, from: 'Variant'
     click_button 'Filter results'
-    
+
     expect(page).to have_content(order.number)
   end
 end
@@ -367,9 +359,9 @@ You can use the `have_meta` helper to expect the current page to have a specific
 RSpec.describe 'The product page' do
   it 'uses the product description in the meta description' do
     product = create(:product)
-    
+
     visit spree.product_path(product)
-    
+
     expect(page).to have_meta(:description, product.description)
   end
 end
@@ -409,7 +401,7 @@ RSpec.describe 'The checkout flow' do
     order.update!(user: user)
 
     visit spree.checkout_path
-    
+
     expect(page).to have_current_path('/checkout/delivery')
   end
 end
@@ -439,19 +431,19 @@ RSpec.describe 'The product page' do
     # Stub the global `currency` setting of the store
     stub_spree_preferences(currency: 'EUR')
     product = create(:product)
-    
+
     visit spree.product_path(product)
-    
+
     expect(page).to have_content('€100,00')
   end
-  
+
   it 'renders the price in USD' do
     # Stub the global `currency` setting of the store
     stub_spree_preferences(currency: 'USD')
     product = create(:product)
-    
+
     visit spree.product_path(product)
-    
+
     expect(page).to have_content('$100.00')
   end
 end
@@ -464,18 +456,18 @@ RSpec.describe 'The backend' do
   it 'is available in English' do
     # Stub the `locale` setting of the backend
     stub_spree_preferences(Spree::Backend::Config, locale: 'en')
-    
+
     visit spree.admin_path
-    
+
     expect(page).to have_content('Email')
   end
 
   it 'is available in French' do
     # Stub the `locale` setting of the backend
     stub_spree_preferences(Spree::Backend::Config, locale: 'fr')
-    
+
     visit spree.admin_path
-    
+
     expect(page).to have_content('Courriel')
   end
 end
@@ -503,9 +495,9 @@ You can now access the helpers via the `spree.` shortcut:
 RSpec.describe 'The product page' do
   it 'is accessible' do
     product = create(:product)
-    
+
     visit spree.product_path(product)
-    
+
     expect(page).to have_content(product.name)
   end
 end
@@ -549,9 +541,9 @@ The event bus is the perfect fit for this use case, so you write the following e
 ```ruby
 module AwesomeStore::Taxation::OrderSubscriber
   include Spree::Event::Subscriber
-  
+
   event_action :report_order_tax, event_name: 'order_finalized'
-  
+
   def report_order_tax(payload)
     # send the order information to a sales tax API
   end
@@ -567,9 +559,9 @@ RSpec.describe AwesomeStore::Taxation::OrderSubscriber do
   describe 'on order_finalized' do
     it 'sends the order to the taxation API' do
       order = build_stubbed(:order)
-      
+
       Spree::Event.fire 'order_finalized', order: order
-      
+
       # verify the order has been sent to the API
     end
   end
@@ -589,9 +581,9 @@ Given that the logic is very similar, you just write another subscriber:
 ```ruby
 module AwesomeStore::Fulfillment::OrderSubscriber
   include Spree::Event::Subscriber
-  
+
   event_action :send_order_to_3pl, event_name: 'order_finalized'
-  
+
   def send_order_to_3pl(payload)
     # send the order information to a 3PL API
   end
@@ -607,9 +599,9 @@ RSpec.describe AwesomeStore::Fulfillment::OrderSubscriber do
   describe 'on order_finalized' do
     it 'sends the order to the 3PL API' do
       order = build_stubbed(:order)
-      
+
       Spree::Event.fire 'order_finalized', order: order
-      
+
       # verify the order has been sent to the API
     end
   end
@@ -674,11 +666,11 @@ RSpec.describe AwesomeStore::Taxation::OrderSubscriber do
   describe 'on order_finalized' do
     it 'sends the order to the taxation API' do
       order = build_stubbed(:order)
-      
+
       perform_subscribers(only: described_class) do
         Spree::Event.fire 'order_finalized', order: order
       end
-      
+
       # verify the order has been sent to the API
     end
   end
@@ -694,11 +686,11 @@ RSpec.describe AwesomeStore::Fulfillment::OrderSubscriber do
   describe 'on order_finalized' do
     it 'sends the order to the 3PL API' do
       order = build_stubbed(:order)
-      
+
       perform_subscribers(only: described_class) do
         Spree::Event.fire 'order_finalized', order: order
       end
-      
+
       # verify the order has been sent to the API
     end
   end
@@ -709,10 +701,4 @@ end
 {% endtabs %}
 
 This will make sure only the subscriber under test is executed when the `order_finalized` event is fired. As a result, your subscriber test is now fully isolated!
-
-### Testing extensions
-
-{% hint style="info" %}
-This section still needs to be written.
-{% endhint %}
 

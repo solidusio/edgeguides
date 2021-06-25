@@ -6,7 +6,7 @@ Because of the project's focus on stability and backwards compatibility, upgradi
 
 When upgrading, look at the [changelog](https://github.com/solidusio/solidus/blob/v3.0/CHANGELOG.md) and make a note of any large refactoring or public API changes, then update your app accordingly. You should also make sure to [update any extensions](extensions.md#staying-up-to-date) you have installed, since new releases may have come out to support the new Solidus version or take advantage of new functionality it introduces.
 
-### Ruby and Rails upgrades
+## Ruby and Rails upgrades
 
 Solidus' policy on Ruby and Ruby on Rails support is fairly simple: each release supports up to the oldest Ruby and Rails versions that are still maintained.
 
@@ -14,11 +14,11 @@ Solidus 2.10, for instance, introduced support for Rails 6.0, but it also works 
 
 When you upgrade Solidus, you should also make sure to upgrade your Ruby and Rails versions to the newest possible versions. Ruby upgrades are usually pretty smooth, while Rails provides amazing [upgrade guides](https://guides.rubyonrails.org/upgrading_ruby_on_rails.html) you can follow.
 
-### Upgrading dependencies
+## Upgrading dependencies
 
 Solidus is just a Rails engine that runs as part of your application, so you should still take care to regularly upgrade any other dependencies in addition to Solidus. There are tools that can help you stay on top of version updates, such as [Dependabot](https://dependabot.com/), but in general the best tool you can employ is a solid suite of automated unit and integration tests that verify the behavior of your application after an upgrade.
 
-### Dealing with deprecations
+## Dealing with deprecations
 
 {% hint style="warning" %}
 While it can be tempting to leave calls to deprecated APIs in place and wait for their removal before fixing them, this approach will come back to haunt you when you upgrade to a new major version and find that you need to update dozens of method calls that don't work anymore.
