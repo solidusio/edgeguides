@@ -199,11 +199,11 @@ module SolidusPay
   class Gateway
     # ...
 
-    def authorize(money, account_id, options = {})
+    def authorize(money, auth_token, options = {})
       response = request(
         :post,
         "/charges",
-        payload_for_charge(money, account_id, options).merge(capture: false),
+        payload_for_charge(money, auth_token, options).merge(capture: false),
       )
 
       if response.success?
@@ -225,9 +225,9 @@ module SolidusPay
 
     # ...
 
-    def payload_for_charge(money, account_id, options = {})
+    def payload_for_charge(money, auth_token, options = {})
       {
-        account_id: account_id,
+        auth_token: auth_token,
         amount: money,
         currency: options[:currency],
         description: "Payment #{options[:order_id]}",
@@ -242,7 +242,7 @@ end
 The logic for the `#authorize` method is fairly straightforward: it makes a POST request to the `/api/v1/charges` endpoint of the PSP's API. The body of the request includes information about:
 
 * the amount we want to charge, which is passed in the `amount` parameter as a number of cents \(e.g., `1000` represents 10.00, `1050` represents 10.50\),
-* the payment source we want to charge, which is passed in the `account_id` parameter,
+* the payment source we want to charge, which is passed in the `auth_token` parameter,
 * [metadata about the order and the payment](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/payment/processing.rb#L91), which is passed in the `options` parameter.
 
 The method then returns an `ActiveMerchant::Billing::Response` object that represents the success or failure of the operation. In the successful response, the `:authorization` option will also be included. Solidus will store the value of this option on the `response_code` attribute on the `Spree::Payment` record, so that we can reference the transaction ID when capturing/voiding/refunding it later.
@@ -255,11 +255,11 @@ module SolidusPay
   class Gateway
     # ...
 
-    def purchase(money, account_id, options = {})
+    def purchase(money, auth_token, options = {})
       response = request(
         :post,
         "/charges",
-        payload_for_charge(money, account_id, options).merge(capture: true),
+        payload_for_charge(money, auth_token, options).merge(capture: true),
       )
 
       if response.success?
@@ -374,10 +374,10 @@ For example, let's say we're integrating with a brand new PSP called SolidusPay 
 
 The first step is to generate a new model, which we'll call `SolidusPayAccount`.
 
-Our model will just have a `payment_method_id` column, which will be used to associate the payment source to the payment method that generated it, and an `account_id` column, which we'll use to store the ID of the SolidusPay account that we will later charge:
+Our model will just have a `payment_method_id` column, which will be used to associate the payment source to the payment method that generated it, and an `auth_token` column, which we'll use to store the ID of the SolidusPay auth token that we will later charge:
 
 ```bash
-$ rails g model SolidusPay::Account payment_method_id:integer account_id:integer
+$ rails g model SolidusPay::Account payment_method_id:integer auth_token:string
 $ rails db:migrate
 ```
 
@@ -541,20 +541,20 @@ end
 
 You will notice that we also added an `api_key` preference. This preference will be automatically configurable via the payment method UI in the Solidus admin, and will be passed to the payment gateway's `#initialize` method. By default, the payment method will delegate all `#authorize`, `#capture`, `#purchase`, `#void` and `#credit` calls to the gateway.
 
-However, there's one caveat: Solidus will pass instances of `SolidusPay::Source` to our payment method when calling `#authorize` and `#capture`, but the gateway doesn't know anything about payment sources and works directly with account IDs instead. This makes the gateway independent of Solidus, but it also means Solidus will pass the wrong type of argument to it.
+However, there's one caveat: Solidus will pass instances of `SolidusPay::Source` to our payment method when calling `#authorize` and `#capture`, but the gateway doesn't know anything about payment sources and works directly with auth tokens instead. This makes the gateway independent of Solidus, but it also means Solidus will pass the wrong type of argument to it.
 
-To accommodate this discrepancy, we'll adjust the `#authorize` and `#capture` methods on the payment method slightly, in order to transform payment sources into account IDs:
+To accommodate this discrepancy, we'll adjust the `#authorize` and `#capture` methods on the payment method slightly, in order to transform payment sources into auth tokens:
 
 ```ruby
 class SolidusPay::PaymentMethod < Spree::PaymentMethod
   # ...
 
   def authorize(money, source, options = {})
-    gateway.authorize(money, source.account_id, options)
+    gateway.authorize(money, source.auth_token, options)
   end
 
   def purchase(money, source, options = {})
-    gateway.purchase(money, source.account_id, options)
+    gateway.purchase(money, source.auth_token, options)
   end
 end
 ```
@@ -593,23 +593,23 @@ end
 
 When you create a new payment method, Solidus has no idea how to actually display it in the storefront, backend or API. You will need to provide payment method partials so that Solidus can use them when displaying the SolidusPay payment method.
 
-The first partial we'll implement is used by Solidus when displaying the SolidusPay payment form in the checkout flow. We will just ask users for their SolidusPay account ID:
+The first partial we'll implement is used by Solidus when displaying the SolidusPay payment form in the checkout flow. We will just ask users for their SolidusPay auth token:
 
 {% code title="app/views/spree/checkout/payment/\_solidus\_pay.html.erb" %}
 ```markup
 <% param_prefix = "payment_source[#{payment_method.id}]" %>
 
 <div class="field field-required">
-  <%= label_tag "account_id_#{payment_method.id}", 'SolidusPay Account ID' %>
-  <%= text_field_tag "#{param_prefix}[account_id]", nil, { id: "account_id_#{payment_method.id}" } %>
+  <%= label_tag "auth_token_#{payment_method.id}", 'SolidusPay Auth Token' %>
+  <%= text_field_tag "#{param_prefix}[auth_token]", nil, { id: "auth_token_#{payment_method.id}" } %>
 </div>
 ```
 {% endcode %}
 
-When users fill this form during checkout, Solidus will create a new `SolidusPayAccount` payment source with the account ID provided by the user. In general, Solidus will copy all the `#{param_prefix}[...]` attributes to the payment source, so you can add more columns to the payment source model and Solidus will set them all as long as your field names are structured properly.
+When users fill this form during checkout, Solidus will create a new `SolidusPayAccount` payment source with the auth token provided by the user. In general, Solidus will copy all the `#{param_prefix}[...]` attributes to the payment source, so you can add more columns to the payment source model and Solidus will set them all as long as your field names are structured properly.
 
 {% hint style="warning" %}
-For the sake of simplicity, we are assuming paying via SolidusPay is as simple as providing your account ID in clear text. In reality, things are usually slightly more complicated and require integrating with a JS SDK or redirecting the user to an off-site page in order to get a payment token. It doesn't matter how complex your payment scenario: as long as it results in a payment source being created with the right information, Solidus can integrate with it.
+For the sake of simplicity, we are assuming paying via SolidusPay is as simple as providing your auth token in clear text. In reality, things are usually slightly more complicated and require integrating with a JS SDK or redirecting the user to an off-site page in order to get a payment token. It doesn't matter how complex your payment scenario: as long as it results in a payment source being created with the right information, Solidus can integrate with it.
 {% endhint %}
 
 But what if our user already has a SolidusPay account in their wallet, and they want to use that instead? That requires another partial:
@@ -617,7 +617,7 @@ But what if our user already has a SolidusPay account in their wallet, and they 
 {% code title="app/views/spree/checkout/existing\_payment/\_solidus\_pay.html.erb" %}
 ```markup
 <tr id="<%= dom_id(wallet_payment_source, 'solidus_pay') %>">
-  <td><%= wallet_payment_source.payment_source.account_id %></td>
+  <td><%= wallet_payment_source.payment_source.auth_token %></td>
   <td>
     <%= radio_button_tag "order[wallet_payment_source_id]", wallet_payment_source.id, default, class: "existing-cc-radio" %>
   </td>
@@ -641,7 +641,7 @@ This is what the partial for the backend looks like:
       <% previous_cards.each do |solidus_pay_account| %>
         <label>
           <%= radio_button_tag :card, solidus_pay_account.id, solidus_pay_account == previous_cards.first %> 
-          <%= solidus_pay_account.account_id %>
+          <%= solidus_pay_account.auth_token %>
           <br />
         </label>
       <% end %>
@@ -655,14 +655,14 @@ This is what the partial for the backend looks like:
 
   <% param_prefix = "payment_source[#{payment_method.id}]" %>
   <div class="field">
-    <%= label_tag "account_id_#{payment_method.id}", 'Account ID', class: 'required' %>
-    <%= text_field_tag "#{param_prefix}[account_id]", '', class: 'required fullwidth', id: "account_id_#{payment_method.id}" %>
+    <%= label_tag "auth_token_#{payment_method.id}", 'Auth Token', class: 'required' %>
+    <%= text_field_tag "#{param_prefix}[auth_token]", '', class: 'required fullwidth', id: "auth_token_#{payment_method.id}" %>
   </div>
 </fieldset>
 ```
 {% endcode %}
 
-As you can see, this partial covers both new and existing payment sources. The admin can either select one of the existing payment sources, or they can enter the customer's SolidusPay account ID to create a new payment source.
+As you can see, this partial covers both new and existing payment sources. The admin can either select one of the existing payment sources, or they can enter the customer's SolidusPay auth token to create a new payment source.
 
 {% hint style="warning" %}
 For many payment sources, it won't be possible to create a new source from the backend \(e.g., it wouldn't make sense to let admins link a customer's PayPal account via the backend, since they wouldn't have the customer's PayPal credentials\). In this case, it's perfectly fine not to display the form at all, and only let admins choose from existing payment sources.
@@ -678,8 +678,8 @@ We need one more partial for the backend, which will be used by Solidus when dis
   <div class="row">
     <div class="col-4">
       <dl>
-        <dt>Account ID:</dt>
-        <dd><%= payment.source.account_id %></dd>
+        <dt>Auth token:</dt>
+        <dd><%= payment.source.auth_token %></dd>
       </dl>
     </div>
   </div>
@@ -687,13 +687,13 @@ We need one more partial for the backend, which will be used by Solidus when dis
 ```
 {% endcode %}
 
-Here, we are just displaying the SolidusPay account ID, so that admins can easily understand which payment source was used on a particular payment.
+Here, we are just displaying the SolidusPay auth token, so that admins can easily understand which payment source was used on a particular payment.
 
-Finally, the last partial is needed to display a payment source's information via the API. Again, we'll just include the payment source's ID and the SolidusPay account ID, so that the payment source can be properly rendered by e.g. a mobile/JS application that uses the Solidus API:
+Finally, the last partial is needed to display a payment source's information via the API. Again, we'll just include the payment source's ID and the SolidusPay auth token, so that the payment source can be properly rendered by e.g. a mobile/JS application that uses the Solidus API:
 
 {% code title="app/views/spree/api/payments/source\_views/\_solidus\_pay.json.jbuilder" %}
 ```ruby
-json.call(payment_source, :id, :account_id)
+json.call(payment_source, :id, :auth_token)
 ```
 {% endcode %}
 
