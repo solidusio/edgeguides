@@ -103,69 +103,45 @@ For instance, let's say you want to call some external API every time an order i
 
 To accomplish this, you need to create an `OrderNotificationSubscriber` module that looks like this:
 
-{% code title="app/models/amazing\_store/order\_finalization\_notifier.rb" %}
+{% code title="app/subscribers/amazing\_store/order\_notification\_subscriber.rb" %}
 ```ruby
 module AmazingStore
-  class OrderFinalizationNotifier
-    attr_reader :event
+  class OrderNotificationSubscriber
+    include ::Spree::Event::Subscriber
+    
+    event_action :notify_order, event_name: :order_finalized
 
-    def initialize(event)
-      @event = event
-    end
+    def notify_order(event)
+      order = event.payload.fetch(:order)
 
-    def run
       # call your external API here
-    end
-
-    private
-
-    def order
-      event.payload[:order]
     end
   end
 end
 ```
 {% endcode %}
 
-Finally, you need to tell Solidus you're subscribing to the `order_finalized` event:
-
-{% code title="config/initializers/spree.rb" %}
-```ruby
-# ...
-Spree::Event.subscribe 'order_finalized' do |event|
-  AmazingStore::OrderFinalizationNotifier.new(event).run
-end
-```
-{% endcode %}
-
-Restart your server, and Solidus will start calling your event handler when an order is finalized!
+Restart your server, and Solidus will start calling your event subscriber when an order is finalized!
 
 #### Subscribing to multiple events
 
-Thanks to regular expressions, it's also possible to subscribe to multiple events at once. Here's what the code to do that would look like:
+Thanks to regular expressions, it's also possible to subscribe to multiple events at once:
 
 {% code title="config/initializers/spree.rb" %}
 ```ruby
 # ...
+
 Spree::Event.subscribe /.*\.spree/ do |event|
   puts "#{event.name} => #{event.payload.inspect}"
 end
 ```
 {% endcode %}
 
+This can be useful for logging and debugging purposes.
+
 {% hint style="warning" %}
 When subscribing via a regular expression, you **need** to include the `.spree` suffix. Otherwise, you will subscribe to Rails' native events as well! When subscribing to a specific event, the event name is normalized automatically, so the suffix can be omitted.
 {% endhint %}
-
-If you still want the encapsulation and testability of event handler classes, you can still use them:
-
-{% code title="config/initializers/spree.rb" %}
-```ruby
-Spree::Event.subscribe /.*\.spree/ do |event|
-  AmazingStore::GenericEventHandler.new(event).run
-end
-```
-{% endcode %}
 
 ### Using overrides
 
@@ -195,7 +171,7 @@ The Solidus ecosystem used to rely heavily on `#class_eval` for overrides, but `
 
 You can customize the `Spree::Product#available?` method by writing a module that will be prepended to `Spree::Product`. In the Solidus ecosystem, we call such modules **overrides.** Overrides are usually named in a descriptive way, that expresses how the override extends the original class.
 
-Here's our `AddGlobalHiddenFlag` override for `Spree::Product`, along with its related spec:
+Here's our `AddGlobalHiddenFlag` override for `Spree::Product`:
 
 {% code title="app/overrides/amazing\_store/spree/product/add\_global\_hidden\_flag.rb" %}
 ```ruby
