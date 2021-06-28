@@ -60,8 +60,6 @@ As you can see, the order merger exposes two public methods:
 
 Equipped with this information, we can now write our "nil" order merger:
 
-{% tabs %}
-{% tab title="nil\_order\_merger.rb" %}
 {% code title="app/models/amazing\_store/nil\_order\_merger.rb" %}
 ```ruby
 module AmazingStore
@@ -79,8 +77,6 @@ module AmazingStore
 end
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
 
 Finally, now that we have the new merger, we need to tell Solidus to use it:
 
@@ -107,8 +103,6 @@ For instance, let's say you want to call some external API every time an order i
 
 To accomplish this, you need to create an `OrderNotificationSubscriber` module that looks like this:
 
-{% tabs %}
-{% tab title="order\_finalization\_notifier.rb" %}
 {% code title="app/models/amazing\_store/order\_finalization\_notifier.rb" %}
 ```ruby
 module AmazingStore
@@ -132,12 +126,6 @@ module AmazingStore
 end
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
-
-{% hint style="warning" %}
-Make sure to also write integration tests when writing event handlers for critical aspects of your application. Issues with the load order and the application setup may cause event subscribers not to be registered properly, which will cause your event handler never to be called, although your unit tests will pass.
-{% endhint %}
 
 Finally, you need to tell Solidus you're subscribing to the `order_finalized` event:
 
@@ -171,11 +159,13 @@ When subscribing via a regular expression, you **need** to include the `.spree` 
 
 If you still want the encapsulation and testability of event handler classes, you can still use them:
 
+{% code title="config/initializers/spree.rb" %}
 ```ruby
 Spree::Event.subscribe /.*\.spree/ do |event|
   AmazingStore::GenericEventHandler.new(event).run
 end
 ```
+{% endcode %}
 
 ### Using overrides
 
@@ -207,8 +197,6 @@ You can customize the `Spree::Product#available?` method by writing a module tha
 
 Here's our `AddGlobalHiddenFlag` override for `Spree::Product`, along with its related spec:
 
-{% tabs %}
-{% tab title="add\_global\_hidden\_flag.rb" %}
 {% code title="app/overrides/amazing\_store/spree/product/add\_global\_hidden\_flag.rb" %}
 ```ruby
 module AmazingStore
@@ -226,8 +214,6 @@ module AmazingStore
 end
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
 
 As you can see, we are not only able to override the default `#available?` implementation, but we can also call the original implementation with `super`. This allows you to decide whether you want to extend the original method or completely override it.
 

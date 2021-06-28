@@ -35,6 +35,7 @@ module AmazingStore
     def analyze(order)
       order.update!(rejected: order_rejected?(order))
     end
+
     private
 
     def rejected_emails
@@ -54,46 +55,9 @@ You will then need to subscribe to the `order_finalized` event, which is fired w
 {% code title="config/initializers/spree.rb" %}
 ```ruby
 # ...
+
 Spree::Event.subscribe 'order_finalized' do |event|
   AmazingStore::OrderAnalyzer.new.analyze(event.payload[:order])
-end
-```
-{% endcode %}
-
-Our new business logic is pretty easy to test in integration:
-
-{% code title="spec/models/spree/order\_spec.rb" %}
-```ruby
-require 'rails_helper'
-
-RSpec.describe Spree::Order do
-  describe '#finalize!' do
-    before do
-      stub_const('ENV', ENV.to_h.merge(
-        'REJECTED_EMAILS' => 'jdoe@example.com',
-      ))
-    end
-
-    context 'when the email has been rejected' do
-      it 'marks the order as rejected' do
-        order = create(:order_ready_to_complete)
-        order.update(email: 'jdoe@example.com')
-        order.finalize!
-
-        expect(order).to be_rejected
-      end
-    end
-
-    context 'when the email has not been rejected' do
-      it 'does not mark the order as rejected' do
-        order = create(:order_ready_to_complete)
-        order.update(email: 'hello@example.com')
-        order.finalize!
-
-        expect(order).not_to be_rejected
-      end
-    end
-  end
 end
 ```
 {% endcode %}
@@ -135,6 +99,7 @@ Now that the controller action has been implemented, we can define a route for i
 {% code title="config/routes.rb" %}
 ```ruby
 # ...
+
 Spree::Core::Engine.routes.draw do
   namespace :admin do
     resources :orders, only: [] do

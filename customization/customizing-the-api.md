@@ -65,8 +65,6 @@ $ rails db:migrate
 
 Finally, we will add a uniqueness validation to our model:
 
-{% tabs %}
-{% tab title="product\_like.rb" %}
 {% code title="app/models/product\_like.rb" %}
 ```ruby
 class ProductLike < ApplicationRecord
@@ -75,12 +73,6 @@ class ProductLike < ApplicationRecord
 end
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
-
-{% hint style="info" %}
-You can also configure FactoryBot to auto-generate the factory when you create a new model. For more information, refer to the [FactoryBot documentation](https://github.com/thoughtbot/factory_bot/blob/v3.0/GETTING_STARTED.md).
-{% endhint %}
 
 Now that we have our model in place, we're ready to start creating an API endpoint for liking products!
 
@@ -92,7 +84,7 @@ Implementing a new API endpoint is fairly simple: all we have to do is create a 
 We could also add a `like` action to the existing `Spree::Api::ProductsController`. However, it's recommended to follow RESTful resource naming when creating new API endpoints. This makes our API easier to understand, consume and maintain.
 {% endhint %}
 
-Let's create our controller, along with its view, route a request spec to test it all:
+Let's create our controller, along with its view and route:
 
 {% tabs %}
 {% tab title="product\_likes\_controller.rb" %}
@@ -154,7 +146,7 @@ In the route, you may notice we are using a singleton resource \(`resource :prod
 {% endtabs %}
 
 {% hint style="info" %}
-Solidus provides a lot more partials, helpers and utilities for implementing and testing your API requests. Take a look at the [source code of solidus\_api](https://github.com/solidusio/solidus/tree/master/api) to see what's available!
+Solidus provides a lot more partials, helpers and utilities for implementing your API requests. Take a look at the [source code of solidus\_api](https://github.com/solidusio/solidus/tree/master/api) to see what's available!
 {% endhint %}
 
 At this point, your request spec should be passing, meaning you can integrate it in your frontend and allow users to like products!
