@@ -1,50 +1,30 @@
 # Deploying your store
 
-## Deploying to the cloud
+## Choosing a cloud provider
 
-Deploying a Solidus application to production is no different from deploying any other Rails application. In this section we'll cover some popular options for deploying Solidus and a few additional caveats.
+Deploying a Solidus application to production is no different from deploying any other Rails application. You can pick from a number of infrastructure providers. Our favorites are:
 
-### Heroku
+* [Heroku](https://heroku.com/): Infrastructure-as-a-Service provider built on top of AWS. Incredibly easy to set up and work with, and arguably the most popular option for deploying Rails applications.
+* [AWS ECS](https://aws.amazon.com/ecs/): container orchestration service provided by AWS. Recommended if you need an advanced setup, or expect to scale aggressively very quickly after launch.
+* [DigitalOcean](https://digitalocean.com): developer cloud solutions provider. You can buy plain old VPS, or Kubernetes clusters.
 
-Deploying a Solidus store to [Heroku](https://heroku.com) is extremely simple. All you'll need is an active Heroku account and the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) on your machine.
-
-Once you have those, you should first create a new app:
-
-```bash
-$ heroku create amazing-store
-```
-
-Now, push the code to your Heroku remote:
-
-```bash
-$ git push heroku main
-```
-
-Finally, set up the database schema and seeds:
-
-```bash
-$ heroku run rails db:schema:load db:seed
-```
-
-You're all set! Your Solidus store should now be running on Heroku.
+For further instructions, we recommend referring to the official documentation for these services.
 
 ## External dependencies
 
-When deploying a Solidus store, there are a few external dependencies that must be installed. There are also some optional dependencies you may decide to install in order to make your application more resilient and easier to scale.
+When deploying a Solidus store, there are also a few external dependencies that you need to provide in order for your store to work properly.
 
 ### File storage
 
-{% hint style="warning" %}
-Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of Rails' native [Active Storage](https://guides.rubyonrails.org/active_storage_overview.html) library. Should you be utilizing a version of Rails before 6.1, your application will not be able to use Active Storage and therefore should use Paperclip.
-{% endhint %}
+When you run Solidus locally or on a single node, any files you upload \(product images, taxon icons etc.\) are stored on the filesystem. While this works great in development, it's not a viable option when deploying to cloud platforms, where clustering may cause files in one node not to be accessible by all other nodes. You may also find that files disappear when a node reboots because of [ephemeral filesystems](https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem).
 
-When you run Solidus locally or on a single node, any files you upload \(product images, taxon icons etc.\) are stored on the filesystem. While this works great in development, it's not a viable option when deploying to cloud platforms where clustering may cause files in one node not to be accessible by all other nodes. You may also find that files disappear when a node reboots because of [ephemeral filesystems](https://devcenter.heroku.com/articles/dynos#ephemeral-filesystem).
+When running your store in production, you will have to rely on a file storage service such as [Amazon S3](https://aws.amazon.com/s3/) or [Microsoft Azure Storage Service](https://azure.microsoft.com/en-us/services/storage/). Files will be uploaded to the storage service, which will also handle concerns such as high availability, security and distribution.
 
-When running your store in production, you will have to rely on a file storage service such as [Amazon S3](https://aws.amazon.com/s3/) or [Microsoft Azure Storage Service](https://azure.microsoft.com/en-us/services/storage/). Files will be uploaded to the storage service, which will also handle concerns such as high availability, security and distribution, and retrieval via a public URL.
+#### Active Storage
 
-### Active Storage
+Solidus supports a multitude storage services out of the box through Rails' [Active Storage](https://edgeguides.rubyonrails.org/active_storage_overview.html) framework.
 
-Solidus supports storage services out of the box by utilizing Rails native [Active Storage](https://edgeguides.rubyonrails.org/active_storage_overview.html) library. To configure Active Storage, navigate to your application's config folder and access `storage.yml`. Edit the configuration file so that your preferred service is uncommented and contains the correct environment variables. In the following example, we use S3 bucket:
+To configure Active Storage, change `config/storage.yml` by uncommenting your preferred storage services and setting its credentials. In the following example, we store our files in an S3 bucket:
 
 {% code title="config/storage.yml" %}
 ```ruby
@@ -60,27 +40,29 @@ amazon:
 ```
 {% endcode %}
 
-Next, it is necessary to edit the production environment Active Storage configuration to use your newly created service. Navigate to your production environment configuration and modify the following variable:
+Next, you'll need to configure Rails to use your new Active Storage service in production:
 
 {% code title="config/environment/production.rb" %}
 ```ruby
-...
-# Store uploaded files on the local file system (see config/storage.yml for options).
-config.active_storage.service = :amazon
-...
+Rails.application.configure do
+  # ...
+  
+  config.active_storage.service = :amazon
+end
 ```
 {% endcode %}
 
-Finally, put your S3 credentials in the environment variables used in `storage.yml`.
+Finally, store your S3 credentials in the environment variables used in `config/storage.yml`.
 
-If you're not using S3, Active Storage provides support for the most popular storage services, either natively or through third-party plugins.
+#### Paperclip
 
-That is it, you have just set up Active Storage!
+{% hint style="warning" %}
+Paperclip [has been deprecated](https://github.com/thoughtbot/paperclip#deprecated) in favor of [Active Storage](https://guides.rubyonrails.org/active_storage_overview.html). You should only use Paperclip with Rails 6.0 or earlier, where Active Storage does not support public URLs and cannot be used with Solidus applications.
+{% endhint %}
 
-### Paper Clip
+Solidus also supports the popular [Paperclip](https://github.com/thoughtbot/paperclip) gem. In order to configure Paperclip, just create an initializer like the following:
 
-Solidus also supports integration with the [Paperclip](https://github.com/thoughtbot/paperclip) gem if Active Storage is not the solution for your application. In order to configure Paperclip, just create an initializer like the following:
-
+{% code title="config/initializers/paperclip.rb" %}
 ```ruby
 if Rails.env.production?
   Paperclip::Attachment.default_options.merge!(
@@ -95,10 +77,9 @@ if Rails.env.production?
   )
 end
 ```
+{% endcode %}
 
 Finally, put your S3 credentials in the environment variables used in the initializer.
-
-If you're not using S3, Paperclip provides support for the most popular storage services, either natively or through third-party plugins.
 
 ### Cache store
 
@@ -114,7 +95,9 @@ Solidus schedules certain time-intensive operations in the background. This prov
 
 The default ActiveJob adapter is [Async](https://api.rubyonrails.org/classes/ActiveJob/QueueAdapters/AsyncAdapter.html), which uses an in-process thread pool to schedule jobs. While Async is a good choice for local development and testing, it is a poor option for production deployments, as any pending jobs are dropped when the process restarts \([Heroku restarts dynos automatically every 24 hours](https://devcenter.heroku.com/articles/dynos#automatic-dyno-restarts), for instance\).
 
-Instead, you should use a production-grade queue such as [Sidekiq](https://github.com/mperham/sidekiq), which uses Redis for storing and retrieving your application's jobs under the hood. Using Sidekiq with ActiveJob is simple. First of all, install Sidekiq by adding it to your `Gemfile`:
+Instead, you should use a production-grade queue such as [Sidekiq](https://github.com/mperham/sidekiq), which uses Redis for storing and retrieving your application's jobs under the hood. Using Sidekiq with ActiveJob is simple.
+
+First of all, install Sidekiq by adding it to your `Gemfile`:
 
 ```bash
 bundle add 'sidekiq'

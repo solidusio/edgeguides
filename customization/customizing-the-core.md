@@ -58,7 +58,7 @@ As you can see, the order merger exposes two public methods:
 * `#initialize`, which accepts an order.
 * `#merge!`, which accepts another order to merge with the first one and \(optionally\) the current user.
 
-Equipped with this information, we can now write our "nil" order merger, along with its spec:
+Equipped with this information, we can now write our "nil" order merger:
 
 {% tabs %}
 {% tab title="nil\_order\_merger.rb" %}
@@ -74,39 +74,6 @@ module AmazingStore
 
     def merge!(other_order, user = nil)
       order.associate_user!(user) if user
-    end
-  end
-end
-```
-{% endcode %}
-{% endtab %}
-
-{% tab title="nil\_order\_merger\_spec.rb" %}
-{% code title="spec/models/amazing\_store/nil\_order\_merger\_spec.rb" %}
-```ruby
-RSpec.describe AmazingStore::NilOrderMerger do
-  subject(:order_merger) { described_class.new(order) }
-
-  let(:order) { instance_spy('Spree::Order') }
-
-  context 'when a user is provided' do
-    it 'associates the order to the user' do
-      other_order = instance_spy('Spree::Order')
-      user = double
-
-      subject.merge!(other_order, user)
-
-      expect(order).to have_received(:associate_user!).with(user)
-    end
-  end
-
-  context 'when a user is not provided' do
-    it 'does not attempt to associate the order to the user' do
-      other_order = instance_spy('Spree::Order')
-
-      subject.merge!(other_order, user)
-
-      expect(order).not_to have_received(:associate_user!)
     end
   end
 end
@@ -161,25 +128,6 @@ module AmazingStore
     def order
       event.payload[:order]
     end
-  end
-end
-```
-{% endcode %}
-{% endtab %}
-
-{% tab title="order\_finalization\_notifier\_spec.rb" %}
-{% code title="spec/models/amazing\_store/order\_finalization\_notifier\_spec.rb" %}
-```ruby
-require "rails_helper"
-
-RSpec.describe AmazingStore::OrderFinalizationNotifier do
-  it 'calls the external API' do
-    order = double('Spree::Order')
-    event = double('Spree::Event', payload: { order: order })
-
-    described_class.new(event).run
-
-    # add some expectation here
   end
 end
 ```
@@ -272,44 +220,6 @@ module AmazingStore
         end
 
         ::Spree::Product.prepend self
-      end
-    end
-  end
-end
-```
-{% endcode %}
-{% endtab %}
-
-{% tab title="product\_spec.rb" %}
-{% code title="spec/models/spree/product\_spec.rb" %}
-```ruby
-RSpec.describe Spree::Product do
-  describe '#available?' do
-    context 'when MAKE_PRODUCTS_UNAVAILABLE is true' do
-      before do
-        stub_const 'ENV',
-          ENV.to_h
-          .merge('MAKE_PRODUCTS_UNAVAILABLE' => true)
-      end
-
-      it 'makes the product unavailable' do
-        product = build_stubbed(:product, available_on: Time.zone.yesterday)
-
-        expect(product).not_to be_available
-      end
-    end
-
-    context 'when MAKE_PRODUCTS_UNAVAILABLE is false' do
-      before do
-        stub_const 'ENV',
-          ENV.to_h
-          .merge('MAKE_PRODUCTS_UNAVAILABLE' => false)
-      end
-
-      it 'makes the product available' do
-        product = build_stubbed(:product, available_on: Time.zone.yesterday)
-
-        expect(product).to be_available
       end
     end
   end

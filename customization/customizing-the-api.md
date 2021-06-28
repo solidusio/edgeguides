@@ -63,7 +63,7 @@ Once we're done, we can run the migration with the usual command:
 $ rails db:migrate
 ```
 
-Finally, we will add a uniqueness validation to our model, along with a factory and a model spec:
+Finally, we will add a uniqueness validation to our model:
 
 {% tabs %}
 {% tab title="product\_like.rb" %}
@@ -72,42 +72,6 @@ Finally, we will add a uniqueness validation to our model, along with a factory 
 class ProductLike < ApplicationRecord
   # ...
   validates :user, uniqueness: { scope: :product_id }
-end
-```
-{% endcode %}
-{% endtab %}
-
-{% tab title="product\_likes.rb" %}
-{% code title="spec/factories/product\_likes.rb" %}
-```ruby
-FactoryBot.define do
-  factory :product_like do
-    association :user
-    association :product
-  end
-end
-```
-{% endcode %}
-{% endtab %}
-
-{% tab title="product\_like\_spec.rb" %}
-{% code title="spec/models/product\_like\_spec.rb" %}
-```ruby
-RSpec.describe ProductLike do
-  it 'has a valid factory' do
-    expect(build(:product_like)).to be_valid
-  end
-
-  it 'validates the uniqueness of the user/product pair' do
-    existing_product_like = create(:product_like)
-
-    product_like = build(:product_like,
-      user: existing_product_like.user,
-      product: existing_product_like.product,
-    )
-
-    expect(product_like).not_to be_valid
-  end
 end
 ```
 {% endcode %}
@@ -187,65 +151,6 @@ end
 
 In the route, you may notice we are using a singleton resource \(`resource :product_like`\) rather than a collection \(`resource :product_likes`\). This is because a user may only have one like for a product. We are also limiting the routes for that resource to the `:create` action, since we are not going to implement the others.
 {% endtab %}
-
-{% tab title="product\_likes\_spec.rb" %}
-{% code title="spec/requests/product\_likes\_spec.rb" %}
-```ruby
-require 'rails_helper'
-require 'spree/api/testing_support/helpers'
-
-RSpec.describe '/api/products/:slug/product_likes', type: :request do
-  include Spree::Api::TestingSupport::Helpers
-  let(:current_api_user) { create(:user, :with_api_key) }
-  before { stub_authentication! }
-
-  describe 'POST /' do
-
-    context 'when the user has not already liked the product' do
-
-      it 'responds with 204 No Content' do
-        product = create(:product)
-
-        post spree.api_product_product_like_path(product)
-
-        expect(response.status).to eq(204)
-      end
-
-      it 'likes the product' do
-        product = create(:product)
-
-        post spree.api_product_product_like_path(product)
-
-        expect(ProductLike.count).to eq(1)
-      end
-    end
-
-    context 'when the user has already liked the product' do
-      it 'responds with 422 Unprocessable Entity' do
-        product = create(:product)
-        product_like = create(:product_like, user: current_api_user, product: product)
-
-        post spree.api_product_product_like_path(product)
-
-        expect(response.status).to eq(422)
-      end
-
-      it 'does not re-like the product' do
-        product = create(:product)
-        product_like = create(:product_like, user: current_api_user, product: product)
-
-        post spree.api_product_product_like_path(product)
-
-        expect(ProductLike.count).to eq(1)
-      end
-    end
-  end
-end
-```
-{% endcode %}
-
-In the spec, we are using the `stub_authentication!` and `current_api_user` helpers, which stub Solidus' authentication mechanism and return the currently authenticated API user.
-{% endtab %}
 {% endtabs %}
 
 {% hint style="info" %}
@@ -284,32 +189,6 @@ Instead, Solidus provides a more manageable way to add attributes to API resourc
 ```ruby
 # ...
 Spree::Api::Config.product_attributes << :likes_count
-```
-{% endcode %}
-{% endtab %}
-
-{% tab title="products\_spec.rb" %}
-{% code title="spec/requests/api/products\_spec.rb" %}
-```ruby
-require 'rails_helper'
-require 'spree/api/testing_support/helpers'
-
-RSpec.describe '/api/products', type: :request do
-  include Spree::Api::TestingSupport::Helpers
-  let(:current_api_user) { create(:user, :with_api_key) }
-  before { stub_authentication! }
-
-  describe 'GET /:slug' do
-    it 'exposes the likes_count field' do
-      product = create(:product)
-      get spree.api_product_path(product)
-
-      parsed_response = JSON.parse(response.body)
-      byebug
-      expect(parsed_response).to match(a_hash_including('likes_count' => nil))
-    end
-  end
-end
 ```
 {% endcode %}
 {% endtab %}

@@ -216,36 +216,6 @@ While it's also possible to hardcode the string in your views/controllers, using
 You can override default Spree translations in the exact same way, if you want to change the default labels or messages in the backend.
 {% endhint %}
 
-## Writing a feature test
-
-It's finally time to write a full-fledged feature test to make sure the new button appears and our new functionality works correctly in integration:
-
-{% code title="spec/features/admin/orders/rejected\_spec.rb" %}
-```ruby
-require 'rails_helper'
-
-RSpec.describe 'Order rejected', :js do
-  stub_authorization!
-
-  it 'can be removed from the rejected' do
-    order = create(:completed_order_with_totals, rejected: true)
-    visit spree.edit_admin_order_path(order)
-
-    click_button I18n.t('spree.remove_from_rejected')
-    order.reload
-
-    expect(order).not_to be_rejected
-  end
-end
-```
-{% endcode %}
-
-If we did everything well, our test should pass with flying colors!
-
-{% hint style="info" %}
-Solidus provides a lot of factories and helper methods to make it quicker for developers to write unit and integration tests. `stub_authorization!` and `:completed_order` are examples of such helpers, but there are many others which you can find by browsing through the tests.
-{% endhint %}
-
 ## Taking it from here
 
 Congratulations! You have implemented your first custom feature for the Solidus backend.
