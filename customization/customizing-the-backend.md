@@ -8,7 +8,7 @@ In this guide, we'll implement a very simple rejection system that allows you to
 
 To simplify the implementation, we'll assume the rejected email addresses are stored in an environment variable as a comma-separated string. Here are a couple of user stories we'll use as reference for the feature's requirement:
 
-* rejected orders are flagged automatically.
+* Rejected orders are flagged automatically.
 * Admins can manually approve rejected orders.
 
 Without further ado, let's start writing some code!
