@@ -1,4 +1,4 @@
-# Stock and fulfillment
+# Stock management
 
 ## Architecture overview
 
