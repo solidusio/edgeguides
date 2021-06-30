@@ -71,7 +71,7 @@ You can also use your new styles in the `image` partial:
 <%= render 'spree/admin/shared/image', image: product.gallery.images.first, size: :jumbo %>
 ```
 
-## Changing the allowed MIME types
+## Customizing the allowed MIME types
 
 By default, Solidus only accepts PNG, JPEG and GIF images. If you want to accept additional MIME types, e.g. WebP, you can do it via the `allowed_image_mime_types` configuration option:
 
