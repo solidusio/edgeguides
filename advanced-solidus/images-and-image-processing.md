@@ -7,7 +7,7 @@ In a typical Solidus store, you can upload images for products and taxons.
 Under the hood, Solidus will use a different file processing library depending on the Rails version: [Active Storage](https://edgeguides.rubyonrails.org/active_storage_overview.html) is the default starting from Rails 6.1, while [Paperclip](https://github.com/thoughtbot/paperclip#paperclip) is used in earlier versions.
 
 {% hint style="warning" %}
-Active Storage cannot be used in Rails 6.0 or earlier because it doesn't support public URLs, which Solidus needs to serve images to your users. If you're on Rails 6.0 or earlier, you _have_  to use Paperclip.
+Active Storage cannot be used in Rails 6.0 or earlier because it doesn't support public URLs, which Solidus needs to serve images to your users. If you're on Rails 6.0 or earlier, you _have_ to use Paperclip.
 {% endhint %}
 
 While Paperclip is deprecated and will be removed in the near future, Solidus provides a compatibility layer that abstracts the differences between the two libraries, in order to offer an easier migration path to existing Paperclip users.
@@ -28,18 +28,14 @@ image = Spree::Image.first
 image.url(:product)
 ```
 
-If you're building a custom storefront, you may also want to change the sizes of the images in your store. You'll do this in a different way depending on your Solidus version.
+If you're building a custom storefront, you may also want to change the sizes of the images in your store. You can do this by applying an override to `Spree::Image`:
 
-{% tabs %}
-{% tab title="Solidus <3.0" %}
-If you are using Solidus 3.0 or earlier, you'll need to apply an override to `Spree::Image`:
-
-{% code title="app/overrides/amazing\_store/spree/image/customize\_styles.rb" %}
+{% code title="app/overrides/amazing\_store/spree/image/customize\_sizes.rb" %}
 ```ruby
 module AmazingStore
   module Spree
     module Image
-      module CustomizeStyles
+      module CustomizeSizes
         def self.prepended(klass)
           klass.attachment_definitions[:attachment][:styles] = {
             mini: '48x48>',
@@ -49,6 +45,7 @@ module AmazingStore
             jumbo: '1600x1600>'
           }
         end
+
         ::Spree::Image.prepend self
       end
     end
@@ -56,39 +53,6 @@ module AmazingStore
 end
 ```
 {% endcode %}
-{% endtab %}
-
-{% tab title="Solidus ≥3.1" %}
-If you are running Solidus 3.1 or later, the most straightforward way to modify these settings is to add the following to your initializer:
-
-{% code title="config/initializers/spree.rb" %}
-```ruby
-Spree.config do |config|
-  # Change the sizes generated for each product image.
-  config.product_image_styles = {
-    mini: '48x48>',
-    small: '100x100>',
-    product: '240x240>',
-    large: '600x600>',
-    jumbo: '1600x1600>'
-  }
-  # Change the default size returned by `Spree::Image#url`.
-  config.product_image_style_default = :large
-  
-  # Change the sizes generated for each taxon image.
-  config.taxon_image_styles = {
-    mini: '32x32>',
-    normal: '128x128>',
-    large: '200x200>'
-  }
-  
-  # Change the default size returned by `Spree::Taxon#url`.
-  config.taxon_image_style_default = :normal
-end
-```
-{% endcode %}
-{% endtab %}
-{% endtabs %}
 
 Now that you changed your sizes, try getting the URL for your new `jumbo` size or `large` sizes:
 
@@ -115,7 +79,7 @@ By default, Solidus only accepts PNG, JPEG and GIF images. If you want to accept
 ```ruby
 Spree.config do |config|
   # ...
-  
+
   config.allowed_image_mime_types = %w(image/jpeg image/jpg image/png image/gif image/webp).freeze
 end
 ```
