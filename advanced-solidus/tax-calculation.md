@@ -8,7 +8,7 @@ Solidus's taxation system supports both sales- and VAT-style taxes. You can use 
 * Tax rates associate a tax category with a geographic zone and a tax calculator.
 * Tax calculators specify the logic used to calculate taxes on top of an item. Solidus ships with basic calculators where the tax rates are statically configured in the backend, but you may also install or implement a calculator that integrates with third-party tax calculation services such as TaxJar or Avalara AvaTax.
 
-### Tax calculation flow
+### Order tax calculation
 
 {% hint style="info" %}
 Note that promotions are applied before taxes are calculated. This is to comply with tax regulations for value-added taxation [as outlined by the Government of the United Kingdom](https://www.gov.uk/vat-businesses/discounts-and-free-gifts#1) and for sales tax [as outlined by the California State Board of Equalization](http://www.boe.ca.gov/formspubs/pub113/).
@@ -32,7 +32,26 @@ Using adjustments rather than storing tax amounts directly on the taxable items 
 
 Every time an order is changed, the taxation system checks whether tax adjustments need to be changed and updates all of the taxation-relevant totals.
 
-## Customizing tax calculation
+### Shipping rate tax calculation
+
+{% hint style="info" %}
+For more information on when and how shipments and shipping rates are built, you can refer to the [Stock management](stock-and-fulfillment.md) guide.
+{% endhint %}
+
+In addition to calculating taxes on line items and shipments, Solidus also calculates taxes on shipping rates. This is done in the default stock estimator:
+
+1. Right after building the shipping rate for a shipment, Solidus [calls the configured shipping rate tax calculator](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/stock/estimator.rb#L45) to calculate the tax for each shipping rate.
+2. Shipping rates don't have adjustments, so the resulting taxes are stored in a dedicated [`ShippingRateTax`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/shipping_rate_tax.rb) model instead.
+
+{% hint style="warning" %}
+Note that, while these tax amounts will be included in the shipping rates that are displayed to your user, Solidus will still re-calculate taxes on your shipment cost, and the final amount the user is charged depends on the shipment's cost rather than the shipping rate's cost.
+
+This is because you may have additional adjustments on your shipment, e.g. you're offering a "free shipping" promotion and want to completely discount shipping for the user. In this case, the shipping rate might be $10.0 + a $2.0 tax, but your shipment total will still be $0.0.
+
+You should treat tax calculation for shipping rates as a UI-only matter. The standard order tax calculation flow determines the price your user will pay.
+{% endhint %}
+
+## Customizing order tax calculation
 
 Here are the two main actors responsible for calculating taxes in Solidus:
 
@@ -49,10 +68,6 @@ If you want to customize the tax calculation logic, you may do it at two differe
 Because most tax calculation workflows are fairly complicated with different edge case, it is advisable to replace the tax calculator entirely if you need to customize tax calculation in your store.
 
 If, on the other hand, your logic is simple enough to fit the custom rate calculator pattern, you can go with that instead and save yourself the need to write some additional logic.
-
-{% hint style="info" %}
-**TODO:** Document shipping rate tax calculators.
-{% endhint %}
 
 ### With a custom tax calculator
 
@@ -212,5 +227,11 @@ You'll notice that we entered a **Rate** of 0.0 in the configuration above, and 
 This is because, in our custom rate calculator, the user-provided tax rate is not being used at all: instead, we are calling an external API to return the correct tax rate for us.
 
 This kind of inconsistency is one of the reasons you should almost always use a custom tax calculator instead of a custom rate calculator.
+{% endhint %}
+
+## Customizing shipping rate tax calculation
+
+{% hint style="danger" %}
+**TODO:** Write this section.
 {% endhint %}
 
