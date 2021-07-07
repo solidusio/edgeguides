@@ -142,8 +142,6 @@ Here's a sample shipping rate tax calculator that applies a 3% tax to all shippi
 module AwesomeStore
   module TaxCalculator
     class ShippingRate
-      include Spree::Tax::TaxHelpers
-
       def initialize(order)
         @order = order
       end
