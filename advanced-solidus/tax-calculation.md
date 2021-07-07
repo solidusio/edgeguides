@@ -75,55 +75,61 @@ The public interface for a tax calculator is pretty simple: it takes an order du
 
 Here's a dead-simple custom tax calculator that simply applies a 1% tax on all line items and a 2% tax on all shipments — the implementation is inspired by the default tax calculator:
 
+{% code title="app/models/awesome\_store/tax\_calculator/default.rb" %}
 ```ruby
-class CustomTaxCalculator
-  def initialize(order)
-    @order = order
-  end
+module AwesomeStore
+  module TaxCalculator
+    class Default
+      def initialize(order)
+        @order = order
+      end
 
-  def calculate
-    Spree::Tax::OrderTax.new(
-      order_id: order.id,
-      line_item_taxes: line_item_rates,
-      shipment_taxes: shipment_rates
-    )
-  end
+      def calculate
+        Spree::Tax::OrderTax.new(
+          order_id: order.id,
+          line_item_taxes: line_item_rates,
+          shipment_taxes: shipment_rates
+        )
+      end
 
-  private
+      private
 
-  def line_item_rates
-    order.line_items.flat_map do |line_item|
-      calculate_rates(line_item)
+      def line_item_rates
+        order.line_items.flat_map do |line_item|
+          calculate_rates(line_item)
+        end
+      end
+
+      def shipment_rates
+        order.shipments.flat_map do |shipment|
+          calculate_rates(shipment)
+        end
+      end
+
+      def calculate_rates(item)
+        amount = if item.is_a?(Spree::LineItem)
+          item.amount * 0.01
+        elsif item.is_a?(Spree::Shipment)
+          item.amount * 0.02
+        end
+
+        [
+          Spree::Tax::ItemTax.new(
+            item_id: item.id,
+            label: 'Custom Tax',
+            # NOTE: You still need to tie the item tax to a tax rate, otherwise
+            # Solidus will not be able to compare tax adjustments to each other 
+            tax_rate: Spree::TaxRate.find_by(name: 'Custom Tax Rate'),
+            amount: amount,
+            included_in_price: false,
+          )
+        ]
+      end
     end
-  end
-
-  def shipment_rates
-    order.shipments.flat_map do |shipment|
-      calculate_rates(shipment)
-    end
-  end
-
-  def calculate_rates(item)
-    amount = if item.is_a?(Spree::LineItem)
-      item.amount * 0.01
-    elsif item.is_a?(Spree::Shipment)
-      item.amount * 0.02
-    end
-
-    [
-      Spree::Tax::ItemTax.new(
-        item_id: item.id,
-        label: 'Custom Tax',
-        # NOTE: You still need to tie the item tax to a tax rate, otherwise
-        # Solidus will not be able to compare tax adjustments to each other 
-        tax_rate: Spree::TaxRate.find_by(name: 'Custom Tax Rate'),
-        amount: amount,
-        included_in_price: false,
-      )
-    ]
   end
 end
 ```
+{% endcode %}
 
 Once you have implemented your calculator, you need to tell Solidus to use it:
 
@@ -132,7 +138,7 @@ Once you have implemented your calculator, you need to tell Solidus to use it:
 Spree.config do |config|
   # ...
 
-  config.tax_calculator_class = CustomTaxCalculator
+  config.tax_calculator_class = 'AwesomeStore::TaxCalculator::Default'
 end
 ```
 {% endcode %}
@@ -145,62 +151,72 @@ With a custom rate calculator, store administrators configure tax rates as usual
 
 A custom rate calculator is pretty simple, and it looks like the following:
 
+{% code title="app/models/awesome\_store/calculator/default\_tax.rb" %}
 ```ruby
-class CustomCalculator < Calculator::DefaultTax
-  class << self
-    def description
-      'My Custom Calculator'
+module AwesomeStore
+  module Calculator
+    class DefaultTax < Spree::Calculator::DefaultTax
+      class << self
+        def description
+          'My Custom Calculator'
+        end
+      end
+
+      def compute_line_item(line_item)
+        calculate(line_item.total_before_tax)
+      end
+
+      def compute_shipping_rate(shipping_rate)
+        calculate(shipping_rate.total_before_tax)
+      end
+
+      def compute_shipment(shipment)
+        calculate(shipment.total_before_tax)
+      end
+
+      private
+
+      def calculate(amount)
+        # Skip the calculation if this tax rate is not active.
+        return 0 unless calculable.active?
+
+        # e.g. do some API call here and return the tax amount
+        # ...
+      end
     end
-  end
-
-  def compute_line_item(line_item)
-    calculate(line_item.total_before_tax)
-  end
-
-  def compute_shipping_rate(shipping_rate)
-    calculate(shipping_rate.total_before_tax)
-  end
-
-  def compute_shipment(shipment)
-    calculate(shipment.total_before_tax)
-  end
-
-  private
-
-  def calculate(amount)
-    # Skip the calculation if this tax rate is not active.
-    return 0 unless calculable.active?
-
-    # e.g. do some API call here and return the tax amount
-    # ...
   end
 end
 ```
+{% endcode %}
 
 As you can see, you can specify different logic for calculating taxes on line items, shipping rates and shipments, if you need to \(e.g., if you're not charging tax on shipments\). If you're using the same logic for all objects, you may further simplify the implementation:
 
-{% code title="app/models/custom\_calculator.rb" %}
+{% code title="app/models/awesome\_store/calculator/default\_tax.rb" %}
 ```ruby
-class CustomCalculator < Calculator::DefaultTax
-  class << self
-    def description
-      'My Custom Calculator'
+module AwesomeStore
+  module Calculator
+    class DefaultTax < Spree::Calculator::DefaultTax
+      class << self
+        def description
+          'My Custom Calculator'
+        end
+      end
+    
+      def compute_item(item)
+        # Skip the calculation if the tax rate is not active.
+        return 0 unless calculable.active?
+    
+        amount = item.total_before_tax
+    
+        # e.g. do some API call here and return the tax amount
+        # ...
+      end
+    
+      alias_method :compute_shipment, :compute_item
+      alias_method :compute_line_item, :compute_item
+      alias_method :compute_shipping_rate, :compute_item
     end
   end
-
-  def compute_item(item)
-    # Skip the calculation if the tax rate is not active.
-    return 0 unless calculable.active?
-
-    amount = item.total_before_tax
-
-    # e.g. do some API call here and return the tax amount
-    # ...
-  end
-
-  alias_method :compute_shipment, :compute_item
-  alias_method :compute_line_item, :compute_item
-  alias_method :compute_shipping_rate, :compute_item
 end
 ```
 {% endcode %}
@@ -211,7 +227,10 @@ Once you have implemented your custom rate calculator, you need to register it b
 
 {% code title="config/initializers/spree.rb" %}
 ```ruby
-Rails.application.config.spree.calculators.tax_rates << CustomCalculator
+Spree.config do |config|
+  # ...
+  config.environment.calculators.tax_rates << 'AwesomeStore::Calculator::DefaultTax'
+end
 ```
 {% endcode %}
 
@@ -231,7 +250,55 @@ This kind of inconsistency is one of the reasons you should almost always use a 
 
 ## Customizing shipping rate tax calculation
 
-{% hint style="danger" %}
-**TODO:** Write this section.
+### With a custom shipping rate tax calculator
+
+To create a new shipping rate tax calculator, first implement your new tax calculator:
+
+{% code title="app/models/awesome\_store/tax\_calculator/shipping\_rate.rb" %}
+```ruby
+module AwesomeStore
+  module TaxCalculator
+    class ShippingRate
+      include Spree::Tax::TaxHelpers
+
+      def initialize(order)
+        @order = order
+      end
+
+      def calculate(shipping_rate)
+        # Run your custom logic here and return an array
+        # of `Spree::Tax::ItemTax` objects. For example:
+
+        [
+          Spree::Tax::ItemTax.new(
+            item_id: shipping_rate.id,
+            label: 'Custom tax',
+            tax_rate: 0.03,
+            amount: shipping_rate.amount * 0.03,
+          )
+        ]
+      end
+    end
+  end
+end
+```
+{% endcode %}
+
+Finally, tell Solidus to use the new calculator instead of the default one:
+
+{% code title="config/initializers/spree.rb" %}
+```ruby
+Spree.config do |config|
+  config.shipping_Rate_Tax_calculator_class = 'AwesomeStore::TaxCalculator:ShippingRate'
+end
+```
+{% endcode %}
+
+### With a custom rate calculator
+
+{% hint style="info" %}
+Just like for order tax calculation, it's advisable to customize shipping rate tax calculation via a custom shipping rate tax calculator rather than a custom rate calculator.
 {% endhint %}
+
+This process is identical to customizing order tax calculation through a custom rate calculator, so you can simply follow those instructions. Remember to assign your shipping method to the right tax category!
 
