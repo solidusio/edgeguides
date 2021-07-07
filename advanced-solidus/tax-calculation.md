@@ -51,29 +51,27 @@ This is because you may have additional adjustments on your shipment, e.g. you'r
 You should treat tax calculation for shipping rates as a UI-only matter. The standard order tax calculation flow determines the price your user will pay.
 {% endhint %}
 
-## Customizing order tax calculation
+## Customizing tax calculation
 
 Here are the two main actors responsible for calculating taxes in Solidus:
 
-* The **tax calculator** is a class responsible for receiving an order and returning all the taxes that need to be applied to that order's line items and shipments. The tax calculator API is completely independent from the underlying implementation. [Here's the default calculator.](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax_calculator/default.rb)
+* The **tax calculator** is a class responsible for receiving an item and returning all the taxes that need to be applied to that item. The tax calculator API is completely independent from the underlying implementation. [Here are the default tax calculators.](https://github.com/solidusio/solidus/tree/v3.0/core/app/models/spree/tax_calculator)
 * **Rate calculators** are models that are associated to a tax rate and used to compute the tax amount for a specific line item or shipment. [Here's an example.](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/calculator/default_tax.rb)
 
-In a standard Solidus configuration, Solidus uses both of these concepts: the [default tax calculator](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax_calculator/default.rb) uses the configured tax rates to determine the tax amounts to apply to your order.
+In a standard Solidus configuration, Solidus uses both of these concepts: the [default tax calculator](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax_calculator/default.rb) uses the configured tax rates to determine the tax amounts to apply to your order/shipping rate.
 
 If you want to customize the tax calculation logic, you may do it at two different levels:
 
-* **Write a custom rate calculator:** with this approach, admins will create a tax rate that uses your own rate calculator and tell Solidus to use that tax rate for your products and zones. The default tax calculator will call the configured tax rate, which in turn will delegate the amount computation to your custom rate calculator.
+* **Write a custom rate calculator:** with this approach, admins will create a tax rate that uses your own rate calculator and tell Solidus to use that tax rate for your products and shipping methods. The default tax calculator will call the configured tax rate, which in turn will delegate the amount computation to your custom rate calculator.
 * **Replace the tax calculator \(recommended\):** this way, Solidus will not use the rate calculators at all. This approach affords you maximum flexibility, since you'll be calculating taxes on the entire order at the same time rather than on a per-item basis.
-
-Because most tax calculation workflows are fairly complicated with different edge case, it is advisable to replace the tax calculator entirely if you need to customize tax calculation in your store.
-
-If, on the other hand, your logic is simple enough to fit the custom rate calculator pattern, you can go with that instead and save yourself the need to write some additional logic.
 
 ### With a custom tax calculator
 
-The public interface for a tax calculator is pretty simple: it takes an order during initialization and exposes a `#calculate` method that returns a [`Spree::Tax::OrderTax`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax/order_tax.rb) instance. This is an object that contains information about all taxes to apply on an order.
+The public interface for a tax calculator is pretty simple: it takes an order during initialization and exposes a `#calculate` method that returns a [`Spree::Tax::OrderTax`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax/order_tax.rb) instance. This is an object that contains information about all taxes to apply to the item.
 
-Here's a dead-simple custom tax calculator that simply applies a 1% tax on all line items and a 2% tax on all shipments — the implementation is inspired by the default tax calculator:
+{% tabs %}
+{% tab title="For orders" %}
+Here's a dead-simple custom order tax calculator that simply applies a 1% tax on all line items and a 2% tax on all shipments:
 
 {% code title="app/models/awesome\_store/tax\_calculator/default.rb" %}
 ```ruby
@@ -142,6 +140,52 @@ Spree.config do |config|
 end
 ```
 {% endcode %}
+{% endtab %}
+
+{% tab title="For shipping rates" %}
+Here's a sample shipping rate tax calculator that applies a 3% tax to all shipping rates:
+
+{% code title="app/models/awesome\_store/tax\_calculator/shipping\_rate.rb" %}
+```ruby
+module AwesomeStore
+  module TaxCalculator
+    class ShippingRate
+      include Spree::Tax::TaxHelpers
+
+      def initialize(order)
+        @order = order
+      end
+
+      def calculate(shipping_rate)
+        # Run your custom logic here and return an array
+        # of `Spree::Tax::ItemTax` objects. For example:
+
+        [
+          Spree::Tax::ItemTax.new(
+            item_id: shipping_rate.id,
+            label: 'Custom tax',
+            tax_rate: 0.03,
+            amount: shipping_rate.amount * 0.03,
+          )
+        ]
+      end
+    end
+  end
+end
+```
+{% endcode %}
+
+Once you have created the tax calculator, you need to tell Solidus to use your custom implementation instead of the default:
+
+{% code title="config/initializers/spree.rb" %}
+```ruby
+Spree.config do |config|
+  config.shipping_Rate_Tax_calculator_class = 'AwesomeStore::TaxCalculator:ShippingRate'
+end
+```
+{% endcode %}
+{% endtab %}
+{% endtabs %}
 
 Reboot your server, and Solidus should start using your custom tax calculator!
 
@@ -247,58 +291,4 @@ This is because, in our custom rate calculator, the user-provided tax rate is no
 
 This kind of inconsistency is one of the reasons you should almost always use a custom tax calculator instead of a custom rate calculator.
 {% endhint %}
-
-## Customizing shipping rate tax calculation
-
-### With a custom shipping rate tax calculator
-
-To create a new shipping rate tax calculator, first implement your new tax calculator:
-
-{% code title="app/models/awesome\_store/tax\_calculator/shipping\_rate.rb" %}
-```ruby
-module AwesomeStore
-  module TaxCalculator
-    class ShippingRate
-      include Spree::Tax::TaxHelpers
-
-      def initialize(order)
-        @order = order
-      end
-
-      def calculate(shipping_rate)
-        # Run your custom logic here and return an array
-        # of `Spree::Tax::ItemTax` objects. For example:
-
-        [
-          Spree::Tax::ItemTax.new(
-            item_id: shipping_rate.id,
-            label: 'Custom tax',
-            tax_rate: 0.03,
-            amount: shipping_rate.amount * 0.03,
-          )
-        ]
-      end
-    end
-  end
-end
-```
-{% endcode %}
-
-Finally, tell Solidus to use the new calculator instead of the default one:
-
-{% code title="config/initializers/spree.rb" %}
-```ruby
-Spree.config do |config|
-  config.shipping_Rate_Tax_calculator_class = 'AwesomeStore::TaxCalculator:ShippingRate'
-end
-```
-{% endcode %}
-
-### With a custom rate calculator
-
-{% hint style="info" %}
-Just like for order tax calculation, it's advisable to customize shipping rate tax calculation via a custom shipping rate tax calculator rather than a custom rate calculator.
-{% endhint %}
-
-This process is identical to customizing order tax calculation through a custom rate calculator, so you can simply follow those instructions. Remember to assign your shipping method to the right tax category!
 
