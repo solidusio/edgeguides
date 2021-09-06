@@ -31,4 +31,5 @@
 ## Cookbook
 
 * [Redefining checkout steps](cookbook/redefining-checkout-steps.md)
+* [GraphQL API](cookbook/graphql-api.md)
 
