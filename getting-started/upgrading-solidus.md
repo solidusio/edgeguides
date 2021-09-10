@@ -39,6 +39,69 @@ $ cat deprecations.txt | sort | uniq
 This will output a de-duplicated list of deprecations in your code. Once you have this, just go through the deprecations one by one and fix them. Then run your test suite again to ensure your app doesn't contain any deprecated code.
 
 {% hint style="info" %}
-In some cases, deprecated code may come from Solidus extensions and not your own app, meaning you can't fix the deprecation yourself. When this happens, you can open an issue in the extension's repository to let the maintainer know that they need to update their extension.
+In some cases, deprecated code may come from Solidus extensions and not your own app, meaning you can't fix the deprecation yourself. When this happens, you can open an issue in the extension's repository to let the maintainer know that they need to update their extension\#
 {% endhint %}
+
+## Updating preferences
+
+There're some aspects of Solidus behavior that you can tweak on your application. For instance, guest checkouts are allowed by default, but you can change it on the `spree.rb` initializer:
+
+```ruby
+Spree.config do |config|
+  config.allow_guess_checkout = false
+end
+```
+
+Some defaults may change between Solidus versions. Those changes might break the expectations of your application behavior. For that reason, Solidus comes with the `Spree.load_defaults(version)` method to ensure that the implicit defaults \(those you're not overriding on `spree.rb`\) stay the same after an upgrade. This method is called on top of the `spree.rb` file. E.g.:
+
+```ruby
+Spree.load_defaults('3.0')
+Spree.config do |config|
+  # ...
+end
+```
+
+> If you upgrade from Solidus 3.0 to Solidus 3.1, you won't have the `Spree.load_defaults` call in your initializer yet. Please, ensure that you add it before performing the upgrade!
+
+After an upgrade, you should update the version passed to the `Spree.load_defaults` method. However, before that, you need to check which defaults have changed and decide what to do with them. You have a couple of options:
+
+* Adapt your application code to integrate the new default.
+* Explicitly use the old default in `spree.rb` if you're sure you still want to use it.
+* Do nothing if the new default doesn't entail a change from your side.
+
+To help with this process, Solidus comes with the `solidus:update` generator:
+
+```bash
+bin/rails g solidus:update
+```
+
+This command will generate a new initializer called `new_solidus_defaults.rb`. All the defaults that have changed in the latest version are displayed, each in a commented out line. That allows you to act on each individual new preference performing one of the options given above. If you want to integrate a new preference, you only need to uncomment its line. When you're done with all the defaults, you can flip the version used in `spree.rb`'s `Spree.load_defaults` call and remove the `new_solidus_defaults.rb` file altogether.
+
+Internally, `Spree.load_defaults` is a shortcut that forwards the same method to the configuration object for every available Solidus component: core, backend, frontend & API. You'll see that the `#load_defaults` call, with the previous version as argument, is disassembled into the individual components in `new_solidus_defaults.rb`. It gives you more fine-grained control as you can flag as done an individual component by updating its `#load_defaults` version when you're done with it.
+
+For instance, say that you're upgrading from Solidus 3.0 to 3.1, and three made-up defaults have changed:
+
+* Core's `:core_pref_one` was `false` and now is `true`.
+* Core's `:core_pref_two` was `false` and now is `true`.
+* Backend's `:backend_pref` was `'this'` and now is `'that'`.
+
+The generated `new_solidus_defaults.rb` file would look something like the following:
+
+```ruby
+Spree.config do |config|
+  config.load_defaults('3.0')
+  # config.core_pref_one = true
+  # config.core_pref_two = true
+end
+Spree::Backend::Config do |config|
+  config.load_defaults('3.0')
+  # config.backend_pref = 'that'
+end
+```
+
+A sensible approach you could take to leave your application up to date could be:
+
+* Adapt your app to take into account that `core_pref_one` is `true` and uncomment its line in the initializer.
+* Adapt your app to take into account that `core_pref_two` is `true`, remove lines for `core_pref_one` & `core_pref_two`, and update the `config.load_default` call within the `Spree.config` block to take `'3.1'` as parameter.
+* Adapt your app to take into account that `backend_pref` is `'that'`. Remove the `new_solidus_defaults.rb` initializer and bump the `Spree.load_defaults` call in `spree.rb` to `'3.1'`.
 
