@@ -24,7 +24,7 @@ curl -X POST --data '{ "query": "{ currentStore { name }  } "}' -H "Content-Type
 
 ## Solidus' GraphQL playground
 
-We have a dedicated playground that you can use [to learn how to use the GraphQL endpoint on Solidus](http://solidemo-graphql-playground.herokuapp.com/). It uses the data on [Solidus' demo application](http://demo.solidus.io/) as the backend.
+We have a dedicated playground that you can use [to learn how to use the GraphQL endpoint on Solidus](http://graphql-playground.solidus.io/). It uses the data on [Solidus' demo application](http://demo.solidus.io/) as the backend.
 
 You can click on the `Docs` tab on the playground to look at the GraphQL schema and discover all the queries and mutations you can perform. If you prefer, you can check the [extension's documentation page](https://solidusio-contrib.github.io/solidus_graphql_api/docs/) instead.
 
