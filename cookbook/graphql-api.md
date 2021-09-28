@@ -377,6 +377,11 @@ query getProduct {
           nodes {
             name
             presentation
+            optionType {
+              name
+              presentation
+              position
+            }
           }
         }
         images {
@@ -419,27 +424,21 @@ query getProduct {
               "nodes": [
                 {
                   "name": "Small",
-                  "presentation": "S"
+                  "presentation": "S",
+                  "optionType": {
+                    "name": "tshirt-size",
+                    "presentation": "Size",
+                    "position": 1
+                  }
                 },
                 {
                   "name": "Blue",
-                  "presentation": "Blue"
-                },
-                {
-                  "name": "Small",
-                  "presentation": "S"
-                },
-                {
-                  "name": "Small",
-                  "presentation": "S"
-                },
-                {
-                  "name": "Blue",
-                  "presentation": "Blue"
-                },
-                {
-                  "name": "Blue",
-                  "presentation": "Blue"
+                  "presentation": "Blue",
+                  "optionType": {
+                    "name": "tshirt-color",
+                    "presentation": "Color",
+                    "position": 2
+                  }
                 }
               ]
             },
@@ -2344,6 +2343,10 @@ mutation checkoutNextFromAddress {
               cost
               currency
               selected
+              shippingMethod {
+                name
+                carrier
+              }
             }
           }
         }
@@ -2387,19 +2390,31 @@ mutation checkoutNextFromAddress {
                     "id": "U3ByZWU6OlNoaXBwaW5nUmF0ZS00Ng==",
                     "cost": "5.0",
                     "currency": "USD",
-                    "selected": true
+                    "selected": true,
+                    "shippingMethod": {
+                      "name": "UPS Ground (USD)",
+                      "carrier": null
+                    }
                   },
                   {
                     "id": "U3ByZWU6OlNoaXBwaW5nUmF0ZS00Nw==",
                     "cost": "10.0",
                     "currency": "USD",
-                    "selected": false
+                    "selected": false,
+                    "shippingMethod": {
+                      "name": "UPS Two Day (USD)",
+                      "carrier": null
+                    }
                   },
                   {
                     "id": "U3ByZWU6OlNoaXBwaW5nUmF0ZS00OA==",
                     "cost": "15.0",
                     "currency": "USD",
-                    "selected": false
+                    "selected": false,
+                    "shippingMethod": {
+                      "name": "UPS One Day (USD)",
+                      "carrier": null
+                    }
                   }
                 ]
               }
@@ -2431,7 +2446,7 @@ mutation checkoutNextFromAddress {
 
 We can see that the state changed to `delivery`and that the cheapest shipping rate has been selected by default. Notice it carries with it the same 5% tax adjustment applied to its cost.
 
-We're in a hurry as we want to wear those t-shirts as soon as possible! Let's choose the last shipping rate:
+We're in a hurry as we want to wear those t-shirts as soon as possible! Let's choose the "One Day" method:
 
 {% tabs %}
 {% tab title="GraphQL" %}
@@ -2814,6 +2829,56 @@ mutation addAddress {
       "errors": [],
       "user": {
         "shipAddress": {
+          "name": "Joe Doe"
+        }
+      }
+    }
+  }
+}
+```
+{% endtab %}
+{% endtabs %}
+
+With an extra `addressType` argument, you could also create a billing address \(the argument is an enum, and can take `shipping` or `billing` values —notice the absence of double quotes `"`\):
+
+{% tabs %}
+{% tab title="GraphQL" %}
+```graphql
+mutation addAddress {
+  saveInAddressBook(input: {
+    address: {
+        name: "Joe Doe"
+        address1: "25 Ruby Av."
+        city: "LA"
+        countryId: "U3ByZWU6OkNvdW50cnktMjMz"
+        zipcode: "36666"
+        phone: "222222"
+        stateId: "U3ByZWU6OlN0YXRlLTM0Mzk="
+    },
+    addressType: billing
+  }) {
+    errors {
+      path
+      message
+    }
+    user {
+      billAddress {
+        name
+      }
+    }
+  }
+}
+```
+{% endtab %}
+
+{% tab title="Response" %}
+```javascript
+{
+  "data": {
+    "saveInAddressBook": {
+      "errors": [],
+      "user": {
+        "billAddress": {
           "name": "Joe Doe"
         }
       }
