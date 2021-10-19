@@ -407,7 +407,7 @@ RSpec.describe 'The checkout flow' do
 end
 ```
 
-The `OrderWalkthrough.up_to` call will create a new order and it will simulate what a user would do if they want to the checkout flow and only completed the `address` state. The order will have line items and an address on it, and it will be in the `delivery` state, ready for shipping method selection.
+The `OrderWalkthrough.up_to` call will create a new order and it will simulate what a user would do if they went to the checkout flow and only completed the `address` state. The order will have line items and an address on it, and it will be in the `delivery` state, ready for shipping method selection.
 
 ### Preference helpers
 
