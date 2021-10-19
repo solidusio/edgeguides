@@ -20,7 +20,7 @@ Let's get started!
 
 First of all, we need to make sure users can somehow tell us that they like a product. Because we want this to happen without users having to reload the page, we'll do it via the API.
 
-We could just a `likes_count` column to the `spree_products` table, but in our case we also want to know which users liked which products, so that a product cannot be liked twice by the same user and we can personalize the user's recommendations based on the products they liked. We will also want to make sure that unauthenticated users cannot like a product, because we wouldn't be able to associate that like to a specific customer.
+We could just add a `likes_count` column to the `spree_products` table, but in our case we also want to know which users liked which products, so that a product cannot be liked twice by the same user and we can personalize the user's recommendations based on the products they liked. We will also want to make sure that unauthenticated users cannot like a product, because we wouldn't be able to associate that like to a specific customer.
 
 Let's start by creating a new model, `ProductLike`, which we'll use to store the user-product relationship:
 
