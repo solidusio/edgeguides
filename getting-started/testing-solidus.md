@@ -40,7 +40,7 @@ Here's the bare minimum you'll need to get started with testing your Solidus app
 ```ruby
 group :development, :test do
   gem 'rspec-rails'
-  gem 'factory_bot_rails' '~> 4.8'
+  gem 'factory_bot_rails', '~> 4.8'
 end
 
 group :test do
