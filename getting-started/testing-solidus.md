@@ -4,7 +4,7 @@
 
 For most of the examples in this guide, we have also provided automated tests. While this is a bit unusual in product documentation, we wanted to give you something you can use as inspiration when testing your own customizations. Feel free to adapt our tests to fit your own style!
 
-We can't emphasize enough the importance of writing tests for you Solidus app: Solidus is a large, complex framework, and you are bound to miss gotchas and edge cases when customizing it, no matter how much QA you do. **Skipping on automated tests means asking for trouble,** especially in eCommerce, where downtime translates directly into financial loss.
+We can't emphasize enough the importance of writing tests for your Solidus app: Solidus is a large, complex framework, and you are bound to miss gotchas and edge cases when customizing it, no matter how much QA you do. **Skipping on automated tests means asking for trouble,** especially in eCommerce, where downtime translates directly into financial loss.
 
 While writing tests may seem like a useless distraction in the short term, it will make you more productive in the long term, by allowing you to change code faster, with more confidence and with less manual work. Having good test coverage will also help you tremendously when upgrading Solidus.
 
@@ -531,7 +531,7 @@ Just like for the storefront, you should use system specs for testing your backe
 
 Event subscribers are an awesome way to decouple orthogonal logic, but once you start using them extensively, they can be tricky to test in isolation. Let's see an example.
 
-Let's assume you are working on a store that integrates both with a taxation service. When an order is finalized, you want to send the order's information to the sales tax reporting API, so you can properly report your sales tax at the end of the quarter.
+Let's assume you are working on a store that integrates with a taxation service. When an order is finalized, you want to send the order's information to the sales tax reporting API, so you can properly report your sales tax at the end of the quarter.
 
 The event bus is the perfect fit for this use case, so you write the following event subscriber:
 
