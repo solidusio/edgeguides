@@ -139,7 +139,7 @@ Once done, we need to identify which view we want to customize. By browsing thro
 
 Equipped with this information, we can now write our Deface override:
 
-{% code title="app/overrides/spree/backend/orders/edit/add\_remove\_from\_rejected.html.erb.deface" %}
+{% code title="app/overrides/spree/admin/orders/edit/add\_remove\_from\_rejected.html.erb.deface" %}
 ```markup
 <!-- insert_before "erb[silent]:contains('if can?(:fire, @order)')" -->
 <li>
