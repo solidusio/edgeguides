@@ -48,7 +48,7 @@ There're some aspects of Solidus behavior that you can tweak on your application
 
 ```ruby
 Spree.config do |config|
-  config.allow_guess_checkout = false
+  config.allow_guest_checkout = false
 end
 ```
 

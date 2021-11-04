@@ -152,7 +152,7 @@ For example, setting a configuration value in the Solidus configuration is usual
 When we described our requirements, we mentioned we also want to save the shipment ID that we get back from the 3PL's API when we create the order, so that we can easily access the shipment later. The best place to store this information would be an additional column in the `spree_orders` table, so let's first write a migration to create it:
 
 ```bash
-$ rails g migration AddAcmeFulfillmentShipmentIdToSpreeOrders \
+$ bin/rails g migration AddAcmeFulfillmentShipmentIdToSpreeOrders \
     acme_fulfillment_shipment_id
 ```
 

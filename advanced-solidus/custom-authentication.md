@@ -30,7 +30,7 @@ $ rails g spree:custom_user AmazingStore::User
 This will do the following:
 
 * Generate a migration to add some required columns to the custom model's table.
-* Set `Spree.user_class` to your custom model's class name, so that Solidus knows to use it in association and throughout the store.
+* Set `Spree.user_class` to your custom model's class name, so that Solidus knows to use it in associations and throughout the store.
 * Implement some authentication helpers required by `solidus_backend` and `solidus_frontend` in `lib/spree/authentication_helpers.rb`.
 
 At this point, you'll need to migrate your database to add the new columns:
