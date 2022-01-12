@@ -149,7 +149,7 @@ Solidus is a large and complex platform and, while new built-in customization ho
 
 As an example, suppose you want to introduce an environment variable that allows you to temporarily make all products unavailable in the storefront.
 
-When you look at Solidus' source code, you will notice that `Spree::Product` already has an [`#available?`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/product.rb#L174) method to control a product's visibility. This is the original implementation:
+When you look at Solidus' source code, you will notice that `Spree::Product` already has an [`#available?`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/product.rb#L171) method to control a product's visibility. This is the original implementation:
 
 ```ruby
 # Determines if product is available. A product is available if it has not
@@ -157,7 +157,7 @@ When you look at Solidus' source code, you will notice that `Spree::Product` alr
 #
 # @return [Boolean] true if this product is available
 def available?
-  deleted? && available_on&.past? && !discontinued?
+  !deleted? && available_on&.past? && !discontinued?
 end
 ```
 
