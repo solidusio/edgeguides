@@ -169,6 +169,10 @@ However, we can still use plain old Ruby and the power of [`Module#prepend`](htt
 The Solidus ecosystem used to rely heavily on `#class_eval` for overrides, but `#prepend` is a much better option. In case you're curious and want to dig deeper into the internals of what's going on, there are a few tutorials on Ruby's ancestors chain and what makes `#prepend` better than its alternatives. Check out "[A class\_eval monkey-patching pattern with prepend](https://bibwild.wordpress.com/2016/12/27/a-class_eval-monkey-patching-pattern-with-prepend/)". You may see old guides, tutorials and extensions still using `#class_eval`, but you should know this is a deprecated pattern.
 {% endhint %}
 
+{% hint style="warning" %}
+If you're prepending to a module, take note that if Rails includes the module before the `prepend` is called, then Rails might not be able to include the prepended behavior. In this case, you might have no choice but to use `#class_eval` to override the module. For more information, please see [Module.prepend does not work nicely with included modules](https://github.com/solidusio/solidus/issues/3371).
+{% endhint %}
+
 You can customize the `Spree::Product#available?` method by writing a module that will be prepended to `Spree::Product`. In the Solidus ecosystem, we call such modules **overrides.** Overrides are usually named in a descriptive way, that expresses how the override extends the original class.
 
 Here's our `AddGlobalHiddenFlag` override for `Spree::Product`:
