@@ -18,3 +18,15 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Temporary files
+/tmp
+
+# Docs (which is pulled from Git)
+/docs/*
+/versioned_docs/*
+/versioned_sidebars/*
+!/docs/.keep
+!/versions_docs/.keep
+!/versioned_sidebars/.keep
+versions.json
