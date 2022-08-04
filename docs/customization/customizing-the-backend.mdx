@@ -257,12 +257,12 @@ The orders' search form is visible from the "Orders" menu item. We've already
 seen [how to override views with Deface](customizing-the-backend.mdx#defacing-admin-views). This time
 we need to override the index template for orders:
 
-```erb title="app/overrides/spree/admin/orders/edit/add_rejected_filter.html.erb.deface"
+```erb title="app/overrides/spree/admin/orders/index/add_rejected_filter.html.erb.deface"
 <!-- insert_bottom "[data-hook=admin_orders_index_search] .field-block" -->
 <div class="field">
   <%= label_tag :q_rejected_eq, t('spree.rejected') %>
   <%= f.select :rejected_eq, [[t('spree.say_yes'), true], [t('spree.say_no'), false]], include_blank: t('spree.all') %>
-<</div>
+</div>
 ```
 
 The new field is already visible. However, for security reasons, you're still required to explicitly
