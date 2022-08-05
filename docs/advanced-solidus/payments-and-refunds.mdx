@@ -571,12 +571,6 @@ provided by Solidus for payment sources:
   end
 ```
 
-We've introduced a new checkout parameter that Solidus needs to be made aware of, we can follow [the guide on introducing custom model attributes](https://guides.solidus.io/developers/customizations/customizing-attributes#allowing-custom-attributes-to-be-saved) and add the following:
-
-```ruby title="config/initializers/spree.rb
-Spree::PermittedAttributes.checkout_payment_attributes << :auth_token
-```
-
 At this point, we have our new payment source model ready. Now, let's implement the payment source
 API, so that Solidus knows how to use our payment source during order processing (note that this
 logic is taken verbatim from `Spree::PaymentSource`, other than the `#reusable?` method which would
@@ -828,6 +822,13 @@ the checkout flow. We will just ask users for their SolidusPay auth token:
   <%= label_tag "auth_token_#{payment_method.id}", 'SolidusPay Auth Token' %>
   <%= text_field_tag "#{param_prefix}[auth_token]", nil, { id: "auth_token_#{payment_method.id}" } %>
 </div>
+```
+
+We'll also need to add `auth_token` as a permitted source attribute in order for
+it to get accepted by `Spree::CheckoutController`:
+
+```ruby title="config/initializers/spree.rb
+Spree::PermittedAttributes.source_attributes << :auth_token
 ```
 
 When users fill this form during checkout, Solidus will create a new `SolidusPayAccount` payment
