@@ -824,6 +824,13 @@ the checkout flow. We will just ask users for their SolidusPay auth token:
 </div>
 ```
 
+We'll also need to add `auth_token` as a permitted source attribute in order for
+it to get accepted by `Spree::CheckoutController`:
+
+```ruby title="config/initializers/spree.rb
+Spree::PermittedAttributes.source_attributes << :auth_token
+```
+
 When users fill this form during checkout, Solidus will create a new `SolidusPayAccount` payment
 source with the auth token provided by the user. In general, Solidus will copy all
 the `#{param_prefix}[...]` attributes to the payment source, so you can add more columns to the
