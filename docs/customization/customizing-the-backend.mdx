@@ -191,7 +191,7 @@ Equipped with this information, we can now write our Deface override:
       t('spree.remove_from_rejected'),
       remove_from_rejected_admin_order_url(@order),
       method: :put,
-      class: 'btn btn-primary',
+      class: 'btn btn-primary btn-remove_order_from_rejected',
     ) %>
   <% end %>
 </li>
@@ -257,12 +257,12 @@ The orders' search form is visible from the "Orders" menu item. We've already
 seen [how to override views with Deface](customizing-the-backend.mdx#defacing-admin-views). This time
 we need to override the index template for orders:
 
-```erb title="app/overrides/spree/admin/orders/edit/add_rejected_filter.html.erb.deface"
+```erb title="app/overrides/spree/admin/orders/index/add_rejected_filter.html.erb.deface"
 <!-- insert_bottom "[data-hook=admin_orders_index_search] .field-block" -->
 <div class="field">
   <%= label_tag :q_rejected_eq, t('spree.rejected') %>
   <%= f.select :rejected_eq, [[t('spree.say_yes'), true], [t('spree.say_no'), false]], include_blank: t('spree.all') %>
-<</div>
+</div>
 ```
 
 The new field is already visible. However, for security reasons, you're still required to explicitly
@@ -335,6 +335,98 @@ applied: `match_path: %r{[rejected_eq]=true}`.
 found in the locale file.
 * `partial:` can be used in complex scenarios when you want a partial to be rendered as content
 within your menu item. For instance, `partial: 'spree/admin/orders/rejected_orders'`.
+
+## Customizing assets
+
+Solidus leverages the [Rails asset
+pipeline](https://guides.rubyonrails.org/asset_pipeline.html) to allow for
+customization and overriding of your backend assets. We recommend that you
+familiarize yourself with the Rails asset pipeline before going any further.
+
+Some aspects of the style in the backend have been extracted into SCSS
+variables. You can look at them in the [`spree/backend/globals/_variables.scss`
+file](https://github.com/solidusio/solidus/blob/master/backend/app/assets/stylesheets/spree/backend/globals/_variables.scss).
+If you want to redefine some of them, you can create a
+`spree/backend/globals/_variables_override.scss` file under your application
+stylesheets directory. For instance, if you wanted to make the header black:
+
+```scss title="app/assets/stylesheets/spree/backend/globals/_variables_override.scss"
+$color-header-bg: #000;
+```
+
+For more elaborated changes, take into account that, when you install Solidus,
+the two following manifest files are created:
+
+* `vendor/assets/stylesheets/spree/backend/all.css`, for your CSS assets.
+* `vendor/assets/javascripts/spree/backend/all.js`, for your Javascript assets.
+
+If you glance at them, you'll see that they both include a `spree/backend`
+file, which is located in the Solidus' backend Rails engine, and, after that,
+they also require all the files recursively under their directories (the
+`require_tree .` directive). Any file you put under
+`vendor/assets/{stylesheets,javascripts}/spree/backend` directories will be
+loaded after Solidus' default assets, allowing you not only to customize but to
+override CSS and Javascript code.
+
+:::warning
+
+If you can, always go for adding instead of overriding default assets. There's
+no guarantee that a Solidus style won't change in the future and make your
+override useless or behave in unexpected ways.
+
+:::
+
+Nonetheless, you might want to put the assets you control under `app/assets`,
+just like Sprockets recommends. For that, you need to add another directive to
+the generated manifest, as we'll demonstrate below.
+
+:::danger
+
+When dropping a file under `app/assets`, you must be careful. By default, the
+generated manifests under
+`app/assets/{stylesheets,javascript}/application.{css,js}` in a new Rails
+application contain directives to load any file below their hierarchy
+recursively. I.e., a style meant only to be used in the backend could interfere
+with your storefront. Make sure you update the generated manifests accordingly,
+including the removal of the `require_tree .` directive.
+
+:::
+
+As a simple example, let's make the delete button a bit more prominent by
+uppercasing its label. We'll require another file from the Solidus CSS
+manifest at `vendor/stylesheets/spree/backend/all.css`
+
+```diff
+  *= require spree/backend
+  *= require_self
+  *= require_tree .
++ *= require spree/backend/custom
+ */
+```
+
+We'll place it within the `app/assets/stylesheets` directory:
+
+```css title="app/assets/stylesheets/spree/backend/custom.css"
+.btn-remove_order_from_rejected {
+  text-transform: uppercase;
+}
+```
+
+Pretty much the same when it comes to Javascript. In this case, we'd need to
+modify the `vendor/assets/javascripts/spree/backend/all.js` manifest.
+
+```diff
+ //= require rails-ujs
+ //= require spree/backend
+ //= require_tree .
++//= require spree/backend/custom
+```
+
+We could then put any new behavior in the expected file:
+
+```javascript title="app/assets/javascripts/spree/backend/custom.js"
+// Javascript code
+```
 
 ## Taking it from here
 
