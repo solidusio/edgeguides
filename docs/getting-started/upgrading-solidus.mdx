@@ -129,11 +129,11 @@ defaults, you can flip the version used in `spree.rb`'s `Spree.load_defaults` ca
 the `new_solidus_defaults.rb` file altogether.
 
 Internally, `Spree.load_defaults` is a shortcut that forwards the same method to the configuration
-object for every available Solidus component: core, backend, frontend & API. You'll see that
-the `#load_defaults` call, with the previous version as argument, is disassembled into the
-individual components in `new_solidus_defaults.rb`. It gives you more fine-grained control as you
-can flag as done an individual component by updating its `#load_defaults` version when you're done
-with it.
+object for every available Solidus component: core, backend & API. You'll see
+that the `#load_defaults` call, with the previous version as argument, is
+disassembled into the individual components in `new_solidus_defaults.rb`. It
+gives you more fine-grained control as you can flag as done an individual
+component by updating its `#load_defaults` version when you're done with it.
 
 For instance, say that you're upgrading from Solidus 3.0 to 3.1, and three made-up defaults have
 changed:

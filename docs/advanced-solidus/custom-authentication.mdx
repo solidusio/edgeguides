@@ -22,7 +22,8 @@ In order to use a custom user model, your model should have:
 * **An integer `id` column:** Solidus uses integers for all foreign keys, so you need to use integer IDs in your user
   model. You may use other types of IDs by changing the types of the foreign key columns, but this is generally
   discouraged.
-* **A `password` attribute:** This is needed if you use the stock `solidus_frontend` or `solidus_backend` gems. You can
+* **A `password` attribute:** This is needed if you use
+  `solidus_starter_frontend`, `solidus_frontend` or `solidus_backend`. You can
   implement the attribute however you see fit.
 
 This is all you need for now. The rest of the requirements will be implemented in the next steps!
@@ -43,8 +44,9 @@ This will do the following:
 * Generate a migration to add some required columns to the custom model's table.
 * Set `Spree.user_class` to your custom model's class name, so that Solidus knows to use it in associations and
   throughout the store.
-* Implement some authentication helpers required by `solidus_backend` and `solidus_frontend`
-  in `lib/spree/authentication_helpers.rb`.
+* Implement some authentication helpers required by `solidus_backend`,
+  `solidus_starter_frontend` and `solidus_frontend` in
+  `lib/spree/authentication_helpers.rb`.
 
 At this point, you'll need to migrate your database to add the new columns:
 
@@ -83,8 +85,9 @@ $ rails db:migrate
 
 #### spree\_current\_user helper <a id="spree-em-current-em-user"></a>
 
-If you use the stock `solidus_frontend` or `solidus_backend` gems, you need to provide a `spree_current_user` helper
-method in your `ApplicationController`:
+If you use `solidus_starter_frontend`, `solidus_frontend` or `solidus_backend`,
+you need to provide a `spree_current_user` helper method in your
+`ApplicationController`:
 
 ```ruby title="app/controllers/application\_controller.rb"
 class ApplicationController < ActionController::Base
@@ -103,8 +106,9 @@ end
 
 #### Add authentication helpers <a id="add-authentication-helpers"></a>
 
-If you use the stock `solidus_frontend` or `solidus_backend` gems, you need to provide authentication helpers so that
-users can sign up, log in, and log out:
+If you use `solidus_starter_frontend`, `solidus_frontend` or `solidus_backend`,
+you need to provide authentication helpers so that users can sign up, log in,
+and log out:
 
 ```ruby title="app/controllers/application\_controller.rb"
 class ApplicationController < ActionController::Base
