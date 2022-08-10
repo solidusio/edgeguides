@@ -4,3 +4,192 @@ sidebar_position: 1
 
 # Customizing your storefront
 
+In this guide, we're going to show you an example of how to customize your storefront. In
+particular, we're going to add a hero image to the home page:
+
+![Hero image placeholder](/img/customizing-your-storefront/hero-image-placeholder.png)
+
+For the rest of the guide, we'll assume that you have a running Solidus application with
+SolidusStarterFrontend as your storefront.
+
+:::info
+
+With Solidus 3.2, installing Solidus would automatically install [SolidusStarterFrontend][], which
+is the new frontend solution for Solidus. As a Rails application template, it copies all the
+Solidus frontend code to your Rails app. This makes the frontend code directly accessible to your
+application. If you're familiar with customizing views and assets on a regular Rails app, you
+already have the knowledge to customize the frontend of a Solidus application.
+
+Before Solidus 3.2, we used to package the storefront as a Rails engine, called
+[SolidusFrontend][]. In theory, this would allow users to upgrade their
+storefront whenever there is a new update. However, we found that users rarely
+did this, since they tend to heavily customize their storefronts.
+Furthermore, packaging the storefront as a Rails engine made frontend
+customization more difficult than necessary.
+
+If you're interested to learn more about the transition from SolidusFrontend to
+SolidusStarterFrontend, please check out the
+[Getting Started with Solidus Starter Frontend][Getting Started with SSF] post.
+
+:::
+
+## Editing a view
+
+If we inspect the home page, we'll see that the hero container has the following HTML code:
+
+```html
+<div class="hero__container">
+  <div class="hero__message">
+    <h1 class="hero-title">
+      The only eCommerce platform you’ll ever need.
+    </h1>
+
+    <p class="subtitle">
+      Build, customize and scale your store with no limits or license fees.
+      Solidus is the free, open-source eCommerce framework for
+      digitally-native brands, fast-growing online businesses and pragmatic
+      developers.
+    </p>
+  </div>
+</div>
+```
+
+If we search for views with the CSS class `"hero__container"` in your Solidus app, we find
+`app/views/spree/home/_hero.html.erb`. This partial was copied to your app during the installation
+of SolidusStarterFrontend.
+
+Let's use the [`image_tag`][image_tag] helper to try and add a placeholder for the hero image in
+that partial:
+
+```diff
+ <div class="hero__container">
++  <%= image_tag('hero-image') %>
+   <div class="hero__message">
+     <h1 class="hero-title">
+       The only eCommerce platform you’ll ever need.
+     </h1>
+
+     <p class="subtitle">
+       Build, customize and scale your store with no limits or license fees.
+       Solidus is the free, open-source eCommerce framework for
+       digitally-native brands, fast-growing online businesses and pragmatic
+       developers.
+     </p>
+   </div>
+ </div>
+```
+
+If we test it out, we'll find that we need to add the hero image to the asset pipeline:
+
+![Missing hero image error](/img/customizing-your-storefront/missing-hero-image-error.png)
+
+## Running the frontend specs
+
+If you try and run the [RSpec][] test suite at this point, you might also see some spec failures
+because of the asset pipeline error:
+
+```
+$ bundle exec rspec spec/requests/spree/home_spec.rb
+
+...
+
+Failures:
+
+  1) Home layout provides current user to the searcher class
+     Failure/Error: <%= image_tag('hero-image') %>
+
+     ActionView::Template::Error:
+       The asset "hero-image" is not present in the asset pipeline.
+     # ./app/views/spree/home/_hero.html.erb:3:in `_app_views_spree_home__hero_html_erb___8794442347239906_218740'
+     # ./app/views/spree/home/index.html.erb:1:in `_app_views_spree_home_index_html_erb__1597336803422850061_218720'
+     # ./spec/requests/spree/home_spec.rb:18:in `block (2 levels) in <top (required)>'
+     # ------------------
+     # --- Caused by: ---
+     # Sprockets::Rails::Helper::AssetNotFound:
+     #   The asset "hero-image" is not present in the asset pipeline.
+     #   ./app/views/spree/home/_hero.html.erb:3:in `_app_views_spree_home__hero_html_erb___8794442347239906_218740'
+
+...
+
+```
+
+When you installed SolidusStarterFrontend to your app, you also received some specs for testing
+the frontend. These specs are part of the SolidusStarterFrontend test suite itself, that is, they
+are used in testing the SolidusStarterFrontend project. By copying these specs to your app, you get
+a good starting point for testing your application.
+
+## Adding an image
+
+We'll be using this image as the hero image for the home page:
+
+![Hero image](/img/customizing-your-storefront/hero-image.png)
+
+Following the [Rails Assets Pipeline guide][], we're supposed to save this image in the
+`app/assets/images` directory. Once we save the image there, the home page now looks like this:
+
+![Home page with unstyled hero](/img/customizing-your-storefront/home-page-with-unstyled-hero.png)
+
+As you can see, we'll need to update the stylesheets in order to move the image above the hero
+message.
+
+## Customizing a stylesheet
+
+If we search for the word "hero" in the stylesheets of the app, we would find
+`app/assets/stylesheets/spree/frontend/components/presentation/_hero.scss`:
+
+```scss
+.hero {
+  background: $color-background-dark;
+  color: $color-copy-bright;
+  padding: 10rem 0;
+
+  &__container {
+    @extend %section-spacings;
+    display: flex;
+  }
+}
+```
+
+Like the hero partial from earlier, this [Sass][] stylesheet was copied to your Rails app when
+SolidusStarterFrontend was installed on the app.
+
+Let's update the stylesheet to
+
+1. change the flex direction of the container to `column`, and
+2. add a bottom margin to the hero image
+
+```diff
+ .hero {
+   background: $color-background-dark;
+   color: $color-copy-bright;
+   padding: 10rem 0;
+
+   &__container {
+     @extend %section-spacings;
+     display: flex;
++    flex-direction: column;
++
++    img {
++      margin-bottom: 3rem;
++    }
+   }
+ }
+```
+
+With those changes, the hero section now looks much better:
+
+![Home page with styled hero](/img/customizing-your-storefront/home-page-with-styled-hero.png)
+
+## Summary
+
+Since Solidus copies all of the starter frontend code to your app, modifying frontend views and
+assets is similar to any other Rails application. You're also provided an initial test suite to
+test drive your frontend modifications.
+
+[Getting Started with SSF]: https://solidus.io/blog/2022/06/27/getting-started-with-solidus-starter-frontend
+[image_tag]: https://api.rubyonrails.org/classes/ActionView/Helpers/AssetTagHelper.html#method-i-image_tag
+[Rails Assets Pipeline guide]: https://guides.rubyonrails.org/asset_pipeline.html#coding-links-to-assets
+[RSpec]: https://rspec.info
+[Sass]: https://sass-lang.com
+[SolidusFrontend]: https://github.com/solidusio/solidus_frontend
+[SolidusStarterFrontend]: https://github.com/solidusio/solidus_starter_frontend
