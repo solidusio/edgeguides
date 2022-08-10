@@ -30,11 +30,16 @@ together. A standard Solidus installation is composed of the following gems:
 models and eCommerce business logic. This is the bare minimum for a Solidus install.
 * [solidus\_backend](https://github.com/solidusio/solidus/tree/master/backend): provides the
 standard Solidus backend, a powerful administrative UI you can use to manage your Solidus store.
-* [solidus\_frontend](https://github.com/solidusio/solidus/tree/master/frontend): provides the
 standard Solidus storefront along with helpers to build your own.
 * [solidus\_api](https://github.com/solidusio/solidus/tree/master/api): provides the Solidus REST
 API. The API is required by the backend, but you may also use it for your own purposes (e.g. for
 JS interactions in the storefront).
+
+Besides, Solidus aims to be agnostic of the storefront. We provide
+[solidus\_starter\_frontend](https://github.com/solidusio/solidus_starter_frontend)
+as a bootstrap solution from which a tailored store can be built. Otherwise,
+you can create your storefront from scratch using whatever technology you
+prefer.
 
 For maximum flexibility, you can decide you just want to install specific gems and build the rest of
 the functionality yourself. Or, if you want the full-fledged Solidus experience, you can install
@@ -67,15 +72,20 @@ $ bundle add 'solidus'
 $ bin/rails generate solidus:install
 ```
 
-The installer will prompt you on a few questions before completing the installation. First it will
-ask if you would like to use the default authentication
-solution, [Devise](https://github.com/heartcombo/devise), or your implement your own. Next it will
-ask what payment service you would like to install with solidus.Currently, Solidus comes packaged
-with [Paypal](https://developer.paypal.com/home) as the default and only option. Other integrated
-services that you tie into your application can be found and in the payment section
-of [Solidus extensions](https://solidus.io/extensions/). If you want to skip installing a payment
-service, just type 'none'. Finally, you will be prompted for an admin email and password. You can
-leave the default (email: admin@example.com, password: test123) or enter your own.
+The installer will prompt you on a few questions before completing the
+installation:
+
+- It will ask if you would like to use the default authentication solution,
+[Devise](https://github.com/heartcombo/devise), or implement your own.
+- It will also prompt you to choose which storefront you want to install. We
+recommend picking
+[solidus\_starter\_frontend](https://github.com/solidusio/solidus_starter_frontend)
+to quickly get up & running. You might need to choose the deprecated
+[solidus\_frontend](https://github.com/solidusio/solidus_frontend) if you want
+to use an extension that still relies on it. There's also the option to choose
+no frontend.
+- Finally, you will be prompted for an admin email and password. You can leave
+the default (email: admin@example.com, password: test123) or enter your own.
 
 Once the installation has completed, you can now start your Rails server:
 
