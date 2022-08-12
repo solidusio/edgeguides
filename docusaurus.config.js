@@ -131,6 +131,12 @@ const config = {
         darkTheme: darkCodeTheme,
         additionalLanguages: ["ruby", "erb"],
       },
+      algolia: {
+        appId: 'UBY09X99OB',
+        apiKey: '8ad55e50cbf0c0d82709597260065f36',
+        indexName: 'edgeguides',
+        contextualSearch: true
+      },
     }),
 };
 
