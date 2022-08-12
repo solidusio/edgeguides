@@ -5,7 +5,7 @@ sidebar_position: 1
 # Customizing your storefront
 
 In this guide, we're going to show you an example of how to customize your storefront. In
-particular, we're going to add a hero image to the hero section of the home page:
+particular, we're going to add a hero image to the home page:
 
 ![Hero image placeholder](/img/customizing-your-storefront/hero-image-placeholder.png)
 
@@ -16,14 +16,14 @@ SolidusStarterFrontend as your storefront.
 
 With Solidus 3.2, installing Solidus would automatically install [SolidusStarterFrontend][], which
 is the new frontend solution for Solidus. As a Rails application template, it copies all the
-Solidus frontend code directly to your Rails app. This makes the frontend code directly accessible
-to your application. If you're familiar with customizing views and assets on a regular Rails app,
-you already have the knowledge to customize the frontend of a Solidus application.
+Solidus frontend code to your Rails app. This makes the frontend code directly accessible to your
+application. If you're familiar with customizing views and assets on a regular Rails app, you
+already have the knowledge to customize the frontend of a Solidus application.
 
 Before Solidus 3.2, we used to package the storefront as a Rails engine, called
 [SolidusFrontend][]. In theory, this would allow users to upgrade their
 storefront whenever there is a new update. However, we found that users rarely
-did this, since they tended to heavily customize their storefronts.
+did this, since they tend to heavily customize their storefronts.
 Furthermore, packaging the storefront as a Rails engine made frontend
 customization more difficult than necessary.
 
@@ -85,8 +85,8 @@ If we test it out, we'll find that we need to add the hero image to the asset pi
 
 ## Running the frontend specs
 
-If you try and run the [RSpec][] test suite at this point, you may also see some specs fail because
-of this error:
+If you try and run the [RSpec][] test suite at this point, you might also see some spec failures
+because of the asset pipeline error:
 
 ```
 $ bundle exec rspec spec/requests/spree/home_spec.rb
@@ -150,7 +150,8 @@ If we search for the word "hero" in the stylesheets of the app, we would find
 }
 ```
 
-Like the hero partial from earlier, this [Sass][] stylesheet was copied to the Rails app when SolidusStarterFrontend was installed on the app.
+Like the hero partial from earlier, this [Sass][] stylesheet was copied to your Rails app when
+SolidusStarterFrontend was installed on the app.
 
 Let's update the stylesheet to
 
