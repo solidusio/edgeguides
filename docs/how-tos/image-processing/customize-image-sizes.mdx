@@ -1,0 +1,43 @@
+# Customize image styles
+
+If you're building a custom storefront, you may also want to change the sizes of the images in your
+store. You can do this by applying an override to `Spree::Image`:
+
+```ruby title="app/overrides/amazing\_store/spree/image/customize\_sizes.rb"
+module AmazingStore
+  module Spree
+    module Image
+      module CustomizeSizes
+        def self.prepended(klass)
+          klass.attachment_definitions[:attachment][:styles] = {
+            mini: '48x48>',
+            small: '400x400>',
+            product: '680x680>',
+            large: '1200x1200>',
+            jumbo: '1600x1600>'
+          }
+        end
+
+        ::Spree::Image.prepend self
+      end
+    end
+  end
+end
+```
+
+Now that you changed your sizes, try getting the URL for your new `jumbo` size or `large` sizes:
+
+```ruby
+image = Spree::Image.first
+image.url(:jumbo)
+taxon = Spree::Taxon.first
+taxon.url(:large)
+```
+
+Solidus will generate the new sizes and return their URLs!
+
+You can also use your new styles in the `image` partial:
+
+```ruby
+< %= render 'spree/admin/shared/image', image: product.gallery.images.first, size: :jumbo %>
+```

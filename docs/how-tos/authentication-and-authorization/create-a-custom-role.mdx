@@ -1,0 +1,36 @@
+# Create a custom role
+
+Let's start with something simple: we'll define a new `customer_service` role that has limited
+access to the Solidus backend. Customer service representatives will only be able to display users,
+products and stock locations.
+
+The first step is to create the `Spree::Role` record that we'll use to store our role. In order to
+do that, you can simply add the following to your seeds:
+
+```ruby
+# ...
+Spree::Role.where(name: 'customer_service').first_or_create!
+```
+
+Then, run the seeds:
+
+```bash
+$ rails db:seeds
+```
+
+Now that you have defined your role, you just need to associate it with the desired permission sets
+in your Solidus configuration. You can do this in the Solidus initializer:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+  config.roles.assign_permissions :customer_service, [
+    Spree::PermissionSets::OrderDisplay,
+    Spree::PermissionSets::UserDisplay,
+    Spree::PermissionSets::ProductDisplay,
+  ]
+end
+```
+
+Now, if you assign the `customer_service` role to a user and sign into the backend with their
+credentials, you'll see that you only have limited access to user profiles, orders and products.

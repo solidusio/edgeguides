@@ -1,0 +1,42 @@
+# State machines
+
+As a programmer, state is one of the most challenging parts to model in a system. For instance, if
+you ask a semaphore which light is turned on, it might answer red, green, or amber, depending on
+when you ask it and what happened before the request: the _state_ of the semaphore depends on
+user-initiated and external events.
+
+A [finite state machine](https://en.wikipedia.org/wiki/Finite-state\_machine) (FSM) is a design
+pattern where a system, or one of its components, can be in one and only one of a limited number of
+states at a given time. Transitions are allowed between states under well-known events. As long as
+the initial state and the list of past events are known, you can recreate a state machine at any
+point.
+
+For instance, a semaphore can be in a red, green, or amber state. When a pedestrian presses a
+button, it transitions from green to amber. When on amber, it goes to red if 5 seconds pass. If red,
+it turns green after 180 seconds. If you know a semaphore was green at time zero, and the list of
+events has been button-press, 500 seconds, button-press, 3 seconds, you know it's amber now.
+
+Several parts of an e-commerce system fit this paradigm well. An order can be in progress, waiting
+for payment, or completed. It goes to completed when the payment is made. At that point,
+reimbursement can still be processed o completed. A payment... well, you get the idea.
+
+## State machines in Solidus
+
+Solidus
+defines [a few state machines](https://github.com/solidusio/solidus/tree/master/core/lib/spree/core/state\_machines)
+on top of some models.
+
+Each state machine describes its valid states and the allowed transitions. It also defines event
+methods that can be called from the outside to trigger internal changes. Finally, they can also
+declare some hooks that run when specific transitions happen.&#x20;
+
+:::info
+
+Internally, Solidus' state machines use
+the [`states_machine`](https://github.com/state-machines/state\_machines) gem (more
+precisely, [`states_machine-activerecord`](https://github.com/state-machines/state\_machines-activerecord))
+. Take a look
+at [`states_machine`'s README](https://github.com/state-machines/state\_machines/blob/master/README.mdx)
+for more details on its usage and API.
+
+:::

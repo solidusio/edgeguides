@@ -1,0 +1,46 @@
+# Promotions system
+
+Solidus ships with a powerful rule-based promotions system that allows you to grant flexible
+discounts to your customers in many different scenarios. You can apply discounts to the entire
+order, to a single line item or a set of line items, or to the shipping fees.
+
+In order to achieve this level of flexibility, the promotions system is composed of four concepts:
+
+* **Promotion handlers** are responsible for activating a promotion at the right step of the
+  customer experience.
+* **Promotion rules** are responsible for checking whether an order is eligible for a promotion.
+* **Promotion actions** are responsible for defining the discount(s) to be applied to eligible
+  orders.
+* **Adjustments** are responsible for storing discount information.
+
+:::info
+
+Adjustments go beyond promotions and apply to other concepts that modify the order amount. Taxes are
+another good example.
+
+:::
+
+Let's take the example of the following promotion:
+
+> Apply free shipping on any orders whose total is $100 USD or greater.
+
+Here's the flow Solidus follows to apply such a promotion:
+
+1. When the customer enters their shipping information,
+   the [`Shipping`](https://github.com/solidusio/solidus/blob/64b6b6eaf902337983c487cf10dfada8dbfc5160/core/app/models/spree/promotion\_handler/shipping.rb)
+   promotion handler activates the promotion on the order.
+2. When activated, the promotion will perform
+   some [basic eligibility checks](https://github.com/solidusio/solidus/blob/64b6b6eaf902337983c487cf10dfada8dbfc5160/core/app/models/spree/promotion.rb#L149) (
+   e.g. usage limit, validity dates) and
+   then [ensure the defined promotion rules are met.](https://github.com/solidusio/solidus/blob/64b6b6eaf902337983c487cf10dfada8dbfc5160/core/app/models/spree/promotion.rb#L149)
+3. When called,
+   the [`ItemTotal`](https://github.com/solidusio/solidus/blob/64b6b6eaf902337983c487cf10dfada8dbfc5160/core/app/models/spree/promotion/rules/item\_total.rb)
+   promotion rule will ensure the order's total is $100 USD or greater.
+4. Since the order is eligible for the promotion,
+   the [`FreeShipping`](https://github.com/solidusio/solidus/blob/64b6b6eaf902337983c487cf10dfada8dbfc5160/core/app/models/spree/promotion/actions/free\_shipping.rb)
+   action is applied to the order's shipment. The action creates an adjustment that cancels the cost
+   of the shipment.
+5. The customer gets free shipping!
+
+This is the architecture at a glance. As you can see, Solidus already ships with some useful
+handlers, rules, and actions out of the box.

@@ -1,0 +1,51 @@
+# Authentication and authorization
+
+For authorization management, Solidus uses [CanCanCan](https://github.com/CanCanCommunity/cancancan)
+\(a fork of the popular, now unmaintained CanCan library\), a Ruby/Rails authorization library that
+allows you to define granular permissions on collection and individual resources. This is combined
+with an in-house user role system that allows you to assign certain permissions to certain groups of
+users.
+
+At a high level, here are the main concepts in the authorization system:
+
+* [**The ability**](https://github.com/CanCanCommunity/cancancan#define-abilities) is a CanCan class
+  that stores information about the permissions a user has on certain collections or resources, and
+  the conditions under which such permissions must be granted. Solidus
+  has [its own ability class](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/ability.rb)
+  which has some custom logic to support permission sets.
+* [**Permission
+  sets**](https://github.com/solidusio/solidus/tree/master/core/lib/spree/permission_sets) are
+  Solidus classes that activate certain sets of permissions on the user's ability. For instance,
+  the [`StockManagement`](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/permission_sets/stock_management.rb)
+  permission set allows the user to manage stock items and locations. They are a neat way to
+  encapsulate groups of related permissions.
+* [**The role
+  configuration**](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/core/role_configuration.rb)
+  is a configuration class that associates user roles \(stored through
+  the [`Spree::RoleUser`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/role_user.rb)
+  model\) with a collection of permission sets. By default, a Solidus store has two
+  roles: [`default` and `admin`](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/app_configuration.rb#L492)
+  , which have customer and super-admin permissions respectively.
+
+:::info
+
+Solidus only uses
+the [`DefaultCustomer`](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/permission_sets/default_customer.rb)
+and [`SuperUser`](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/permission_sets/super_user.rb)
+permission sets
+internally: [all the others](https://github.com/solidusio/solidus/tree/master/core/lib/spree/permission_sets)
+are provided for your own convenience, in case you want to define custom roles with more granular
+permissions.
+
+:::
+
+The process Solidus follows to determine the current user's permissions is pretty simple:
+
+1. If the user is authenticated, it retrieves the current user's roles. If the user isn't
+   authenticated, it assumes the user only has the `default` role.
+2. It collects all the permission sets for the user's roles.
+3. It applies all the permission sets to the current ability.
+
+This simple but flexible system allows you to create custom permissions and roles, both in
+extensions and in your main application, as well as do things such as store permission sets in the
+database rather than in Ruby code, allowing the administrator to change them via the UI.

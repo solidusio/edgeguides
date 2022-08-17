@@ -1,0 +1,431 @@
+# Extension development
+
+This guide contains some advanced recommendations for extension design, development, and
+maintenance. By following these best practices, you'll make your extension future-proof and
+compatible with the vast majority of Solidus applications.
+
+## Don't override, extend
+
+The first and most important rule of good extension design is to
+avoid [overrides](../tutorials/your-first-store/customize-the-core.mdx) at all costs. Overrides in extensions
+have the same problems as overrides in the main app: because you're directly altering third-party
+code, they are hard to maintain and hard to test.
+
+In extensions, overrides become even more of a problem, because multiple extensions may override the
+same pieces of Solidus! This can lead to a mess of tangled overrides that are in conflict with each
+other. Also, overrides don't play nice with IDE autocompletion, and they will make it more difficult
+for users of your extension to figure out your extension's API.
+
+Sometimes, overrides are inevitable, but you should always look for alternatives. Solidus allows
+users to customize the vast majority of [service objects](../tutorials/your-first-store/customize-the-core.mdx) used by the
+framework. Whenever possible, you should leverage those configuration options instead of overriding
+the existing service objects. The [event bus](../reference/event-bus.mdx) is another
+good option which you should learn to rely on.
+
+Instead of altering the upstream version, try to find a way to provide the desired functionality
+with new code which extends or wraps the original implementation. This might mean writing a bit more
+code, but it will pay off greatly when you need to update your extension for compatibility with new
+Solidus versions, or when users need to understand how your extension interacts with the rest of
+their application.
+
+We've already seen a good example of it. We could have overridden
+the [`Spree::Order#finalize`](https://github.com/solidusio/solidus/blob/4cc1d5aeb0bd0ef9cc045be1c1083d1c702b5264/core/app/models/spree/order.rb#L737)
+method and added the API call to Acme Fulfillment's API there. However, that would have been
+brittle, as there's no guarantee the method won't change in subsequent Solidus releases. We can't
+either anticipate if stores or other extensions are messing with it. Having added the feature as an
+event handler frees us from all those problems and leaves our code completely scoped to our own
+domain.
+
+## Support internationalization
+
+Many Solidus stores are international, or plan to be at some point in the future. It's important
+that your extension is completely translatable, so that users can easily translate the UI and any
+other content it provides into the languages their store supports.
+
+There's really no magic when it comes to making Solidus extensions translatable, so we recommend
+checking out the [Rails Internalization guide](https://guides.rubyonrails.org/i18n.html).
+
+## Avoid storefront code
+
+We strongly discourage extensions from attempting to alter or extend the storefront in any way,
+since Solidus storefronts come in a lot of different shapes and forms: some storefronts are
+monolithic and rely on plain old ERB, SASS, and JS; others use React, Vue, or Stimulus + View
+Components; others still use Solidus as a headless solution, interacting with the framework through
+the REST or GraphQL API.
+
+As you can imagine, it would be impossible for an extension to provide all the possible variations
+of storefront integrations. Furthermore, customizing the storefront code to fit the specific
+storefront's needs is almost always more work than attempting to integrate the extension in the
+storefront from scratch.
+
+:::caution
+
+In the past, some extensions used to provide storefront code, either through Deface overrides or in
+the form of new views that the user could include in their main storefront. We have since moved away
+from this practice and such code should be considered deprecated.
+
+:::
+
+What we do recommend is documenting your extension thoroughly, so that other developers can easily
+understand it and use it in different ways.
+
+Sometimes, it's also useful to provide some examples of storefront integrations that users can
+copy-paste or use as inspiration when integrating their extension in their own store!
+
+## Design extension hooks
+
+When designing your extension, you should always be on the lookout for ways to make it more...
+extendable. Just like Solidus users customize the core to reach their goals, you should also expect
+that they will want to customize the behavior of your extension to fit their use case.
+
+Often, you can let them do this through plain old configuration switches, but sometimes you can't
+anticipate all the possible use cases and it's simpler and more flexible to let users provide their
+own implementation for certain pieces of your extension.
+
+In our [original example](#writing-your-first-feature), a good candidate for an extension hook would
+be the API serialization logic, which could be implemented as:
+
+```ruby title="app/subscribers/solidus_acme_fulfillment/order_subscriber.rb"
+module SolidusAcmeFulfillment
+  class OrderSubscriber
+    # ...
+
+    def serialize_order(order)
+      SolidusAcmeFulfillment::OrderSerializer.new(order).serialize
+    end
+  end
+end
+```
+
+Users may want to pass custom fields to the 3PL API, or override the ones you're setting. To
+accomplish this easily, you can allow them to provide their own API serializer class.
+
+The process is pretty simple. First of all, add a configuration option:
+
+```diff title="lib/solidus_acme_fulfillment/configuration.rb"
+ module SolidusAcmeFulfillment
+   class Configuration
+     # ...
++    attr_accessor :order_serializer_class
++
++    def initialize
++      # Set the default order serializer to our own implementation.
++      @order_serializer_class = 'SolidusAcmeFulfillment::OrderSerializer'
++    end
+   end
+
+   # ...
+ end
+```
+
+Also, make sure to add the new option to your initializer template:
+
+```diff title="lib/generators/solidus_acme_fulfillment/install/templates/initializer.rb"
+ SolidusAcmeFulfillment.configure do |config|
++  # ....
++
++  # This class is used to serializer orders sent to the 3PL API.
++  # You can override it with your own implementation.
++  config.order_serializer_class = 'SolidusAcmeFulfillment::OrderSerializer'
+ end
+```
+
+Next, implement the default serializer, by extracting it from the code you already have:
+
+```ruby title="app/serializers/solidus:acme:fulfillment/order:serializer.rb"
+module SolidusAcmeFulfillment
+  class OrderSerializer
+    def call(order)
+      {
+        # ...
+      }
+    end
+  end
+end
+```
+
+Finally, call the configured serializer from the subscriber you've implemented:
+
+```diff title="app/subscribers/solidus_acme_fulfillment/order_subscriber.rb"
+ module SolidusAcmeFulfillment
+   class OrderSubscriber
+     # ...
+
+     def serialize_order(order)
+-      SolidusAcmeFulfillment::OrderSerializer.new(order).serialize
++      SolidusAcmeFulfillment
++        .config
++        .order_serializer_class
++        .constantize
++        .new
++        .call(order)
+     end
+   end
+ end
+```
+
+That's all you need! Users of your extension can now provide their own API serializer by
+implementing it in their app and setting the `order_serializer_class` configuration option.
+
+Another great option to provide extensibility is to publish your own events on the Solidus' event
+bus. When you do that, it's a good practice to prefix their name with your extension's name.
+
+For instance, we can do better at error handling and broadcast whenever we have a failure in our
+response:
+
+```diff title="app/subscribers/solidus_acme_fulfillment/order_subscriber.rb"
+-      order.update!(
+-        acme_fulfillment_shipment_id: response.parsed_response['id'],
+-      )
++      if response.success?
++        order.update!(
++          acme_fulfillment_shipment_id: response.parsed_response['id'],
++        )
++      else
++        Spree::Bus.publish(:"solidus_acme_fulfillment.response_error", response: response)
++      end
+```
+
+Don't forget to register the new event name in the engine file:
+
+```diff
+config.to_prepare do
++  Spree::Bus.register(:"solidus_acme_fulfillment.response_error")
+   SolidusAcmeFulfillment::OrderSubscriber.new.subscribe_to(Spree::Bus)
+end
+```
+
+## Automate testing with CI
+
+:::tip
+
+[CircleCI](https://circleci.com/) is an extremely powerful platform, and an in-depth explanation of
+its architecture is out of the scope of this guide. The following paragraphs assume you are familiar
+with CircleCI and [CircleCI Orbs](https://circleci.com/docs/2.0/orb-intro/). If you are not, we
+recommend reading the relevant documentation first.
+
+:::
+
+The Solidus ecosystem is extremely large and varied. For lots of stores with extensive
+customizations, upgrading as soon as a new version of Solidus is released is simply not feasible, as
+it would take too much work and distract the engineering department from other priorities. To give
+Solidus users a smooth upgrade path, we commit to maintaining all Solidus
+versions [for 18 months after their release](https://solidus.io/security). This ensures stores have
+plenty of time to upgrade their Solidus version.
+
+Official extensions follow the same policy, while community-maintained extensions are expected to do
+the same. We aim to support all currently maintained Solidus versions so that users on older
+versions are not "left behind" as the ecosystem moves forward. This means that all extensions should
+be tested against all the currently supported Solidus versions so that no incompatible changes are
+inadvertently introduced in the extension's code.
+
+We know that this can be a burden for extension maintainers, so we've developed a set of tools to
+help with the process, like
+the [`@solidusio/extensions` CircleCI orb](https://circleci.com/developer/orbs/orb/solidusio/extensions)
+. The orb will automatically test your Solidus extension against the right Solidus versions, without
+the need for you to update the versions list manually. The orb will even periodically test your
+extension against the latest `master` branch of Solidus, so that you know whether your extension is
+compatible with the _upcoming_ version of Solidus!
+
+:::info
+
+If you have generated your extension with `solidus_dev_support`, your extension is already
+configured for testing via CircleCI, and you just need
+to [follow the project](https://circleci.com/docs/2.0/project-build/#adding-projects) on CircleCI!
+
+:::
+
+Here's a sample CircleCI configuration for a Solidus extension:
+
+```yaml
+version: 2.1
+
+orbs:
+  solidusio_extensions: solidusio/extensions@volatile
+
+jobs:
+  # Test with MySQL
+  run-specs-with-mysql:
+    executor: solidusio_extensions/mysql
+    steps:
+      - solidusio_extensions/run-tests
+  # Test with PostgreSQL
+  run-specs-with-postgres:
+    executor: solidusio_extensions/postgres
+    steps:
+      - solidusio_extensions/run-tests
+
+workflows:
+  # Test all commits against the supported Solidus versions
+  # and the latest master branch from Solidus
+  Run specs on supported Solidus versions:
+    jobs:
+      - run-specs-with-postgres
+      - run-specs-with-mysql
+  # Weekly test the extension's master branch against the
+  # supported Solidus versions and the latest master branch
+  # from Solidus
+  Weekly run specs against master:
+    jobs:
+      - run-specs-with-postgres
+      - run-specs-with-mysql
+    triggers:
+      - schedule:
+          cron: 0 0 * * 4
+          filters:
+            branches:
+              only:
+                - master
+```
+
+As you can read in the comments, the configuration above will:
+
+* Test every commit in `master` and in other branches against the currently supported Solidus
+  versions, as well as against the latest `master`, in order to ensure the correctness of any code
+  changes you push to the extension.
+* Test the current `master` weekly against the currently supported Solidus versions, as well as
+  against the latest `master`, in order to ensure your extension's code is compatible with the
+  upcoming Solidus release.
+
+The tests will be run both with MySQL and PostgreSQL since Solidus supports both.
+
+## Write engine-specific code
+
+As you probably already know, Solidus doesn't come as a monolithic piece of code. Instead, you can
+switch the default frontend, backend, and API components for your own. When developing an extension,
+you can't just assume that the whole default ecosystem is present. The only thing you can be certain
+of is that the `solidus_core` gem is there.
+
+However, you might want to extend the behavior of one of the Solidus sub-components.
+If `solidus_dev_support` is your friend when it comes to the development chores, another
+gem, [`solidus_support`](https://github.com/solidusio/solidus\_support), has your back covered when
+talking about your extension runtime and its compatibility with different Solidus installations and
+versions. By the way, if you created your extension with `solidus_dev_support`, you don't need to
+add `solidus_support` to your list of dependencies as it's already there.
+
+Say that you'd like to add an API endpoint to return the associated partner's fulfillment id for a
+given order. Thanks to `solidus_support`, you can place your controller in `lib/controllers/api/`
+and it'll be automatically picked up.
+
+```ruby title="lib/controllers/api/spree/solidus_acme_fulfillment/shipments_controller.rb"
+# frozen_string_literal: true
+
+class Spree::SolidusAcmeFulfillment::ShipmentsController < Spree::Api::BaseController
+  def by_order_id
+    id = params[:id]
+    order = Spree::Order.find(id)
+
+    respond_with({
+      id: id,
+      acme_fulfillment_shipment_id: order.acme_fulfillment_shipment_id
+    })
+  end
+end
+```
+
+:::info
+
+By inheriting from `Spree::Api::BaseController`, you have access to some of Solidus API's
+conventions out of the box. For instance, your endpoint is automatically under authentication. See
+the [file definition](https://github.com/solidusio/solidus/blob/master/api/app/controllers/spree/api/base\_controller.rb)
+for more details.
+
+:::
+
+All that is left is adding the corresponding route to your extension's routes file. However, we need
+to add it only when the API component is present:
+
+```diff title="config/routes.rb"
+ Spree::Core::Engine.routes.draw do
+-  # Add your extension routes here
++  if SolidusSupport.api_available?
++    namespace :solidus_acme_fulfillment do
++      get '/shipments/by_order_id/:id', to: 'shipments#by_order_id'
++    end
++  end
+ end
+```
+
+You can now try your new route, served by the sandbox application. After restarting the server, you
+can use `curl` to access it. You'll need a user's `spree_api_key` to authenticate them:
+
+```
+curl http://localhost:3000/solidus_acme_fulfillment/shipments/by_order_id/1 \
+     --header "Authorization: Bearer 44abb4fda97e1a22da9a837d8705a3f492392453c37164c7" \
+     --header "Accept: application/json"
+```
+
+:::info
+
+Note that you can also use the following path structures:
+
+* `lib/views/{engine}` (e.g., `lib/views/api`)
+* `lib/controllers/{engine}` (e.g., `lib/controllers/backend`)
+
+`solidus_support` is smart enough to pick them up and only load the views/controllers when the
+corresponding Solidus engine has been loaded!
+
+:::
+
+## Write backward-compatible extensions
+
+One aspect to keep in mind when writing Solidus extensions is backwards compatibility: ideally, your
+extension should always be compatible with all the currently supported Solidus versions.
+
+In some cases, this can be done with some simple tricks. In more complicated
+scenarios, `solidus_support` provides you with all the tools you need. We encourage you to check
+out [`solidus_support`'s source code](https://github.com/solidusio/solidus\_support) to familiarize
+with the helpers it offers.&#x20;
+
+### Migrations
+
+By default, Rails generated the migration you created as being compatible with its latest version.
+However, Solidus also supports older releases. Your migrations should be compatible with the oldest
+Rails version still supported by Solidus:
+
+```diff title="db/migrate/20220602090213_add_acme_fulfillment_shipment_id_to_spree_orders.rb"
+-class AddAcmeFulfillmentShipmentIdToSpreeOrders < ActiveRecord::Migration[7.0]
++class AddAcmeFulfillmentShipmentIdToSpreeOrders < ActiveRecord::Migration[5.2]
+```
+
+### Event bus
+
+`solidus_support` is also your friend when you want to support past Solidus versions which are still
+maintained. The event subscriber we created is only valid for Solidus versions greater than 3.2.
+Before that, [a more basic messaging system was available](../reference/event-bus.mdx).
+
+By including the `SolidusSupport::LegacyEventCompat::Subscriber` module, you'll be able to support
+both event subscribers:
+
+```diff title="app/subscribers/solidus_acme_fulfillment/order_subscriber.rb"
+ module SolidusAcmeFulfillment
+-  class OrderSubscriber
+-    include Omnes::Subscriber
++  module OrderSubscriber
++    include Spree::Event::Subscriber
++    include SolidusSupport::LegacyEventCompat::Subscriber
+
+-    handle :order_finalized, with: :send_to_3pl
++    event_action :send_to_3pl, event_name: :order_finalized
+```
+
+Finally, you need to update your engine file to register your extension's events, but only when the
+new event subscriber is being used:
+
+```diff title="lib/solidus_acme_fulfillment/engine.rb"
+config.to_prepare do
+-  Spree::Bus.register(:"solidus_acme_fulfillment.response_error")
+-  SolidusAcmeFulfillment::OrderSubscriber.new.subscribe_to(Spree::Bus)
++  unless SolidusSupport::LegacyEventCompat.using_legacy?
++    Spree::Bus.register(:"solidus_acme_fulfillment.response_error")
++    SolidusAcmeFulfillment::OrderSubscriber.omnes_subscriber.subscribe_to(Spree::Bus)
++  end
+end
+```
+
+:::info
+
+`#omnes_subscriber` returns the legacy subscriber transformed in the new format, so that it works
+with the new event bus.
+
+:::

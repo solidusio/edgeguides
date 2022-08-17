@@ -1,0 +1,111 @@
+---
+sidebar_position: 1
+---
+
+# Generate the extension
+
+When working with extensions and Rails engines in general, there's a lot of boilerplate involved.
+Over the years, we've developed tools that simplify most of the tasks around extension creation and
+maintenance.
+
+We've consolidated this tooling
+in [`solidus_dev_support`](https://github.com/solidusio/solidus\_dev\_support), a gem whose job is
+to make it a no-brainer to develop Solidus extensions. The gem provides static and runtime utilities
+that help you create a new extension, make it compatible with different Solidus versions, release it
+and maintain it over time.
+
+:::info
+
+`solidus_dev_support` provides much more functionality than we'd be able to cover in this guide, so
+you should definitely check out
+its [documentation](https://github.com/solidusio/solidus\_dev\_support) to get an idea of how much
+it does.
+
+:::
+
+The first step is to install the gem globally so that you can use it from your console:
+
+```bash
+$ gem install solidus_dev_support
+```
+
+You can now generate a new extension with the `solidus extension` command. Solidus extensions are
+generally named `solidus_`, and then the name of the feature or integration they provide, so we'll
+follow this convention for our Acme Fulfillment extension:
+
+```bash
+$ solidus extension solidus_acme_fulfillment
+```
+
+This will generate a `solidus_acme_fulfillment` directory in the current path. This directory will
+contain a lot of boilerplate that is required to make your extension play nice with Solidus and
+Rails conventions.
+
+`solidus_dev_support` tries to be as smart as possible and use some sensible defaults for your
+extension, but we'll still need to adjust some values before we can proceed.
+
+First of all, open `solidus_acme_fulfillment.gemspec` in your favorite text editor, and change the
+following lines to configure the required fields for your extension:
+
+```ruby title="$1" title="solidus_acme_fulfillment.gemspec" %}
+```diff
+# ...
+-  spec.authors = ['TODO: Write your name']
+-  spec.email = 'TODO: Write your email address'
++  spec.authors = ['Alice']
++  spec.email = 'alice@mail.com'
+
+- spec.summary = 'TODO: Write a short summary, because RubyGems requires one.'
++ spec.summary = 'A Solidus extension to integrate with the Acme Fulfillment API.'
+- spec.description = 'TODO: Write a longer description or delete this line.'
+
+# ...
+```
+
+Now that our gemspec doesn't have any TODOs in it, we can install the extension's bundle, which
+contains some useful tooling for working with the extension:
+
+```
+$ bundle install
+```
+
+Now that the gemspec is configured and the bundle installed, we're ready to write some code!
+
+## Adding dependencies
+
+In order to make API calls, we'll need a library that makes it easier to perform HTTP requests. We
+could use Ruby's `HTTP` module, but its API is kind of cumbersome and not really fun to work with.
+Instead, we'll go with the popular [`httparty`](https://github.com/jnunemaker/httparty) gem. In
+order to do that, let's add the dependency to our gemspec:
+
+```diff title="solidus_acme_fulfillment.gemspec"
+ Gem::Specification.new do |spec|
+   # ...
+
+   spec.add_dependency 'solidus_core', ['>= 2.0.0', '< 4']
+   spec.add_dependency 'solidus_support', '~> 0.5'
++  spec.add_dependency 'httparty', '~> 0.20.0'
+
+   # ...
+ end
+```
+
+This will ensure `httparty` is also installed by any apps that install our extension. We can now
+reinstall the bundle to get the new gem:
+
+```bash
+$ bundle install
+```
+
+Finally, we'll need to require the `httparty` gem in our extension's main file, since gem
+dependencies are not autoloaded by Bundler when initializing the main app:
+
+```diff title="lib/solidus_acme_fulfillment.rb"
++require 'httparty'
++
+ require 'solidus_acme_fulfillment/configuration'
+ require 'solidus_acme_fulfillment/version'
+ require 'solidus_acme_fulfillment/engine'
+```
+
+We should now be able to access `httparty` everywhere in our extension's code!

@@ -1,0 +1,12 @@
+# Customize the allowed MIME types
+
+By default, Solidus only accepts PNG, JPEG and GIF images. If you want to accept additional MIME
+types, e.g. WebP, you can do it via the `allowed_image_mime_types` configuration option:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.allowed_image_mime_types = %w(image/jpeg image/jpg image/png image/gif image/webp).freeze
+end
+```

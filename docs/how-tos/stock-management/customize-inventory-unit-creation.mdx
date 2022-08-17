@@ -1,0 +1,128 @@
+# Customize inventory unit creation
+
+Some stores may need to customize inventory unit creation. This is the case when stores have line
+items that don't map normally to the actual fulfilled items. For example, you might sell a "bundle"
+product that needs to be expanded into the composite items of the bundle in the shipment.
+
+There are three important classes that need to be overridden to accomplish customizations around
+this: the inventory unit builder, the availability validator, and the inventory validator.
+
+## Inventory unit builder
+
+The inventory unit builder is the class responsible for actually looping over the line items in the
+order and constructing the inventory units from them. This class is where you would implement your
+logic that transforms your "bundle" line items into their composite parts.
+
+You would implement your custom builder:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class InventoryUnitBuilder
+      def initialize(order)
+        @order = order
+      end
+
+      # This method must return unsaved inventory units for all items in
+      # the given order.
+      def units
+        @order.line_items.flat_map do |line_item|
+          # Put your custom logic here.
+        end
+      end
+
+      # This method must return unsaved inventory units that that should
+      # exist for this line item, but currently do not
+      def missing_units_for_line_item(line_item)
+        # Put your custom logic here.
+      end
+    end
+  end
+end
+
+```
+
+Then, you would tell Solidus to use it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.inventory_unit_builder_class = 'AwesomeStore::Stock::InventoryUnitBuilder'
+end
+```
+
+## Availability validator
+
+The availability validator is responsible for validating that there is inventory available for a
+given line item. If you're customizing the mapping of line items to inventory units, you'll need to
+reflect your new behaviour here.
+
+You can implement a custom availability validator:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class AvailabilityValidator < ActiveModel::Validator
+      def validate(line_item)
+        # This method takes a line item and returns a boolean indicating whether
+        # inventory is available for it. It also needs to attach a validation
+        # error to the quantity field of the line item.
+      end
+    end
+  end
+end
+```
+
+With the custom class in place, you can then tell Solidus to use it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.availability_validator_class = 'AwesomeStore::Stock::AvailabilityValidator'
+end
+```
+
+## Inventory validator
+
+The final class you'll need to customize to handle inventory unit creation customizations is the
+inventory validator. It is responsible for validating that the inventory units associated with a
+line item match what the line item requires as part of the checkout process.
+
+By default, this class simply checks that the number of inventory units matches the quantity of the
+line item.
+
+You can define a custom inventory validator:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class InventoryValidator < ActiveModel::Validator
+      def validate(line_item)
+        # If the line item's inventory units do not match up with what it requires
+        # then this method should attach an error to the :inventory field of the
+        # line item and return that error.
+        #
+        # The stock logic looks like this:
+        if line_item.inventory_units.count != line_item.quantity
+          line_item.errors.add(:inventory, I18n.t(
+            'spree.inventory_not_available',
+            item: line_item.variant.name
+          ))
+        end
+      end
+    end
+  end
+end
+```
+
+With your custom inventory validator defined, you can tell Solidus to use it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.inventory_validator_class = 'AwesomeStore::Stock::InventoryValidator'
+end
+```

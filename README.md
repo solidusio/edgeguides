@@ -25,3 +25,9 @@ having to restart the server.
 
 There's nothing special to do here: this website is published via Cloudflare Pages. All PRs generate a preview
 environment, and all commits to `main` will cause the main site to be rebuilt.
+
+## Contributing
+
+To organize the documentation and make it more usable, the guides follow the [Diátaxis](https://diataxis.fr/)
+framework. If you are planning on making significant contributions, we strongly recommend getting familiar
+with Diátaxis' taxonomy and conventions.

@@ -1,0 +1,154 @@
+# Extension adoption
+
+This guide will teach you when, why and how to use Solidus extensions, and provide you with some
+best practices for doing so.
+
+## When to use extensions
+
+When you first install Solidus, you will notice that the platform is complete but quite lean. There
+aren't any toggles to enable shiny additional features. You get what you need to start an online
+store, and nothing more. This is by design. We know that each brand's business domain and USP are
+unique, and that they require a unique implementation approach. With that said, we also know that it
+isn't always smart to reinvent the wheel, especially when you're dealing with a common problem that'
+s already been solved.
+
+The easiest and quickest way to augment the functionality of your store is through _extensions_.
+These are gems or full-fledged Rails engines that provide additional functionality for Solidus by
+extending and overriding parts of the core. The Solidus ecosystem has a lot of extensions for many
+disparate tasks. There are extensions that add support for new payment providers or 3PL
+integrations, extensions that enhance your store with social features and many, many more to choose
+from.
+
+In general, if there's already an extension that solves your problem, you should evaluate it before
+attempting to roll your own solution. Reusing the work of the community will not only save you the
+effort of a custom implementation, but will also make the community stronger.
+
+With that said, you're strongly encouraged to customize Solidus on your own if none of the available
+solutions work for you, and this is exactly where the platform shines. You may then decide whether
+to keep your implementation private or, if you think the world could benefit from your work, to give
+back to the community and open-source it.
+
+:::info
+
+There's also a third option: if an extension already exists and takes you 90% of the way to solving
+your problem, consider submitting a patch to improve it and/or make it more flexible. This way, you
+benefit from the community's efforts while also ending up with a solution that fits your own use
+case perfectly.
+
+:::
+
+## Extension governance
+
+The Solidus community has a strict governance model around extension management and maintenance.
+Extensions can be split into three big groups:
+
+* **Official extensions:** these extensions are hosted in
+the [solidusio](https://github.com/solidusio) GitHub organization. They provide critical pieces of
+functionality that need to be working at all times \(e.g. payment providers, sales tax calculation
+and a few other categories\). They are maintained by the core team and any contribution is
+reviewed by the core team for correctness and completeness.
+* **Community extensions:** these extensions are hosted in
+the [solidusio-contrib](https://github.com/solidusio-contrib) GitHub organization. They provide
+common pieces of functionality that, although useful, are usually not mission-critical. They are
+maintained by the entire Solidus community, with each extension usually having its own
+maintainer\(s\). The core team works on tools and automations that make their maintenance easier,
+but doesn't commit to spending their time actively working on these extensions.
+* **Third-party extensions:** these are extensions that live "in the wild", and are not hosted in
+any of Solidus' GitHub organizations. They may be written by organizations or individuals that
+were interested in Solidus and decided to open-source their efforts. As you may imagine, the
+Solidus community has no control over the quality of these extensions, so you're encouraged to
+review them on your own before installing them in your store.
+
+:::info
+
+Extensions may be "promoted" from one group to the other by popular demand \(e.g. a third-party
+extension becoming a community extension because it's widely used, or a community extension becoming
+an official extension because it's become critical for multiple stores\). If you want to propose a
+promotion, ping someone from the core team in Slack.
+
+:::
+
+## Finding the right extension
+
+You can find many useful extensions on the [Extensions](https://solidus.io/extensions) page of the
+Solidus website, along with their CI status and supported Solidus versions. You can also filter by
+extension type \(official, community or third-party\), which is useful if you want your extensions
+to come with certain guarantees.
+
+If you haven't found what you're looking for, you should still search on Google, GitHub
+and [The Ruby Toolbox](https://www.ruby-toolbox.com/): new extensions are born every day and the one
+you need may be out there!
+
+## Installing an extension
+
+:::caution
+
+As a general rule, you should ALWAYS review any code that goes into your application. While Solidus
+has strict policies around code reviews, you should go the extra mile and ensure any extensions
+you're installing are safe and production-ready.
+
+:::
+
+The process for installing a Solidus extension is usually pretty simple and similar to the
+installation of the platform itself \(after all, extensions are also Rails engines\). The first step
+is always adding the extension to your `Gemfile`:
+
+```ruby title="Gemfile"
+gem 'solidus'
+gem 'solidus_auth_devise'
+# ...
+gem 'solidus_amazing_extension'
+```
+
+Note that some extensions may have an outdated release on RubyGems or may not have been released
+yet, in which case you'll want to pull the extensions directly from GitHub:
+
+```ruby
+gem 'solidus'
+gem 'solidus_auth_devise'
+# ...
+gem 'solidus_amazing_extension', github: 'solidusio/solidus_amazing_extension'
+```
+
+Once you have added the gem, install your bundle:
+
+```bash
+$ bundle install
+```
+
+Once the extension has been installed, simply follow the instructions in the extension's
+documentation. You may have to run an installation generator and run database migrations if the
+extension alters the database's schema.
+
+:::info
+
+The order gems appear in your `Gemfile` is important in the case of Solidus extensions. Make sure
+extensions are always added after the `solidus` and `solidus_auth_devise` gems, so that any
+overrides in the extension are applied correctly.
+
+:::
+
+## Staying up-to-date
+
+Just like the core, extensions are constantly updated to add new features, enhance existing
+functionality, fix bugs and add compatibility with new Solidus versions. It's extremely important to
+keep your extensions up to date with the same diligence you reserve for the rest of your
+application. You should have a clear process in place for continuously updating extensions. The
+easier it is to update extensions, the likelier it is you will be doing it early and often.
+
+The recommended approach is to write automated tests for any functionality added by extensions to
+your store. While extensions may have their own test suites, you cannot always predict how an
+extension will interact with your store's customizations or with other extensions. Furthermore, it's
+always best to test functionality in integration and in the context of your own app.
+
+It's also recommended NOT to add any version constraints to extensions in your `Gemfile`. Instead,
+rely on your tests to ensure nothing's broken after an update. Ideally, the update process should be
+as simple as running the following commands:
+
+```bash
+$ bundle update
+$ bundle exec rspec
+```
+
+Of course, this is not always possible and there may be situations where you need to lock an
+extension, but we recommend keeping these to a minimum.

@@ -1,0 +1,41 @@
+# Replace an attachment module
+
+If the change you want to apply cannot be made through the existing configuration options, you can
+entirely replace the product image or taxon icon attachment module with your own.
+
+This can be useful, for example, if you need to customize your image styles or perform custom
+post-processing operations on your image such as watermarking, compression, etc.
+
+:::info
+
+When replacing an attachment module, we recommend copy-pasting the original module first and only
+changing what you need. The right starting point will depend on whether you're using ActiveStorage
+or Paperclip. You can find the modules
+for `Spree::Image` [here](https://github.com/solidusio/solidus/tree/v3.0/core/app/models/spree/image)
+and the modules
+for `Spree::Taxon` [here](https://github.com/solidusio/solidus/tree/v3.0/core/app/models/spree/taxon).
+
+:::
+
+Here's an example for the product image attachment:
+
+```ruby title="app/models/amazing\_store/image\_attachment.rb"
+module AmazingStore
+  module ImageAttachment
+    # ...
+  end
+end
+```
+
+Once you have your custom attachment module, you need to tell Solidus to use it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+  config.image_attachment_module = 'AmazingStore::ImageAttachment'
+end
+```
+
+To replace the taxon attachment, follow the same process, but set the `taxon_attachment_module`
+configuration option instead.
+

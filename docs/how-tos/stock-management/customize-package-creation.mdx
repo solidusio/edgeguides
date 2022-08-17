@@ -1,0 +1,280 @@
+# Customize package creation
+
+There are several pieces you can customize in the package creation process:
+
+* the **stock location filter,** to customize which stock locations Solidus picks inventory from;
+* the **location sorter,** to customize how Solidus prioritizes stock locations to pick inventory
+  from;
+* the **allocator,** to customize how Solidus prioritizes inventory units to allocate from the
+  filtered and sorted stock locations;
+* the **splitters,** to customize how Solidus splits the allocated inventory units in packages.
+
+In the next paragraphs, we'll see a brief example for each of these customizations!
+
+## Stock location filter
+
+:::info
+
+The [default stock location filter](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/location\_filter/active.rb)
+simply filters out the inactive stock locations.
+
+:::
+
+Let's say you are a giant brand with warehouses all over the US, and you only ever want to ship from
+the stock locations in the customer's state.
+
+You can do that by writing a custom stock location filter that looks like this:
+
+```ruby title="app/models/awesome:store/stock/location:filter/order:state.rb"
+module AwesomeStore
+  module Stock
+    module LocationFilter
+      class OrderState < Spree::Stock::LocationFilter::Base
+        def filter
+          stock_locations.active.where(state: order.ship_address.state)
+        end
+      end
+    end
+  end
+end
+```
+
+As you can see, the logic is pretty simple: we take an initial list of stock locations (the default
+stock coordinator will simply pass all stock locations here) and then we only pick the ones that are
+active and where the state matches the state on the order's shipping address.
+
+In order to start using our new stock location filter, you just need to configure it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.location_filter_class = 'AwesomeStore::Stock::LocationFilter::OrderState'
+end
+```
+
+## Stock location sorter
+
+:::info
+
+[By default,](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/location\_sorter/unsorted.rb)
+stock locations are unsorted, but Solidus provides a
+built-in [`DefaultFirst`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/location\_sorter/default\_first.rb)
+sorter that will put the default stock location first.
+
+:::
+
+Let's say that you ship from a mix of your own warehouses and third-party warehouses, and you want
+to ship from your own warehouses first in order to minimize fulfillment cost.
+
+You could do this with a custom stock location sorter:
+
+```ruby title="app/models/awesome:store/stock/location:sorter/self:owned:first.rb"
+module AwesomeStore
+  module Stock
+    module LocationSorter
+      class SelfOwnedFirst < Spree::Stock::LocationSorter::Base
+        def sort
+          # We're assuming the `self_owned` column is `true` when the warehouse
+          # is self-owned, and `false` when it's ownerd by a third-party.
+          stock_locations.order(self_owned: :desc)
+        end
+      end
+    end
+  end
+end
+```
+
+The implementation is pretty similar to that of the stock location filter: you take an initial list
+of sorted stock locations and you return a sorted list.
+
+Now that you have implemented your sorter, you need to enable it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.location_sorter_class = 'AwesomeStore::Stock::LocationSorter::SelfOwnedFirst'
+end
+```
+
+## Stock allocator
+
+:::info
+
+The [default stock allocator](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/allocator/on\_hand\_first.rb)
+picks on hand inventory units before backordered inventory units.
+
+:::
+
+Let's say you're a drop-shipping business, but you also hold a tiny amount of inventory on-hand for
+VIP customers or other special cases. In this case, you want to make sure you backorder all items
+and never touch your on-hand inventory unless absolutely needed (e.g.., if the customer ordered an
+item that's not being produced anymore and cannot be backordered).
+
+You could accomplish this with a custom stock allocator such as the following:
+
+```ruby title="app/models/awesome:store/stock/allocator/backordered:first.rb"
+module AwesomeStore
+  module Stock
+    module Allocator
+      class BackorderedFirst < Spree::Stock::Allocator::Base
+        def allocate_inventory(desired)
+          # Allocate backordered inventory first
+          backordered = allocate_backordered(desired)
+          desired -= backordered.values.sum if backordered.present?
+
+          # Allocate any non-backorderable inventory from on-hand inventory
+          on_hand = allocate_on_hand(desired)
+          desired -= on_hand.values.sum if on_hand.present?
+
+          # `desired` at this point should be empty if we managed to
+          # allocate all required inventory
+          [on_hand, backordered, desired]
+        end
+
+        protected
+
+        # In these two methods, `availability` is a `Spree::Stock::Availability`
+        # instance, which maps a list of variants to their availability in the
+        # filtered stock locations
+
+        def allocate_backordered(desired)
+          allocate(availability.backorderable_by_stock_location_id, desired)
+        end
+
+        def allocate_on_hand(desired)
+          allocate(availability.on_hand_by_stock_location_id, desired)
+        end
+
+        def allocate(availability_by_location, desired)
+          # `availability_by_location` is a `Spree::StockQuantities` instance
+          # that makes it easier to perform operations on inventory units
+          availability_by_location.transform_values do |available|
+            # Find the desired inventory which is available at this location
+            packaged = available & desired
+            # Remove found inventory from desired
+            desired -= packaged
+            packaged
+          end
+        end
+      end
+    end
+  end
+end
+```
+
+This allocator is extremely similar to Solidus' default stock allocator, but it works backwards: it
+allocates backordered inventory units before starting to pick on-hand inventory units.
+
+:::info
+
+Because operations on inventory units can be a bit complicated for a developer to perform manually,
+Solidus provides two helper
+classes, [`Spree::Stock::Availability`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/availability.rb)
+and [`Spree::StockQuantities`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock\_quantities.rb)
+, which make it easier to reason about and perform algebraic operations on inventory units. Feel
+free to take a look at their source code to understand how they work in detail.
+
+:::
+
+## Stock splitters
+
+:::info
+
+The default splitter chain will split packages
+by [shipping category](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/splitter/shipping\_category.rb)
+and then
+by [availability](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/splitter/backordered.rb) (
+i.e., by separating on hand and backordered items in different packages).
+
+There's also a `Weight` splitter that is not enabled by default, which will split packages so that
+they are all below a certain weight threshold.
+
+:::
+
+An important aspect to understand about stock splitters is that, unlike all the other components of
+the stock system, you can have multiple stock splitters configured at the same time to form a **
+splitter chain**.
+
+When the packages are ready to be split, Solidus will pass the initial list of packages to the first
+splitter in the chain, and each splitter is responsible for running its logic and passing the result
+to the next splitter in the chain, until the end of the chain is reached.
+
+As an example, let's say you ship some frozen products that are packaged in dry ice. You want to
+split frozen products and regular products in separate packages.
+
+You could accomplish this with a custom stock splitter such as the following:
+
+```ruby
+module AwesomeStore
+  module Stock
+    module Splitter
+      class FrozenItems < Spree::Stock::Splitter::Base
+        def split(packages)
+          split_packages = []
+
+          packages.each do |package|
+            # Split each package in frozen and non-frozen items
+            split_packages += split_package(package)
+          end
+
+          # `return_next` is a helper that will pass the split
+          # packages to the next splitter in the chain
+          return_next split_packages
+        end
+
+        private
+
+        def split_package(package)
+          frozen_items = []
+          non_frozen_items = []
+
+          package.contents.each do |item|
+            # We are assuming that `Spree::Variant` responds to `#frozen?`
+            if item.variant.frozen?
+              frozen_items << item
+            else
+              non_frozen_items << item
+            end
+          end
+
+          # The `build_package` method is a helper that takes a
+          # list of items and builds a package with them.
+          [
+            # Build the package for frozen items
+            build_package(frozen_items),
+            # Build the package for non-frozen items
+            build_package(non_frozen_items),
+          ]
+        end
+      end
+    end
+  end
+end
+```
+
+The implementation here is slightly more complicated than usual, so let's walk through it:
+
+1. First, we loop through each package that is passed to the splitter.
+2. Then, for each package, we separate the frozen and the non-frozen items in two separate packages.
+3. Then, we pass the final list of split packages to the next stock location splitter.
+
+:::caution
+
+As you may imagine, the order of stock splitters is important to determine the final result of the
+splitter chain. When you implement a custom stock splitter, make sure to add it in the right place!
+If you want full control over the splitter chain, you can override the `stock_splitters` array
+completely rather than appending to it.
+
+:::
+
+Now that we have our new splitter, we need to add it to the splitter chain:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.environment.stock_splitters << 'AwesomeStore::Stock::Splitter::FrozenItems'
+end
+```

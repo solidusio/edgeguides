@@ -1,0 +1,93 @@
+# Tax calculation
+
+:::caution
+In the following paragraphs, we use the terms **tax calculator** and **rate calculator**. While they sound similar,
+they are different things: the taxation system in Solidus primarily relies on tax calculators, not rate calculators.
+
+While
+the [default tax calculators](https://github.com/solidusio/solidus/tree/v3.0/core/app/models/spree/tax\_calculator)
+delegate the actual taxation math to rate calculators, it's perfectly possible to write a custom tax
+calculator that doesn't use rate calculators and instead relies on its own logic, e.g. by querying
+an external API.
+
+:::
+
+Solidus's taxation system revolves around the concept of **tax calculators**. These are classes that
+implement the logic required for calculating taxes
+on [orders](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax\_calculator/default.rb)
+and [shipping rates](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax\_calculator/shipping\_rate.rb).
+
+The default tax calculators rely on **tax categories,** **tax rates** and **rate calculators**.
+These are concepts that help configure item taxation through the Solidus backend:
+
+* [**Tax categories**](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax\_category.rb)
+  are used to group tax rates together—all products and shipping methods are assigned a tax
+  category.
+* [**Tax rates**](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax\_rate.rb)
+  associate a tax category with a geographic zone and a rate calculator (and also determine whether
+  the tax is included in the item's original amount or not).
+* [**Rate calculators**](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/calculator/default\_tax.rb)
+  implement the actual math for converting a tax rate (e.g., 3% included in price) into a final
+  amount (e.g., $3.00, when computed on a $100.00 amount).
+
+This system is very flexible and allows you to insert your custom logic at different abstraction
+levels. But before we dive into how to customize it, let's take a look at the flow Solidus follows
+for calculating taxes on orders and shipping rates.
+
+## Order taxation
+
+:::info
+Note that promotions are applied to orders before taxes are calculated. This is to comply with tax
+regulations for value-added taxation [as outlined by the Government of the United Kingdom](https://www.gov.uk/vat-businesses/discounts-and-free-gifts#1)
+and for sales
+tax [as outlined by the California State Board of Equalization](http://www.boe.ca.gov/formspubs/pub113/).
+:::
+
+The flow for order taxation is the following:
+
+1. Whenever an order is updated, Solidus calls the `OrderUpdater` service. This service is
+   responsible for recalculating all the amounts on the order, including tax amounts. This is done
+   in the [`update_taxes` method](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/order\_updater.rb#L219),
+   which in turn calls the configured order adjuster.
+2. The [default order adjuster](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax/order\_adjuster.rb)
+   uses the configured order tax calculator to [determine](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax/order\_adjuster.rb#L17)
+   which taxes should be applied to the order, then builds an `OrderTaxation` object and uses it to
+   [apply them](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/tax/order\_adjuster.rb#L18).
+3. The [`Spree::OrderTaxation` class](https://github.com/solidusio/solidus/blob/63c937472de529cce99bf3ea8dd9f2a8cbc0e431/core/app/models/spree/order\_taxation.rb#L26)
+   applies the taxes on the order by _upserting_ the corresponding adjustments on the taxed items (i.e., line items and shipments).
+4. The order's `included_tax_total` or `additional_tax_total`
+   are [updated](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/order\_updater.rb#L219)
+   according to the adjustments created in the previous step.
+
+## Shipping rate taxation
+
+:::info
+For more information on when and how shipments and shipping rates are built, you can refer to
+the [Stock management](/reference/stock-management.mdx) guide.
+:::
+
+In addition to calculating taxes on orders Solidus also calculates taxes on shipping rates. The flow
+here is slightly different, and is kicked off by
+the [default stock estimator](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/stock/estimator.rb):
+
+1. Right after building the shipping rate for a shipment,
+   Solidus [calls the configured shipping rate tax calculator](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/stock/estimator.rb#L45)
+   to calculate the tax for each shipping rate.
+2. Shipping rates don't have adjustments, so the resulting taxes are stored in a
+   dedicated [`ShippingRateTax`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/shipping\_rate\_tax.rb)
+   model instead.
+
+:::caution
+
+Note that, while these tax amounts will be included in the shipping rates that are displayed to your
+user, Solidus will still re-calculate taxes on your shipment cost, and the final amount the user is
+charged depends on the shipment's cost rather than the shipping rate's cost.
+
+This is because you may have additional adjustments on your shipment, e.g. you're offering a "free
+shipping" promotion and want to completely discount shipping for the user. In this case, the
+shipping rate might be $10.0 + a $2.0 tax, but your shipment total will still be $0.0.
+
+You should treat tax calculation for shipping rates as a UI-only matter. The standard order tax
+calculation flow determines the price your user will pay.
+
+:::

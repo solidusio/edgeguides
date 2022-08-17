@@ -1,0 +1,15 @@
+---
+sidebar_position: 2
+---
+
+# Creating an extension
+
+In this tutorial, we'll create an extension for integrating with Acme Fulfillment, a fulfillment
+provider — this is a very common use case in eCommerce. Our extension will do the following:
+
+1. When an order is finalized, it will call the fulfillment partner's API to send all information
+   about the order, so that it can be packaged and shipped to the customer.
+2. It will store the fulfillment partner's shipment ID in the Solidus DB, for easier inspection and
+   debugging.
+
+Let's dive right in!
