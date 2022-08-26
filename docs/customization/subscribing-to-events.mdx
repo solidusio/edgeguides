@@ -211,6 +211,8 @@ module MySubscriber
 end
 # do
 class MySubscriber
+  include Omnes::Subscriber
+
   handle :order_finalized, with: :do_something
   handle :order_recalculated, with: :order_recalculated
 
