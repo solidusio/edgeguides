@@ -45,6 +45,14 @@ const config = {
       colorMode: {
         respectPrefersColorScheme: true,
       },
+      announcementBar: {
+        id: 'support_us',
+        content:
+          'If you are enjoying Solidus, please drop us a star on <a target="_blank" href="https://github.com/solidusio/solidus">GitHub</a>! ⭐️',
+        backgroundColor: '#3c76f0',
+        textColor: '#fafbfc',
+        isCloseable: true,
+      },
       navbar: {
         title: "Solidus",
         logo: {
