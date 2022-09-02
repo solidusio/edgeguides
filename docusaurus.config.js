@@ -54,11 +54,6 @@ const config = {
         },
         items: [
           {
-            type: "docsVersionDropdown",
-            position: "left",
-            dropdownActiveClassDisabled: true,
-          },
-          {
             href: "https://solidus.io",
             label: "solidus.io",
             position: "right",
