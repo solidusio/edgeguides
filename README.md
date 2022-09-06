@@ -1,7 +1,7 @@
 # Solidus Developer Documentation
 
 This repository hosts the developer documentation for Solidus, the open-source eCommerce framework for industry
-trailblazers. 
+trailblazers.
 
 The documentation, which is still a work in progress, is built using [Docusaurus 2](https://docusaurus.io/) and
 published to https://edgeguides.solidus.io.
@@ -25,3 +25,9 @@ having to restart the server.
 
 There's nothing special to do here: this website is published via Cloudflare Pages. All PRs generate a preview
 environment, and all commits to `main` will cause the main site to be rebuilt.
+
+## Contributing
+
+To organize the documentation and make it more usable, the guides follow the [Diátaxis](https://diataxis.fr/)
+framework. If you are planning on making significant contributions, we strongly recommend getting familiar
+with Diátaxis' taxonomy and conventions.
