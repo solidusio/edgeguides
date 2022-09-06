@@ -30,6 +30,7 @@ const config = {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
           routeBasePath: "/",
+          editUrl: 'https://github.com/solidusio/edgeguides/tree/main/',
         },
         theme: {
           customCss: [require.resolve("./src/css/custom.css")],
@@ -44,6 +45,14 @@ const config = {
       colorMode: {
         respectPrefersColorScheme: true,
       },
+      announcementBar: {
+        id: 'support_us',
+        content:
+          'If you are enjoying Solidus, please drop us a star on <a target="_blank" href="https://github.com/solidusio/solidus">GitHub</a>! ⭐️',
+        backgroundColor: '#3c76f0',
+        textColor: '#fafbfc',
+        isCloseable: true,
+      },
       navbar: {
         title: "Solidus",
         logo: {
@@ -52,11 +61,6 @@ const config = {
           srcDark: "img/logo-dark.svg",
         },
         items: [
-          {
-            type: "docsVersionDropdown",
-            position: "left",
-            dropdownActiveClassDisabled: true,
-          },
           {
             href: "https://solidus.io",
             label: "solidus.io",
