@@ -1,0 +1,66 @@
+---
+sidebar_position: 2
+---
+
+# How to modify valid exchange items in returns
+
+When customers perform a [return][returns], they can be presented with options
+to exchange the corresponding item. We'll see how we can modify which variants are
+prompted as eligible.
+
+To begin with, you can go through the checkout process in the storefront and
+create a completed order. As we need to perform a return, we must capture its
+payments in the system and mark the shipments as delivered. You can do it in
+the backend or through the console:
+
+```ruby
+order = Spree::Order.find_by_number('R723438584')
+order.payments.map(&:capture!)
+order.shipments.map(&:ship!)
+```
+
+If you go now to the backend and try to create a new RMA for that order, you'll
+see that variants for the same product are shown to the user as valid
+exchanges. That's because, by default,
+[`Spree::ReturnItem::ExchangeVariantEligibility::SameProduct`][same-product] is
+[used as the engine][configure-exchange-variant-engine].
+
+Let's be more strict and leverage the default engine to restrict exchanges to
+those variants of the same product that are not heavier than the original. We
+need to follow the same API used by the built-in engines.
+
+```ruby title="app/services/amazing_store/return_item/exchange_variant_eligibility/same_product_not_heavier.rb"
+# frozen_string_literal: true
+
+module AmazingStore
+  module ReturnItem
+    module ExchangeVariantEligibility
+      module SameProductNotHeavier
+        def self.eligible_variants(variant, stock_locations: nil)
+          Spree::ReturnItem::ExchangeVariantEligibility::SameProduct.
+            eligible_variants(variant, stock_locations: stock_locations).
+            where(weight: ..variant.weight)
+        end
+      end
+    end
+  end
+end
+```
+
+Lastly, we need to tell Solidus to use our module by default. We can configure
+it in the Solidus initializer:
+
+```ruby title="config/initializers/spree.rb"
+# ...
+Rails.application.config.to_prepare do
+  ::Spree::ReturnItem.exchange_variant_engine = AmazingStore::ReturnItem::ExchangeVariantEligibility::SameProductNotHeavier
+end
+# ...
+```
+
+Restart the server and check it out! If you go back to the admin panel, you'll
+see that only lighter variants are now presented to the user.
+
+[returns]: /advanced-solidus/returns.mdx
+[configure-exchange-variant-engine]: https://github.com/solidusio/solidus/blob/master/core/app/models/spree/return_item.rb#L22
+[same-product]: https://github.com/solidusio/solidus/blob/master/core/app/models/spree/return_item/exchange_variant_eligibility/same_product.rb
