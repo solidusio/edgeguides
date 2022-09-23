@@ -10,8 +10,8 @@ const config = {
   tagline: "The open-source eCommerce framework for industry trailblazers.",
   url: "https://docs.solidus.io",
   baseUrl: "/",
-  onBrokenLinks: "warn",
-  onBrokenMarkdownLinks: "warn",
+  onBrokenLinks: "throw",
+  onBrokenMarkdownLinks: "throw",
   favicon: "img/favicon.ico",
 
   // Even if you don't use internalization, you can use this field to set useful
