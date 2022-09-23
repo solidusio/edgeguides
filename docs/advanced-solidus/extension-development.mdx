@@ -7,7 +7,7 @@ needs-diataxis-rewrite: true
 
 ## Intro to extension development
 
-We've already talked about how to use extensions in [Using extensions](../getting-started/using-extensions.mdx). As you may
+We've already talked about how to use extensions in [Using extensions][using-extensions]. As you may
 already know, extensions are Rails engines that augment your Solidus store with
 additional functionality such as payment gateways, WMS integrations, social login, and more. Using extensions when
 developing your store can be a huge time and money saver since it spares you the need
@@ -398,7 +398,7 @@ expectations of experienced Solidus developers.
 ### Installing the extension
 
 Once you've released your extension (or just pushed it to GitHub), you can install it in any Solidus
-store by following the [usual instructions](../getting-started/using-extensions.mdx). First of all, add the
+store by following the [usual instructions][using-extensions]. First of all, add the
 extension to your Gemfile:
 
 ```ruby title="Gemfile"
@@ -440,7 +440,7 @@ compatible with the vast majority of Solidus applications.
 ### Don't override, extend
 
 The first and most important rule of good extension design is to
-avoid [overrides](../customization/customizing-the-core.mdx) at all costs. Overrides in extensions
+avoid [overrides][customizing-core] at all costs. Overrides in extensions
 have the same problems as overrides in the main app: because you're directly altering third-party
 code, they are hard to maintain and hard to test.
 
@@ -450,9 +450,9 @@ other. Also, overrides don't play nice with IDE autocompletion, and they will ma
 for users of your extension to figure out your extension's API.
 
 Sometimes, overrides are inevitable, but you should always look for alternatives. Solidus allows
-users to customize the vast majority of [service objects](../customization/customizing-the-core.mdx) used by the
+users to customize the vast majority of [service objects][customizing-core] used by the
 framework. Whenever possible, you should leverage those configuration options instead of overriding
-the existing service objects. The [event bus](../customization/subscribing-to-events.mdx) is another
+the existing service objects. The [event bus][subscribing-to-events] is another
 good option which you should learn to rely on.
 
 Instead of altering the upstream version, try to find a way to provide the desired functionality
@@ -825,7 +825,7 @@ Rails version still supported by Solidus:
 
 `solidus_support` is also your friend when you want to support past Solidus versions which are still
 maintained. The event subscriber we created is only valid for Solidus versions greater than 3.2.
-Before that, [a more basic messaging system was available](../customization/subscribing-to-events.mdx).
+Before that, [a more basic messaging system was available][subscribing-to-events].
 
 By including the `SolidusSupport::LegacyEventCompat::Subscriber` module, you'll be able to support
 both event subscribers:
@@ -862,3 +862,7 @@ end
 with the new event bus.
 
 :::
+
+[using-extensions]: /getting-started/using-extensions.mdx
+[customizing-core]: /customization/customizing-the-core.mdx
+[subscribing-to-events]: /customization/subscribing-to-events.mdx
