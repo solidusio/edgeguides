@@ -1,211 +1,103 @@
 ---
 sidebar_position: 9
-needs-diataxis-rewrite: true
 ---
 
 # State machines
 
-## What’s a state machine?
+In this guide, we'll see what state machines are and how they are part of the
+Solidus toolbelt for dealing with business flows.
 
 As a programmer, state is one of the most challenging parts to model in a system. For instance, if
 you ask a semaphore which light is turned on, it might answer red, green, or amber, depending on
 when you ask it and what happened before the request: the _state_ of the semaphore depends on
 user-initiated and external events.
 
-A [finite state machine](https://en.wikipedia.org/wiki/Finite-state\_machine) (FSM) is a design
-pattern where a system, or one of its components, can be in one and only one of a limited number of
-states at a given time. Transitions are allowed between states under well-known events. As long as
-the initial state and the list of past events are known, you can recreate a state machine at any
+A [finite state machine](https://en.wikipedia.org/wiki/Finite-state\_machine)
+(FSM) is a design pattern where a system, or one of its components, can be in
+one and only one of a limited number of states at a given time. Transitions are
+allowed between states under well-known events. As long as the initial state
+and the list of past events are known, you can recreate a state machine at any
 point.
 
-For instance, a semaphore can be in a red, green, or amber state. When a pedestrian presses a
-button, it transitions from green to amber. When on amber, it goes to red if 5 seconds pass. If red,
-it turns green after 180 seconds. If you know a semaphore was green at time zero, and the list of
-events has been button-press, 500 seconds, button-press, 3 seconds, you know it's amber now.
+For instance, a semaphore can be in a red, green, or amber state. When a
+pedestrian presses a button, it transitions from green to amber. When on amber,
+it goes to red if 5 seconds pass. If red, it turns green after 180 seconds. If
+you know a semaphore was green at time zero, and the list of events has been
+button-press, 500 seconds, button-press, 3 seconds, you know it's amber now.
 
-Several parts of an e-commerce system fit this paradigm well. An order can be in progress, waiting
+Several parts of an e-commerce system fit this paradigm well. An order can be
+in progress, waiting
 for payment, or completed. It goes to completed when the payment is made. At that point,
 reimbursement can still be processed o completed. A payment... well, you get the idea.
 
 ## State machines in Solidus
 
-Solidus
-defines [a few state machines](https://github.com/solidusio/solidus/tree/master/core/lib/spree/core/state\_machines)
+Solidus defines [a few state
+machines](https://github.com/solidusio/solidus/tree/master/core/lib/spree/core/state\_machines)
 on top of some models.
 
-Each state machine describes its valid states and the allowed transitions. It also defines event
-methods that can be called from the outside to trigger internal changes. Finally, they can also
-declare some hooks that run when specific transitions happen.&#x20;
+Each state machine describes its valid states and the allowed transitions. It
+also defines event methods that can be called from the outside to trigger
+internal changes. Finally, they can also declare some hooks that run when
+specific transitions happen.&#x20;
 
-:::info
-
-Internally, Solidus' state machines use
-the [`states_machine`](https://github.com/state-machines/state\_machines) gem (more
-precisely, [`states_machine-activerecord`](https://github.com/state-machines/state\_machines-activerecord))
-. Take a look
-at [`states_machine`'s README](https://github.com/state-machines/state\_machines/blob/master/README.mdx)
+Internally, Solidus' state machines use the
+[`states_machine`](https://github.com/state-machines/state\_machines) gem (more
+precisely,
+[`states_machine-activerecord`](https://github.com/state-machines/state\_machines-activerecord))
+. Take a look at [`states_machine`'s
+README](https://github.com/state-machines/state\_machines/blob/master/README.mdx)
 for more details on its usage and API.
 
-:::
+## Customizing state machines
 
-## Customizing states machines
+State machines modules are included in the corresponding model, so all the
+strategies described in the [core customization
+section](../customization/customizing-the-core.mdx) are valid.
 
-State machines modules are included in the corresponding model, so all the strategies described in
-the [core customization section](../customization/customizing-the-core.mdx) are valid.
+When customizing state machines, you should differentiate two different use cases:
+
+1. You need to modify the domain where the state machine flow belongs. For
+instance, you're working on the order checkout and want to prevent it from
+completing if some requirement is not met.
+2. You need to add orthogonal behavior to the flow, like sending an email or
+updating an external service when a payment is received.
+
+It would be best if you kept in mind that state machine transitions (including
+their `after_` hooks) are wrapped within a database transaction. On the first
+use case, adding new transition hooks is okay. However, if your requirement is
+tangential to the main flow, it's better to override the whole event method so
+that you can do your work when the primary database transaction is over.
+
+A good example of adding orthogonal behavior is event subscribers. There's no
+point in blocking database access until your subscribers have finished running.
+In fact, it's a bad practice: a failed subscriber could roll back the whole DB
+transaction and potentially leave your system in an inconsistent state.
+
+The customizations explained above allow surgical-precision changes to the
+state machine's flows. Still, sometimes, you may need to change extensive parts
+of how they act for more deep behavioral modifications. In that case, Solidus
+allows replacing the entire state machine with something custom. As always,
+with great power comes great responsibility. Replacing the whole state machine
+should be the outcome of an informed decision. Solidus relies on well-known
+state machine states and events in many areas of the core, so be prepared to
+adjust other parts of Solidus to work with your custom implementation.
 
 :::danger
 
-It's better to be conservative when customizing state machines. Try to apply the smallest possible
-set of changes, and if possible, avoid changing the defined states. You're dealing with the core of
-the domain model: large changes could branch out in unanticipated ways!
+It's better to be conservative when customizing state machines. Try to apply
+the smallest possible set of changes, and if possible, avoid changing the
+defined states. You're dealing with the core of the domain model: large changes
+could branch out in unanticipated ways!
 
 :::
 
-### Customizing core behavior
+## How-to guides
 
-:::danger
+- [How to customize existing state machines][how-to-customize-existing-state-machines]
+- [How to add orthogonal behavior: publishing events][how-to-add-orthogonal-behavior]
+- [How to replace an existing state machine][how-to-replace-an-existing-state-machine]
 
-Be aware of not overusing transition hooks in the state machines. When the involved logic requires
-reaching external services or, more generally, is decoupled from the main flow, you're better
-off [leveraging the event bus](state-machines.mdx#adding-orthogonal-behavior). Otherwise, you will
-eventually run into the typical gotchas and downsides of abusing `ActiveRecord` callbacks.
-
-:::
-
-Sometimes you might need to tweak Solidus' core model to fit your business needs. In that case, you
-might want to tweak a state machine to obey your extended domain.
-
-Say that you must store the time when a payment has been marked as completed. You already added
-a `completed_at` column to the `spree_payments` table, but now you need the payment state machine to
-fill it.
-
-You can add an `after_transition hook` using
-an [override](../customization/customizing-the-core.mdx#using-overrides):
-
-```ruby title="app/overrides/my_store/payment_set_completed_at.rb"
-# frozen_string_literal: true
-
-module MyStore
-  module PaymentSetCompletedAt
-    def self.prepended(base)
-      base.state_machine.after_transition(to: :completed) do
-        self.completed_at = Time.zone.now
-      end
-    end
-
-    ::Spree::Payment.prepend self
-  end
-end
-```
-
-### Adding orthogonal behavior
-
-:::caution
-
-Don't be confused about state machine events vs. bus events. State machine events are conditions
-that can produce a transition between valid states. They're local to the state machine component. On
-the other hand, bus events can be published and consumed anywhere within the system and, per se,
-have nothing to do with the state machines.
-
-:::
-
-As noted in the [event bus](../customization/subscribing-to-events.mdx) guide, you can leverage the
-event bus to hook into core events. That's helpful when you need to perform something in response to
-a change in the system, but your logic is orthogonal (i.e., decoupled) to the main flow. Transitions
-between state machine states are good candidates to become hotspots where tangential logic is
-triggered.
-
-For instance, you might want to update your ERP or send an SMS when a payment is marked as
-completed. The cleaner way to do that is to publish an event when that happens and then subscribe to
-it. First, you need to override the `#complete` event method on `Spree::Payment` (see
-the [overrides section](../customization/customizing-the-core.mdx#using-overrides) for the required
-setup code):
-
-```ruby title="app/overrides/my_store/publish_payment_completed.rb"
-# frozen_string_literal: true
-
-module MyStore
-  module PublishPaymentCompleted
-    def complete
-      super.tap do |result|
-        Spree::Bus.publish(:payment_completed, payment: self) if result
-      end
-    end
-
-    ::Spree::Payment.prepend self
-  end
-end
-```
-
-Then, after [registering the new event](../customization/subscribing-to-events.mdx#custom-events),
-you can [create a subscriber](../customization/subscribing-to-events.mdx#subscription-to-events) for
-it.
-
-:::caution
-
-Why not register a new `after_transition` hook instead of overriding the event method (
-i..e, `#complete` in the example above)?
-
-State machine transitions (including their `after_` hooks) are wrapped within a database
-transaction. By overriding the method instead of using `after_transition`, we publish the bus event
-only after the transaction has been committed to the DB.
-
-Event subscribers should **always** be decoupled from the main transaction, so there's no point in
-blocking database access until your subscribers have finished running. In fact, it's a bad practice:
-a failed subscriber will roll back the whole DB transaction and potentially leave your system in an
-inconsistent state.
-
-:::
-
-:::info
-
-Ideally, Solidus would publish events for every state machine transition out of the box. Our event
-bus is fairly new and we're still working on it, but we'll get there eventually! In the meantime,
-you can check`Spree::Bus.registered_events` for the complete list of events that are already
-published.
-
-:::
-
-### Using custom state machines
-
-If needed, you can flat out replace state machines with your custom implementation. This can be done
-through the `state_machines` option in `config/initializers/spree.rb`.
-
-For instance, if you want to replace the payment state machine, you can do it like this:
-
-```ruby title="lib/my_store/state_machines/payment.rb"
-# frozen_string_literal: true
-
-module MyStore
-  class StateMachines
-    module Payment
-      extend ActiveSupport::Concern
-
-      included do
-        state_machine initial: :custom_state do
-          # Event, transition & hook definitions
-        end
-      end
-    end
-  end
-end
-```
-
-And then you need to tell Solidus to use it:
-
-```ruby title="config/initializers/spree.rb"
-# ...
-Spree.config do |config|
-  config.state_machines.payment = 'MyStore::StateMachines::Payment'
-  # ...
-end
-```
-
-:::caution
-
-As always, with great power comes great responsibility. Replacing the whole state machine should be
-the outcome of an informed decision. Solidus relies on well-known state machine states and events in
-many areas of the core, so be prepared to adjust other parts of Solidus to work with your custom
-implementation.
-
-:::
+[how-to-customize-existing-state-machines]: /how-tos/how-to-customize-existing-state-machines.mdx
+[how-to-add-orthogonal-behavior]: /how-tos/how-to-add-orthogonal-behavior-to-state-machines-publishing-events.mdx
+[how-to-replace-an-existing-state-machine]: /how-tos/how-to-replace-an-existing-state-machine.mdx
