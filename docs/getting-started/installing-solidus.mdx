@@ -18,8 +18,11 @@ branch.
 * Relational database: the core and the extensions are always tested
 with [MySQL](https://www.mysql.com) and [PostgreSQL](https://www.postgresql.org), but other
 relational databases should work as well.
-* [ImageMagick](http://imagemagick.org/script/download.php): this is needed for manipulating product
-images and other assets.
+* [libvips](https://github.com/libvips/libvips) or
+[ImageMagick](http://imagemagick.org/script/download.php): this is needed for
+manipulating product images and other assets. You need one or the other,
+depending on the [configured variant
+processor](https://guides.rubyonrails.org/configuring.html#config-active-storage-variant-processor).
 
 ## Library architecture
 
