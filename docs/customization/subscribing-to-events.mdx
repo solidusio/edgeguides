@@ -11,7 +11,7 @@ hook into Solidus events (like completing an order) and extend the associated be
 
 :::info
 
-You can run `Spree::Bus.registered_events`to get the list of available events.
+You can run `Spree::Bus.registry.event_names`to get the list of available events.
 
 :::
 
@@ -152,7 +152,7 @@ You can also assert the published payload using the `with` modifier.
 ```ruby title="spec/services/my_store/custom_service_spec.rb"
 # ...
 expect(:custom_event).to have_been_published.with(
-  a_hash_containing(order: order)
+  a_hash_including(order: order)
 )
 # ...
 ```
