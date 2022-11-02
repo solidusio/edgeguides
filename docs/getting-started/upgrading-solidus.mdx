@@ -78,7 +78,7 @@ doesn't contain any deprecated code.
 
 In some cases, deprecated code may come from Solidus extensions and not your own app, meaning you
 can't fix the deprecation yourself. When this happens, you can open an issue in the extension's
-repository to let the maintainer know that they need to update their extension\#
+repository to let the maintainer know that they need to update their extension.
 
 :::
 
@@ -131,7 +131,7 @@ the `new_solidus_defaults.rb` file altogether.
 
 Internally, `Spree.load_defaults` is a shortcut that forwards the same method to the configuration
 object for every available Solidus component: core, backend & API. You'll see
-that the `#load_defaults` call, with the previous version as argument, is
+that the `#load_defaults` call, with the previous version as an argument, is
 disassembled into the individual components in `new_solidus_defaults.rb`. It
 gives you more fine-grained control as you can flag as done an individual
 component by updating its `#load_defaults` version when you're done with it.
