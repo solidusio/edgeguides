@@ -21,6 +21,20 @@ $ yarn start
 This command starts a local development server and opens up a browser window. Most changes are reflected live without
 having to restart the server.
 
+## Docker development
+
+```
+$ docker-compose up -d
+```
+
+Wait for the `app` container to be ready (you can check the logs with `docker-compose logs -f app`).
+
+```
+$ docker-compose exec app yarn start -h 0.0.0.0
+```
+
+Now you can access the documentation at http://localhost:3000.
+
 ## Deployment
 
 There's nothing special to do here: this website is published via Cloudflare Pages. All PRs generate a preview
