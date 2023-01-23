@@ -93,7 +93,7 @@ module AmazingStore
       private
 
       def promotions
-        Spree::Promotion.
+        ::Spree::Promotion.
           active.
           joins(:promotion_rules).
           where('promotion_rules.type' => RULES_TYPE)
@@ -162,7 +162,7 @@ module AmazingStore
         }, on: :update
 
         def applicable?(promotable)
-          promotable.is_a?(Spree::Order)
+          promotable.is_a?(::Spree::Order)
         end
 
         def eligible?(order, _options = {})
