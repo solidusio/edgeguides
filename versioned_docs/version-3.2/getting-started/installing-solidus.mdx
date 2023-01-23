@@ -73,6 +73,7 @@ If you have an existing Ruby on Rails application, installing Solidus is fairly 
 
 ```bash
 $ bundle add 'solidus'
+# Add `--help` to learn about all available options
 $ bin/rails generate solidus:install
 ```
 
@@ -88,8 +89,6 @@ to quickly get up & running. You might need to choose the deprecated
 [solidus\_frontend](https://github.com/solidusio/solidus_frontend) if you want
 to use an extension that still relies on it. There's also the option to choose
 no frontend.
-- Finally, you will be prompted for an admin email and password. You can leave
-the default (email: admin@example.com, password: test123) or enter your own.
 
 Once the installation has completed, you can now start your Rails server:
 
@@ -98,7 +97,7 @@ $ bin/rails server
 ```
 
 You should now be able to access your storefront at [http://localhost:3000](http://localhost:3000).
-You can also access Solidus' admin UI at [http://localhost:3000/admin](http://localhost:3000/admin).
+You can also access Solidus' admin UI at [http://localhost:3000/admin](http://localhost:3000/admin) with the default credentials (email: admin@example.com, password: test123).
 
 ## First-time configuration
 
