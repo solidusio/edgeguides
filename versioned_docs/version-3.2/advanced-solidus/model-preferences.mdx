@@ -1,0 +1,338 @@
+---
+sidebar_position: 4
+needs-diataxis-rewrite: true
+---
+
+# Model preferences
+
+## Why are they needed?
+
+We've already
+covered [application-wide preferences](../getting-started/installing-solidus.mdx#first-time-configuration).
+Model preferences have a different scope, as they apply to a single ActiveRecord model and can take
+different values for each instance or record.
+
+You might think that's what regular ActiveRecord attributes are for. However, preferences are handy
+when
+using [Single Table Inheritance](https://api.rubyonrails.org/classes/ActiveRecord/Inheritance.html) (
+STI), i.e., when different models share the same database table. In those cases, you might need to
+add a piece of information only for one of them and avoid creating a new column with a `NULL` value
+for inapplicable models.
+
+:::danger
+
+Internally, preferences are handled as
+a [serializable ActiveRecord attribute](https://api.rubyonrails.org/classes/ActiveRecord/AttributeMethods/Serialization/ClassMethods.html)
+. Notice that serialized data is persisted as a raw string in the database engine. That means
+they're okay to read information from a loaded record, but they're not suited to perform SQL queries
+on a large dataset.
+
+:::
+
+## Preferable models
+
+:::caution
+
+Solidus preferences are the right option when you’re writing code that is tightly coupled to
+Solidus (e.g., it's a descendant of a preferable Solidus class, or it will be configurable via the
+Solidus admin panel).
+
+If you're writing code that doesn't belong to the Solidus domain (e.g., your own application's
+business logic), it's almost always better to forgo preferences and use regular ActiveRecord
+attributes instead.
+
+:::
+
+To make a model accept preferences (i.e., to make it "preferable"), you will first need to add
+a `preferences` column of type `text` to your model. Assuming you already have a model
+named `Greeter`, here's how to do it:
+
+```
+$ rails g migration AddPreferencesToGreeter preferences:text
+$ rails db:migrate
+```
+
+Then, you'll need to include the `Spree::Preferences::Persistable` module in your model:
+
+```ruby
+# frozen_string_literal: true
+
+require 'spree/preferences/persistable'
+
+module AmazingStore
+  class Greeter
+    include Spree::Preferences::Persistable
+  end
+end
+```
+
+And there you go! Your model is now preferable. Let's see how to use it.
+
+## Adding new preferences
+
+Adding a new preference is as simple as calling the `preference` method in your class:
+
+```diff
+# frozen_string_literal: true
+
+require 'spree/preferences/persistable'
+
+module AmazingStore
+  class Greeter
+    include Spree::Preferences::Persistable
+
++   preference :name, :string, default: "John"
+  end
+end
+```
+
+That's it! As you can see, you can also specify a default value with the `:default` option.
+
+:::info
+
+Besides `:string`, other types can be used for a preference.
+See [`Spree::Preferences::Preferable`](https://github.com/solidusio/solidus/blob/master/core/lib/spree/preferences/preferable.rb)
+for details.
+
+:::
+
+## Accessing preferences
+
+A few magic methods are generated for each preference in a model instance. For example, given
+a `:category` preference, the following methods will be generated:
+
+* `#preferred_category`: reader for the preference value.
+* `#preferred_category=(value)`: writer for the preference value (no persistence).
+* `#preferred_category_default`: default for the preference.
+* `#preferred_category_type`: type for the default preference.
+
+```ruby
+calculator = MyStore::NewTaxCalculator
+calculator.preferred_category = "B"
+calculator.preferred_category # => "B"
+calculator.preferred_category_default # => "A"
+calculator.preferred_category_type # => :string
+```
+
+Solidus also provides some generic methods:
+
+* `#get_preference(name)`: Returns the value for the given preference.
+* `#set_preference(name, value)`: Sets the value for the given preference (no persistence).
+* `#preference_default(name)`: Gets the default for the given preference.
+* `#preference_type(name)`: Gets the type for the given preference.
+* `#has_preference?(name)`: Predicate to check whether a preference is defined.
+
+```ruby
+calculator.set_preference(:category, "B")
+calculator.get_preference(:category) # => "B"
+calculator.preference_default(:category) # => "A"
+calculator.preference_type(:category) # => :string
+calculator.has_preference?(:category) # => true
+calculator.has_preference?(:other) # => false
+```
+
+Finally, some methods allow inspecting the entire collection of preferences:
+
+* `#preferences`: Hash of preferences.
+* `#default_preferences`: Hash of default preferences.
+
+```ruby
+calculator.preferences # => { :category=>"B" }
+calculator.default_preferences # => { :category=>"A" }
+```
+
+To bring it all together, let's use our `name` preference in the `Greeter` model to do something:
+
+```ruby
+# frozen_string_literal: true
+
+require 'spree/preferences/persistable'
+
+module AmazingStore
+  class Greeter
+    include Spree::Preferences::Persistable
+
+    preference :name, :string, default: "John"
+
+    def call
+      "Hello, #{name}!"
+    end
+  end
+end
+```
+
+Let's test it:
+
+```ruby
+AmazingStore::Greeter.new.call # => "Hello, John!"
+AmazingStore::Greeter.new(preferred_name: "Jane").call # => "Hello, Jane!"
+```
+
+Neat!
+
+## Static preferences
+
+Sometimes, you might not want to store preferences in your database. This is the case, for example,
+with API credentials or other sensitive information. [The Twelve-Factor App](https://12factor.net/)
+recommends storing this data in an environment variable.
+
+Solidus supports this mechanism, which is called "static preferences", out of the box.Let's
+repurpose our `Greeter` model to use them!
+
+First of all, we need to add a `preference_source` column (we'll see why in a second):
+
+```
+$ rails g migration AddPreferenceSourceToGreeter preference_source
+$ rails db:migrate
+```
+
+Then, we need to include the `Spree::Preferences::StaticallyConfigurable` module:
+
+```diff
+# frozen_string_literal: true
+
+require 'spree/preferences/persistable'
++ require 'spree/preferences/statically_configurable'
+
+module AmazingStore
+  class Greeter
+    include Spree::Preferences::Persistable
++   include Spree::Preferences::StaticallyConfigurable
+
+    preference :name, :string
+  end
+end
+```
+
+Finally, we'll need to configure one or more preference sources, i.e. the actual collection of
+preference values that can be used for instances of our `AmazingStore::Greeter` model.
+
+This can be done in any initializer, including `config/initializers/spree.rb`:
+
+```ruby title="config/initializers/spree.rb"
+Rails.application.config.to_prepare do
+  Spree::Config.static_model_preferences.add(
+    AmazingStore::Greeter,
+    'greeter_preferences',
+    name: ENV["GREETER_NAME"],
+  )
+end
+```
+
+Let's test it again!
+
+```ruby
+ENV["GREETER_NAME"] = "Jane" # To simulate an environment variable
+
+AmazingStore::Greeter.new(
+  preference_source: "greeter_preferences",
+).call # => "Hello, Jane!"
+```
+
+In our example, we are using environment variables to provide the preference values, but you can use
+a secret store such as [Vault](https://www.vaultproject.io/) or anything else!
+
+## Built-in preferable models
+
+Solidus comes with a few preferable models out of the box,
+like [`Spree::PaymentMethod`](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/payment\_method.rb)
+and [`Spree::Calculator`](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/calculator.rb)
+. In most cases, you will just inherit from these classes, which means you won't need any of the
+boilerplate setup code. Instead, you will just add new preferences to your custom descendant.
+
+Let's see a couple of examples!
+
+### Calculators
+
+Say that you want to create a [calculator](tax-calculation.mdx#customizing-tax-calculation) for a new
+tax whose amount depends on a categorization of some type. Calculators
+are [already configurable](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/calculator.rb#L7)
+, so you can create a new class that inherits from `Spree::Calculator` and add a `category`
+preference to it:
+
+```ruby title="app/models/amazing_store/new_tax_calculator.rb"
+# frozen_string_literal: true
+
+module AmazingStore
+  class NewTaxCalculator < Spree::Calculator
+    preference :category, :string, default: "A"
+
+    AMOUNT_PER_CATEGORY = {
+      "A" => 10,
+      "B" => 20,
+      "C" => 30
+    }
+
+    def initialize(order)
+      @order = order
+    end
+
+    def calculate
+      Spree::Tax::OrderTax.new(
+        order_id: order.id,
+        line_item_taxes: order.amount + AMOUNT_PER_CATEGORY[preferred_category],
+        shipment_taxes: 0
+      )
+    end
+  end
+end
+```
+
+:::info
+
+You'll notice we don't have to include any files or module in our payment method. That's
+because `Spree::PaymentMethod` [already does it for us!](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/payment\_method.rb#L15)
+
+:::
+
+That's it! You can now use your `AmazingStore::NewTaxCalculator`.
+
+### Payment methods
+
+Payment methods are another example of a configurable class in Solidus. Furthermore, they're
+statically configurable, so that you can store your payment provider credentials outside of the DB.
+
+Say, for example, that you've followed the guide
+to [create a new payment method](payments-and-refunds.mdx#building-a-custom-payment-source), and all
+that's left to do is to add a configurable API key to your custom payment method. You can do it like
+this:
+
+```ruby title="app/models/amazing_store/amazing_payment_method.rb"
+# frozen_string_literal: true
+
+module AmazingStore
+  class AmazingPaymentMethod < Spree::PaymentMethod
+    preference :api_key, :string
+  end
+end
+```
+
+As you see, we've added an `api_key` preference for it, but we don't want its value to be rendered
+in plain sight in the backend, and we don't want it to be stored in the database. Let's, therefore,
+add a source from where the new payment method can read its preferences:
+
+```ruby title="config/initializers/spree.rb"
+# ...
+Rails.application.config.to_prepare do
+  Spree::Config.static_model_preferences.add(
+    AmazingStore::AmazingPaymentMethod,
+    'amazing_payment_method_credentials',
+    api_key: ENV['AMAZING_PAYMENT_METHOD_API_KEY'],
+    server: Rails.env.production? ? 'production' : 'test',
+    test_mode: !Rails.env.production?
+  )
+end
+```
+
+:::info
+
+If you're wondering where those `server` and `test_mode` settings come from, they're common
+preferences inherited from [`Spree::PaymentMethod`](https://github.com/solidusio/solidus/blob/master/core/app/models/spree/payment\_method.rb).
+
+:::
+
+You can now to _Settings -> Payments -> New Payment Method_, create a new instance of
+your `AmazingPaymentMethod`, and pick `amazing_payment_method_credentials` as the preference source
+to read the API key from the environment!
+
+###
