@@ -210,13 +210,11 @@ preference values that can be used for instances of our `AmazingStore::Greeter` 
 This can be done in any initializer, including `config/initializers/spree.rb`:
 
 ```ruby title="config/initializers/spree.rb"
-Rails.application.config.to_prepare do
-  Spree::Config.static_model_preferences.add(
-    AmazingStore::Greeter,
-    'greeter_preferences',
-    name: ENV["GREETER_NAME"],
-  )
-end
+Spree::Config.static_model_preferences.add(
+  'AmazingStore::Greeter',
+  'greeter_preferences',
+  name: ENV["GREETER_NAME"],
+)
 ```
 
 Let's test it again!
@@ -313,15 +311,13 @@ add a source from where the new payment method can read its preferences:
 
 ```ruby title="config/initializers/spree.rb"
 # ...
-Rails.application.config.to_prepare do
-  Spree::Config.static_model_preferences.add(
-    AmazingStore::AmazingPaymentMethod,
-    'amazing_payment_method_credentials',
-    api_key: ENV['AMAZING_PAYMENT_METHOD_API_KEY'],
-    server: Rails.env.production? ? 'production' : 'test',
-    test_mode: !Rails.env.production?
-  )
-end
+Spree::Config.static_model_preferences.add(
+  'AmazingStore::AmazingPaymentMethod',
+  'amazing_payment_method_credentials',
+  api_key: ENV['AMAZING_PAYMENT_METHOD_API_KEY'],
+  server: Rails.env.production? ? 'production' : 'test',
+  test_mode: !Rails.env.production?
+)
 ```
 
 :::info
