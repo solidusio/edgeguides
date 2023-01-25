@@ -26,6 +26,10 @@
   padding-left: 1.1em;
 }
 
+[data-theme='dark'] .pull_request {
+  filter: invert(1);
+}
+
 h2 a.pull_request {
   color: #000;
   font-size: 90%;
