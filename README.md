@@ -24,7 +24,7 @@ having to restart the server. This guide is versioned, so your live changes will
 ## Versions
 
 The documentation in this repo is versioned for every major and minor release.
-All changes merged to the main docs (under `docs/`) will refer to the `main` branch of the Solidus repo.
+All changes merged to the main docs (under `docs/`) will refer to the `master` branch of the Solidus repo.
 Past versions won't generally be updated, but in case a patchlevel release requires a change it should be directed at the appropriate folder under `versioned_docs/`.
 
 In order to release a new version from the documentation under `docs/` this command can be used:
