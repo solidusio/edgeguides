@@ -93,32 +93,19 @@ Spree::Config.static_model_preferences.add(
 
 ## <PRLink description="Configurable promotion adjuster" number="4460" />
 
-You can now change what the default promotion adjuster does. Configure the `Spree::Config.promotion_adjuster_class` preference with a class that takes the order on initialization and responds to the `#call` method.
+You can now change what the default promotion adjuster does. Configure the `Spree::Config.promotion_adjuster_class`
+preference with a class that takes the order on initialization and responds to the `#call` method.
 
-```ruby title="config/initializers/spree.rb"
-Spree.config do |config|
-  # ...
-  config.promotion_adjuster_class = 'MyStore::PromotionAdjuster'
-end
-```
+Read [the corresponding how-to][how-to-use-a-custom-promotion-adjuster] for more information.
 
-```ruby title="app/models/my_store/promotion_adjuster.rb"
-module MyStore
-  class PromotionAdjuster
-    def initialize(order)
-      @order = order
-    end
-
-    def call
-      # ...
-    end
-  end
-end
-```
+[how-to-use-a-custom-promotion-adjuster]: ../how-tos/how-to-use-a-custom-promotion-adjuster
 
 ## <PRLink description="Configurable algorithm to prioritize store credits" number="4677" />
 
-Before v3.3, store credits were always sorted by the priority of their type. Now you can change that behavior by configuring the `Spree::Config.store_credit_prioritizer_class` preference with a class that takes the store credits and the order on initialization and responds to the `#call` method.
+Before v3.3, store credits were always sorted by the priority of their type. Now you can change
+that behavior by configuring the `Spree::Config.store_credit_prioritizer_class` preference with
+a class that takes the store credits and the order on initialization and responds to the `#call`
+method.
 
 ```ruby title="config/initializers/spree.rb"
 Spree.config do |config|
