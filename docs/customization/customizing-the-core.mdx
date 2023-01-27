@@ -30,7 +30,7 @@ logic. By defining which classes get called to perform certain tasks in your sto
 option to either enrich or completely replace Solidus' default functionality.
 
 The [`Spree::AppConfiguration`](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/app\_configuration.rb)
-class has a list of all the service object classes that can be natively customized. Look for through
+class has a list of all the service object classes that can be natively customized. Look through
 the source code of that class and see if there's an option that resembles what you need to do. If
 yes, bingo!
 
@@ -45,7 +45,7 @@ any other options that allow you to replace the class you need.
 For instance, Solidus merges a user's "guest" cart with the cart associated to their user account
 when they sign in. Let's suppose you don't like this default behavior, and would like to keep the
 two carts separate at all times instead, to avoid confusion for the user. You can see there
-is [an option](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/app\_configuration.rb#L372)
+is [an option](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/app\_configuration.rb#L382)
 in the configuration that allows us to control precisely this behavior:
 
 ```ruby title="solidus/core/lib/spree/app_configuration.rb"

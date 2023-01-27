@@ -19,7 +19,7 @@ $ yarn start
 ```
 
 This command starts a local development server and opens up a browser window. Most changes are reflected live without
-having to restart the server.
+having to restart the server. This guide is versioned, so your live changes will be on http://localhost:3000/next.
 
 ## Versions
 
