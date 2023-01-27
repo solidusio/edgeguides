@@ -18,7 +18,10 @@ In order to achieve this level of flexibility, the promotions system is composed
 * **Promotion rules** are responsible for checking whether an order is eligible for a promotion.
 * **Promotion actions** are responsible for defining the discount(s) to be applied to eligible
   orders.
-* **Adjustments** are responsible for storing discount information.
+* **Adjustments** are responsible for storing discount information. Promotion adjustments are
+  recalculated every time the order is updated, to check if their eligibility persists when the
+  state of the order changes. It is possible to
+  [customize how this recalculation behaves][how-to-use-a-custom-promotion-adjuster].
 
 :::info
 
@@ -342,3 +345,9 @@ the promotion has been created, add the _Payment_ rule and the _Half shipping_ a
 
 You can now go to the frontend and see how the shipment price is dropped by 50% if you select the
 configured payment method.
+
+## How-to guides
+
+- [How to use a custom promotion adjuster][how-to-use-a-custom-promotion-adjuster]
+
+[how-to-use-a-custom-promotion-adjuster]: ../how-tos/how-to-use-a-custom-promotion-adjuster
