@@ -38,19 +38,11 @@ Rails v5.2 (EOL) support has been removed from Solidus v3.3:
 
 ## <PRLink description="Support for the new Colorado delivery fee" number="4491" />
 
-We've updated our taxation system to support the new [Colorado retail delivery fee](https://tax.colorado.gov/retail-delivery-fee):
+We've updated our taxation system to support the new [Colorado retail delivery fee](https://tax.colorado.gov/retail-delivery-fee).
+Please, check [the corresponding guide page][how-to-setup-colorado-delivery-fee] to setup
+this new tax on your store.
 
-- Create a new `Spree::Zone` for the state of Colorado.
-- Create a new `Spree::TaxRate` within that zone, with:
-  - The new `Spree::Calculator::FlatFee` as its base calculator.
-  - An amount of 0.27$.
-  - The new `Spree::TaxRate#level` enum to `:order`
-
-We also provide a task to help with the process (it'll add the new tax to the default category if it exists):
-
-```bash
-bundle exec rake taxes:colorado_delivery_fee
-```
+[how-to-setup-colorado-delivery-fee]: ../how-tos/how-to-setup-colorado-delivery-fee
 
 ## <PRLink description="Deprecate discriminatory wording for Ransack methods" number="4853" />
 
