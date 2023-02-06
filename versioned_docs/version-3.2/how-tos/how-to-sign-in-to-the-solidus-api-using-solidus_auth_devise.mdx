@@ -1,0 +1,160 @@
+---
+sidebar_position: 9
+---
+
+# How to sign in to the Solidus API using solidus_auth_devise
+
+We'll learn how to leverage a common dependency on Solidus,
+[solidus_auth_devise][solidus_auth_devise], to also provide the initial
+email/password authentication for the Solidus API.
+
+We need to create the controller to handle the sign in, inheriting from the
+standard [`Devise::SessionsController`][devise_sessions_controller]:
+
+```ruby title="app/controllers/spree/api/user_sessions_controller.rb"
+# frozen_string_literal: true
+
+class Spree::Api::UserSessionsController < Devise::SessionsController
+  skip_before_action :verify_authenticity_token
+
+  clear_respond_to && respond_to(:json)
+
+  def after_sign_in_path_for(_resource)
+    nil
+  end
+end
+```
+
+There are a few important things to notice here:
+
+* We're skipping the `verify_authenticity_token` as with any other API
+requests.
+* We're configuring the controller to only respond to JSON requests. First, we
+need to clear the previous configuration inherited from solidus_auth_devise.
+The `clear_respond_to` && `respond_to` methods come from the [`responders`
+gem][responders], which is a dependency used by devise.
+* We're overriding the `after_sign_in_path_for` method to return `nil` in order
+to avoid any redirection attempt after sign in. That's a hook used by devise.
+
+Let's now configure devise in the routes:
+
+```ruby title="config/routes.rb"
+# ...
+  namespace :api do
+    devise_scope :spree_user do
+      post '/sign_in', to: '/spree/api/user_sessions#create', format: false, defaults: { format: :json }
+    end
+  end
+# ...
+```
+
+The `devise_scope` method is used to tell devise which user scope needs to be
+handled in the route defined within. For the declared route, we ensure that
+`:json` is the default format and that no others can be requested.
+
+We can now test the sign in endpoint. After restarting the server, we can run:
+
+```bash
+$ curl -X POST -v -H 'Content-Type: application/json' http://localhost:3000/api/sign_in  -d '{"spree_user": {"email": "admin@example.com", "password": "test123" }}'
+```
+
+Given that the user exists, we should get a response similar to:
+
+```bash
+{"id":1,"email":"admin@example.com","persistence_token":null,"perishable_token":null,"last_request_at":null,"login":"admin@example.com","ship_address_id":null,"bill_address_id":null,"created_at":"2023-02-02T04:54:14.867Z","updated_at":"2023-02-03T15:24:09.962Z","spree_api_key":"fbfd90eb1b323fbcdebf59fe9280917b4e2c80569e2d4aed","authentication_token":null,"deleted_at":null}
+```
+
+For Rails 7 onward, we still need to do an adjustment to work with the unhappy
+path (see [issue on the Devise repository][issue_devise]):
+
+```ruby title="config/initializers/devise.rb"
+# ...
+Devise.setup do |config|
+  # ...
+  config.navigational_formats = ['*/*', :html, :turbo_stream]
+end
+```
+
+After restarting once more the server, let's try to sign in with invalid credentials:
+
+```bash
+$ curl -X POST -v -H 'Content-Type: application/json' http://localhost:3000/api/sign_in  -d '{"spree_user": {"email": "admin@example.com", "password": "invalid" }}'
+```
+
+We should now get:
+
+```bash
+{"error":"Invalid email or password."}
+```
+
+## Customizing the success response
+
+The default response for a successful sign in is the user instance serialized
+as JSON. However, we can create our own view to change it:
+
+:::info
+We're using here [jbuilder][jbuilder], which is already a dependency on
+solidus-api, but you can use any other templating engine.
+:::
+
+```ruby title="app/views/spree/api/user_sessions/create.json.jbuilder"
+json.attributes([:email, :spree_api_key])
+```
+
+Let's try again:
+
+```bash
+$ curl -X POST -v -H 'Content-Type: application/json' http://localhost:3000/api/sign_in  -d '{"spree_user": {"email": "admin@example.com", "password": "test123" }}'
+{"attributes":["email","spree_api_key"]}
+```
+
+## Customizing the failure response
+
+We can also customize the response for a failed sign in. For that, we need to
+configure the so-called [failure application][failure_application] that
+[warden][warden], the engine underlining devise, uses. We can override the
+default behavior via inheritance:
+
+```ruby title="lib/auth_failure_app.rb"
+# frozen_string_literal: true
+
+class AuthFailureApp < Devise::FailureApp
+ def http_auth_body
+    return super unless request_format == :json
+
+    {
+      success: false,
+      message: i18n_message
+    }.to_json
+  end
+end
+```
+
+Let's inform warden to use it from the devise initializer:
+
+```ruby title="config/initializers/devise.rb"
+# frozen_string_literal: true
+
+require 'auth_failure_app'
+
+# ...
+  config.warden do |manager|
+    manager.failure_app = AuthFailureApp
+  end
+# ...
+```
+
+After restarting the server, we can now confirm that the response on failure has changed:
+
+```bash
+$ curl -X POST -v -H 'Content-Type: application/json' http://localhost:3000/api/sign_in  -d '{"spree_user": {"email": "admin@example.com", "password": "invalid" }}'
+{"success":false,"message":"Invalid email or password."}
+```
+
+[solidus_auth_devise]: https://github.com/solidusio/solidus_auth_devise
+[devise_sessions_controller]: https://github.com/heartcombo/devise/blob/main/app/controllers/devise/sessions_controller.rb
+[responders]: https://github.com/heartcombo/responders
+[issue_devise]: https://github.com/heartcombo/devise/issues/5439
+[jbuilder]: https://github.com/rails/jbuilder
+[failure_application]: https://github.com/wardencommunity/warden/wiki/Failures
+[warden]: https://github.com/wardencommunity/warden
