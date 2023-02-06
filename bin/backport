@@ -1,0 +1,55 @@
+#!/bin/bash
+
+ref="HEAD"
+number_of_commits=1
+versions=""
+
+usage() {
+    echo "Helper to backport documentation changes to older versions."
+    echo ""
+    echo "It expects a reference that contains changes that only affect"
+    echo "the unreleased version. Then, it applies the generated patch"
+    echo "to the specified versions under the versioned_docs/ directory."
+    echo ""
+    echo "Notice that each version needs to be provided as a separate -v argument."
+    echo ""
+    echo "Usage: $0 [-r ref] [-n number_of_commits] -v version [-v version ...]"
+    echo "  -r ref: the ref to backport from (default: HEAD)"
+    echo "  -n number_of_commits: the number of commits to backport (default: 1)"
+    echo "  -v versions: the versions to backport to (default: none)"
+    echo "Example: $0 -v 3.3 -v 3.2"
+    echo "Example: $0 -r HEAD~ -v 3.3 -v 3.2"
+    echo "Example: $0 -r HEAD~ -n 2 -v 3.3 -v 3.2"
+}
+
+if [ $# -eq 0 ]; then
+    usage
+    exit 1
+fi
+
+while getopts ":h:r:n:v:" options; do
+  case "${options}" in
+    h)
+      usage
+      exit 0
+      ;;
+    r)
+      ref=${OPTARG}
+      ;;
+    n)
+      number_of_commits=${OPTARG}
+      ;;
+    v)
+      versions="${versions} ${OPTARG}"
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+   esac
+done
+
+for version in $versions
+do
+  git format-patch -${number_of_commits} ${ref} --stdout | git apply -p2 --directory=versioned_docs/version-$version/
+done
