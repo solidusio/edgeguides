@@ -27,6 +27,8 @@ The documentation in this repo is versioned for every major and minor release.
 All changes merged to the main docs (under `docs/`) will refer to the `master` branch of the Solidus repo.
 Past versions won't generally be updated, but in case a patchlevel release requires a change it should be directed at the appropriate folder under `versioned_docs/`.
 
+We have a helper script to backport documentation changes to previous versions. Run `bin/backport -h` for more information.
+
 In order to release a new version from the documentation under `docs/` this command can be used:
 
 ```
