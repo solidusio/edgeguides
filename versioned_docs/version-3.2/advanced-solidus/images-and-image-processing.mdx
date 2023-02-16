@@ -28,60 +28,93 @@ easier migration path to existing Paperclip users.
 
 ## Customizing image sizes
 
-By default, Solidus uses the following sizes for images:
+By default, Solidus uses the following sizes for product images:
 
 * `mini`: 48x48
 * `small`: 400x400
 * `product`: 680x680
 * `large`: 1200x1200
 
-You can access the URL for a specific sizes by calling, e.g. `Spree::Image#url`:
+and the following sizes for taxon icons:
+
+* `mini`: 32x32
+* `normal`: 128x128
+
+You can access the URL for a specific size by calling `Spree::Image#url`:
 
 ```ruby
-image = Spree::Image.first
+image = Spree::Product.first.gallery.images.first
 image.url(:product)
 ```
 
-If you're building a custom storefront, you may also want to change the sizes of the images in your
-store. You can do this by applying an override to `Spree::Image`:
+If you're building a custom storefront, you may also want to change the sizes of
+the images in your store or add additional sizes. The default sizes can be changed
+using the `Spree::Config.product_image_styles` option.
 
-```ruby title="app/overrides/amazing\_store/spree/image/customize\_sizes.rb"
-module AmazingStore
-  module Spree
-    module Image
-      module CustomizeSizes
-        def self.prepended(klass)
-          klass.attachment_definitions[:attachment][:styles] = {
-            mini: '48x48>',
-            small: '400x400>',
-            product: '680x680>',
-            large: '1200x1200>',
-            jumbo: '1600x1600>'
-          }
-        end
+For example, we can set some new defaults and introduce a new `:jumbo` style
+like this:
 
-        ::Spree::Image.prepend self
-      end
-    end
-  end
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+  config.product_image_styles = {
+    mini: '48x48>',
+    small: '100x100>',
+    product: '240x240>',
+    large: '600x600>',
+    jumbo: '1600x1600>'
+  }
 end
 ```
 
-Now that you changed your sizes, try getting the URL for your new `jumbo` size or `large` sizes:
+Similar to product styles, you can customize the taxon image styles using the
+`Spree::Config.taxon_image_styles` configuration option.
 
-```ruby
-image = Spree::Image.first
-image.url(:jumbo)
-taxon = Spree::Taxon.first
-taxon.url(:large)
+:::caution
+
+Active Storage will automatically generate sizes upon initial request.
+If you change the default image sizes and are using Paperclip, you must
+regenerate the styles by running a Rake task:
+
+```bash
+bundle exec rake paperclip:refresh:thumbnails CLASS=Spree::Image
 ```
 
-Solidus will generate the new sizes and return their URLs!
+or if you are only adding new styles, you can run the following task:
 
-You can also use your new styles in the `image` partial:
+```bash
+bundle exec rake paperclip:refresh:missing_styles CLASS=Spree::Image
+```
+
+:::
+
+Now that you changed your sizes, try getting the URL for your new `jumbo` or `mini` sizes:
 
 ```ruby
-< %= render 'spree/admin/shared/image', image: product.gallery.images.first, size: :jumbo %>
+image = Spree::Product.first.gallery.images.first
+image.url(:jumbo)
+
+icon = Spree::Taxon.first.icon
+icon.url(:mini)
+```
+
+You can also use your new styles in the `image` partial in the backend:
+
+```ruby
+<%= render 'spree/admin/shared/image', image: product.gallery.images.first, size: :jumbo %>
+```
+
+and if you are using `solidus_starter_frontend` for your storefront like this:
+
+```ruby
+<%= render(
+  ImageComponent.new(
+    image: product.gallery.images.first,
+    size: :jumbo,
+    itemprop: "image",
+    data: { js: 'product-main-image' }
+  )
+) %>
 ```
 
 ## Customizing the allowed MIME types
