@@ -10,12 +10,12 @@ services:
     image: solidus-edgeguides
     command: bash -c "(yarn check || yarn install --check-files) && tail -f /dev/null"
     environment:
-      HISTFILE: "/home/solidusio_user/history/bash_history"
+      HISTFILE: "/home/node/history/bash_history"
     ports:
       - "${SERVER_PORT:-3000}:${SERVER_PORT:-3000}"
     volumes:
-      - .:/home/solidusio_user/app:delegated
-      - history:/home/solidusio_user/history:cached
+      - .:/home/node/app:delegated
+      - history:/home/node/history:cached
     tty: true
     stdin_open: true
     tmpfs:

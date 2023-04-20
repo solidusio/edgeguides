@@ -8,14 +8,11 @@ RUN apt-get update -qq \
     git \
   && rm -rf /var/cache/apt/lists/*
 
-ENV APP_USER=solidusio_user \
-    LANG=C.UTF-8
-ENV APP_HOME=/home/$APP_USER/app
+ENV LANG=C.UTF-8
+ENV APP_HOME=/home/node/app
 
-RUN useradd -ms /bin/bash $APP_USER
+USER node
 
-USER $APP_USER
+RUN mkdir -p /home/node/history
 
-RUN mkdir -p /home/$APP_USER/history
-
-WORKDIR /home/$APP_USER/app
+WORKDIR /home/node/app
