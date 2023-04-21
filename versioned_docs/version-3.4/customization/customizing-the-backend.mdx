@@ -1,0 +1,443 @@
+---
+sidebar_position: 4
+needs-diataxis-rewrite: true
+---
+
+# Customizing the backend
+
+This guide will teach you how to customize the Solidus admin panel.
+
+## Designing your feature
+
+When adding a feature to the backend UI, it's important that you spend some time designing the ideal
+UX for your store administrators. There are usually different ways to implement the same feature,
+and the best approach depends on how store admins use the backend.
+
+In this guide, we'll implement a very simple rejection system that allows you to mark certain email
+addresses as rejected and require an admin to manually review and approve any orders placed with
+that email address.
+
+To simplify the implementation, we'll assume the rejected email addresses are stored in an
+environment variable as a comma-separated string. Here are a couple of user stories we'll use as
+reference for the feature's requirement:
+
+* rejected orders are flagged automatically;
+* admins can manually approve rejected orders;
+* admins can list all rejected orders.
+
+Without further ado, let's start writing some code!
+
+## Adding new columns
+
+The first step is to add the `rejected` column to the `spree_orders` table, which we'll use to
+determine whether an order has been rejected. This is quite simple to do
+with [a migration](https://guides.rubyonrails.org/active\_record\_migrations.html):
+
+```bash
+$ rails g migration AddRejectedToSpreeOrders rejected:boolean
+```
+
+Edit the newly generated migration file so the new column can't be `NULL` and defaults to `false`.
+
+```diff
+<     add_column :spree_orders, :rejected, :boolean
+---
+>     add_column :spree_orders, :rejected, :boolean, null: false, default: false
+```
+
+Finally, update your database by running:
+
+```bash
+$ rails db:migrate
+```
+
+## Hooking into order events
+
+The first step is to flag an order as rejected when the email address on the order has been
+rejected. You can do this by creating a class whose job is to analyze an order and determine whether
+it should be flagged as rejected:
+
+```ruby title="app/models/amazing_store/order_analyzer.rb"
+# frozen_string_literal: true
+
+module AmazingStore
+  class OrderAnalyzer
+    def analyze(order)
+      order.update!(rejected: order_rejected?(order))
+    end
+
+    private
+
+    def rejected_emails
+      ENV.fetch('REJECTED_EMAILS', '').split(',')
+    end
+
+    def order_rejected?(order)
+      order.email.in?(rejected_emails)
+    end
+  end
+end
+```
+
+You will then need to subscribe to the `order_finalized` event, which is fired when an order is
+placed successfully, and call the analyzer:
+
+```ruby title="config/initializers/spree_bus.rb"
+# frozen_string_literal: true
+
+Rails.application.config.to_prepare do
+  Spree::Bus.subscribe :order_finalized do |event|
+    AmazingStore::OrderAnalyzer.new.analyze(event.payload[:order])
+  end
+end
+```
+
+At this point, we have a dead-simple order analyzer that determines whether each new order should be
+rejected or not. Now, we need to allow admins to manually review rejected orders and decide whether
+to reject them or remove them from the rejected.
+
+## Implementing new actions
+
+In order to allow admins to remove an order from the rejected, we'll add a button to the order
+detail page that will trigger a new controller action.
+
+The first step is to add our custom action to `Spree::Admin::OrdersController`. We'll use an
+override (see the [overrides section](customizing-the-core.mdx#using-overrides) for how to set it
+upeckout/address) to accomplish that:
+
+```ruby title="app/overrides/amazing_store/spree/admin/orders_controller/add_remove_from_rejected_action.rb"
+# frozen_string_literal: true
+
+module AmazingStore
+  module Spree
+    module Admin
+      module OrdersController
+        module AddRemoveFromRejectedAction
+          def remove_from_rejected
+            load_order
+
+            @order.update!(rejected: false)
+
+            redirect_to edit_admin_order_path(@order)
+          end
+
+          ::Spree::Admin::OrdersController.prepend self
+        end
+      end
+    end
+  end
+end
+```
+
+Now that the controller action has been implemented, we can define a route for it:
+
+```ruby title="config/routes.rb"
+# ...
+
+Spree::Core::Engine.routes.draw do
+  namespace :admin do
+    resources :orders, only: [] do
+      member do
+        put :remove_from_rejected
+      end
+    end
+  end
+end
+```
+
+In the next section, we'll see how to hook our custom controller action to a new button in the
+backend.
+
+## Defacing admin views
+
+We are going to add a "Remove from rejected" to the order toolbar:
+
+![Deface example](./images/deface-example.png)
+
+We are going to use the popular [Deface](https://github.com/spree/deface) gem to apply a patch to
+the default view. In case you're not familiar with it, Deface is a gem that allows you to "
+virtually" patch third-party views, meaning you can edit them without having to completely replace
+them in your application.
+
+:::info
+
+Just like for the storefront, you can still copy-paste the backend views into your application if
+you want to override them. However, this approach is quite hard to maintain, since it would prevent
+you to get any Solidus upgrades to the backend for views that have been overridden. It becomes even
+more complex when you consider all the different overrides applied to the backend by Solidus
+extensions. Deface is a declarative, maintainable way of patching backend views while still
+benefitting from Solidus upgrades.
+
+:::
+
+First of all, we need to install Deface by adding it to our `Gemfile`:
+
+```ruby title="Gemfile"
+# ...
+gem 'deface'
+```
+
+Once done, we need to identify which view we want to customize. By browsing through the backend's
+codebase, we can see the view in question is `spree/admin/orders/edit.html.erb`. If we inspect the
+view's source code, we can also see that we want our button to be included in the content for
+the `:page_actions` element, so that it's added to the toolbar actions when editing an order.
+
+Equipped with this information, we can now write our Deface override:
+
+```markup title="app/overrides/spree/admin/orders/edit/add_remove_from_rejected.html.erb.deface"
+<!-- insert_before "erb[silent]:contains('if can?(:fire, @order)')" -->
+<li>
+  <% if @order.rejected? %>
+    <%= button_to(
+      t('spree.remove_from_rejected'),
+      remove_from_rejected_admin_order_url(@order),
+      method: :put,
+      class: 'btn btn-primary btn-remove_order_from_rejected',
+    ) %>
+  <% end %>
+</li>
+```
+
+:::warning
+
+The path of overrides is extremely important: the directory where you put the override **must**
+match the path of the view you want to customize (minus the extension), and the override **must**
+have the `.html.erb.deface` extension for Deface to apply it correctly. If an override is not
+getting applied, the first thing you look at should be the path.
+
+:::
+
+:::info
+
+Deface provides a lot of selectors, actions and tools for debugging your overrides — taking the time
+to understand how to use them correctly will help you a lot when overriding different parts of the
+backend. You can look at the [Deface documentation](https://github.com/spree/deface) and even at
+Solidus extensions if you need some inspiration with a tricky override.
+
+:::
+
+The last thing we need to do for our button to appear properly is add
+the `spree.remove_from_rejected` translation key to our application. We just need to add the key to
+the `config/locales/en.yml` file in our application, like this:
+
+```yaml title="config/locales/en.yml"
+en:
+  spree:
+    remove_from_rejected: Remove from rejected
+```
+
+:::info
+
+While it's also possible to hardcode the string in your views/controllers, using Rails' native
+internationalization features will allow you to write code that is easier to maintain and will make
+it easier to go global, should you ever need it.
+
+:::
+
+:::info
+
+You can override default Spree translations in the exact same way, if you want to change the default
+labels or messages in the backend.
+
+:::
+
+## Adding new search form fields
+
+The last point of our feature requires that users can list all the orders that are rejected. The
+most straightforward solution is adding a field to the orders' search form for our new `:rejected`
+attribute.
+
+:::info
+
+Search forms in Solidus use the [ransack](https://github.com/activerecord-hackery/ransack) gem under
+the hood. Please, see its documentation for a complete description of everything that is supported.
+
+:::
+
+The orders' search form is visible from the "Orders" menu item. We've already
+seen [how to override views with Deface](customizing-the-backend.mdx#defacing-admin-views). This time
+we need to override the index template for orders:
+
+```erb title="app/overrides/spree/admin/orders/index/add_rejected_filter.html.erb.deface"
+<!-- insert_bottom "[data-hook=admin_orders_index_search] .field-block" -->
+<div class="field">
+  <%= label_tag :q_rejected_eq, t('spree.rejected') %>
+  <%= f.select :rejected_eq, [[t('spree.say_yes'), true], [t('spree.say_no'), false]], include_blank: t('spree.all') %>
+</div>
+```
+
+The new field is already visible. However, for security reasons, you're still required to explicitly
+include the new attribute to the list of allowed queryable columns:
+
+```ruby title="config/initializers/spree.rb"
+# ...
+Rails.application.config.to_prepare do
+  Spree::Order.whitelisted_ransackable_attributes |= ['rejected']
+end
+```
+
+After restarting the server, you can try it out and confirm it's working as expected!
+
+## Adding new menu items
+
+If you wanted to give maximum prominence to the problem with rejected orders, you could consider
+adding a new item to the main admin menu. You can do that by creating a
+new [`Spree::BackendConfiguration::MenuItem`](https://github.com/solidusio/solidus/blob/df51df62fa9b829216958b21b20514b7a3d87b30/backend/lib/spree/backend\_configuration.rb#L37)
+instance:
+
+```ruby title="config/initializers/spree.rb"
+# ...
+Spree::Backend::Config.configure do |config|
+  # ...
+  config.menu_items << config.class::MenuItem.new(
+    [:rejected_orders],
+    'ban',
+    url: '/admin/orders?q[rejected_eq]=true',
+    position: 0
+  )
+end
+```
+
+Our new `:rejected_orders` menu item points to the same URL generated when only
+the [previously introduced filter](customizing-the-backend.mdx#adding-new-search-form-fields) is
+selected in the search form. We use [`ban`](https://fontawesome.com/search?q=ban\&s=solid%2Cbrands)
+as its [Font Awesome](https://fontawesome.com) icon and want its position to be the first one.
+
+:::info
+
+The `position` argument is always considered after the "Order" menu item, which will always be on
+the very top of the sidebar. Therefore, the `:rejected_orders` item will be second in our example.
+
+:::
+
+Finally, we need to add the translation so its label is rendered:
+
+```yaml title="config/locales/en.yml"
+# ...
+en:
+  spree:
+    admin:
+      tab:
+        rejected_orders: Rejected orders
+```
+
+After restarting again your server, you can see how everything is in place.
+
+There're other interesting options that you can give on the initialization of a menu item:
+
+* `condition:` can contain a `Proc` for when the menu item should be displayed. For instance, if we
+only wanted our example to be rendered when there's at least one rejected order, we could
+pass `condition: -> { Spree::Order.where(rejected: true).any? }`.
+* `match_path:` allows more flexibility to match the current URL and render the custom item as being
+active in the menu. For instance, we might want to have our example highlighted whenever the
+filter has been selected, regardless of other filters being
+applied: `match_path: %r{[rejected_eq]=true}`.
+* `label:` allows changing the key under `{lang}.spree.admin.tab` where the label translation can be
+found in the locale file.
+* `partial:` can be used in complex scenarios when you want a partial to be rendered as content
+within your menu item. For instance, `partial: 'spree/admin/orders/rejected_orders'`.
+
+## Customizing assets
+
+Solidus leverages the [Rails asset
+pipeline](https://guides.rubyonrails.org/asset_pipeline.html) to allow for
+customization and overriding of your backend assets. We recommend that you
+familiarize yourself with the Rails asset pipeline before going any further.
+
+Some aspects of the style in the backend have been extracted into SCSS
+variables. You can look at them in the [`spree/backend/globals/_variables.scss`
+file](https://github.com/solidusio/solidus/blob/master/backend/app/assets/stylesheets/spree/backend/globals/_variables.scss).
+If you want to redefine some of them, you can create a
+`spree/backend/globals/_variables_override.scss` file under your application
+stylesheets directory. For instance, if you wanted to make the header black:
+
+```scss title="app/assets/stylesheets/spree/backend/globals/_variables_override.scss"
+$color-header-bg: #000;
+```
+
+For more elaborated changes, take into account that, when you install Solidus,
+the two following manifest files are created:
+
+* `vendor/assets/stylesheets/spree/backend/all.css`, for your CSS assets.
+* `vendor/assets/javascripts/spree/backend/all.js`, for your Javascript assets.
+
+If you glance at them, you'll see that they both include a `spree/backend`
+file, which is located in the Solidus' backend Rails engine, and, after that,
+they also require all the files recursively under their directories (the
+`require_tree .` directive). Any file you put under
+`vendor/assets/{stylesheets,javascripts}/spree/backend` directories will be
+loaded after Solidus' default assets, allowing you not only to customize but to
+override CSS and Javascript code.
+
+:::warning
+
+If you can, always go for adding instead of overriding default assets. There's
+no guarantee that a Solidus style won't change in the future and make your
+override useless or behave in unexpected ways.
+
+:::
+
+Nonetheless, you might want to put the assets you control under `app/assets`,
+just like Sprockets recommends. For that, you need to add another directive to
+the generated manifest, as we'll demonstrate below.
+
+:::danger
+
+When dropping a file under `app/assets`, you must be careful. By default, the
+generated manifests under
+`app/assets/{stylesheets,javascript}/application.{css,js}` in a new Rails
+application contain directives to load any file below their hierarchy
+recursively. I.e., a style meant only to be used in the backend could interfere
+with your storefront. Make sure you update the generated manifests accordingly,
+including the removal of the `require_tree .` directive.
+
+:::
+
+As a simple example, let's make the delete button a bit more prominent by
+uppercasing its label. We'll require another file from the Solidus CSS
+manifest at `vendor/stylesheets/spree/backend/all.css`
+
+```diff
+  *= require spree/backend
+  *= require_self
+  *= require_tree .
++ *= require spree/backend/custom
+ */
+```
+
+We'll place it within the `app/assets/stylesheets` directory:
+
+```css title="app/assets/stylesheets/spree/backend/custom.css"
+.btn-remove_order_from_rejected {
+  text-transform: uppercase;
+}
+```
+
+Pretty much the same when it comes to Javascript. In this case, we'd need to
+modify the `vendor/assets/javascripts/spree/backend/all.js` manifest.
+
+```diff
+ //= require rails-ujs
+ //= require spree/backend
+ //= require_tree .
++//= require spree/backend/custom
+```
+
+We could then put any new behavior in the expected file:
+
+```javascript title="app/assets/javascripts/spree/backend/custom.js"
+// Javascript code
+```
+
+## Taking it from here
+
+Congratulations! You have implemented your first custom feature for the Solidus backend.
+
+Of course, we have just scratched the surface of what's possible: the backend provides a lot of UI
+components and capabilities you may leverage. We suggest spending some time in the backend's
+codebase to get accustomed with all the different tools at your disposal, and doing some
+planning/research before every custom feature.
+
+By using a combination of custom controller actions, view overrides and automated tests, you'll be
+able to write custom admin features that are fully integrated with the Solidus experience, and yet
+are a joy to maintain and evolve over time.
