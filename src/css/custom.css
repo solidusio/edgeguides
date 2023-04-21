@@ -34,3 +34,34 @@ h2 a.pull_request {
   color: #000;
   font-size: 90%;
 }
+
+.minimal_requirements {
+  font-size: 90%;
+}
+
+.minimal_requirements p {
+  display: inline-block;
+  margin-right: 1em;
+  font-style: italic;
+}
+
+.minimal_requirements dl {
+  display: inline-block;
+}
+
+.minimal_requirements dt {
+  display: inline-block;
+}
+
+.minimal_requirements-title__ruby {
+  width: 1em;
+}
+
+.minimal_requirements-title__rails {
+  width: 2em;
+}
+
+.minimal_requirements dd {
+  display: inline-block;
+  margin: 0 1em 0 0.5em;
+}
