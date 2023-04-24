@@ -25,7 +25,7 @@ Before using the new preferences, ensure you don't have any now invalid Taxons o
 
 1. Pull the production Taxons and Taxonomies to a development or staging environment.
 2. Set the new preferences to `true`.
-3. Run `Spree::Taxon.all.select(&:valid?)` and `Spree::Taxonomy.all.select(&:valid?)`.
+3. Run `Spree::Taxon.all.select(&:invalid?)` and `Spree::Taxonomy.all.select(&:invalid?)`.
 4. If you don't have empty arrays, you'll need to manually fix these records on production (warning you may have products attached to these Taxons/Taxonomies).
 
 If you had any invalid records, take caution in case you have any code that creates Taxons or Taxonomies.
