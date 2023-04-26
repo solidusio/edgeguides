@@ -36,13 +36,19 @@ It will:
 
 ## Ruby and Rails upgrades
 
-Solidus' policy on Ruby and Ruby on Rails support is fairly simple: each release supports up to the
-oldest Ruby and Rails versions that are still maintained.
+Solidus' approach on Ruby and Ruby on Rails support is fairly simple: each
+minor release supports up to the oldest Ruby and Rails versions that are still
+maintained. For major releases, we could remove support for old but maintained
+versions if that brings some benefit, but still allowing you to update to a
+supported Ruby or Rails version before upgrading Solidus. 
 
 Solidus 2.10, for instance, introduced support for Rails 6.0, but it also works with Rails 5.2. As
 for Ruby, Solidus works with Ruby 2.4 and later, because 2.4 was the oldest maintained version at
-the time of release. However, you cannot use Rails 6 with Ruby 2.4, which means you will have to
-upgrade to at least Ruby 2.5 if you want to use Solidus with Rails 6.
+the time of release. However, you cannot use Rails 6 with Ruby 2.4, which means
+you will have to upgrade to at least Ruby 2.5 if you want to use Solidus with
+Rails 6. Another example, Solidus 4.0 removed support for Rails 6.0 & Rails
+6.1, but, as Solidus 3.4 supports Rails 7, you can first update your store to
+Rails 7 and then go for Solidus 4.0.
 
 When you upgrade Solidus, you should also make sure to upgrade your Ruby and Rails versions to the
 newest possible versions. Ruby upgrades are usually pretty smooth, while Rails provides
