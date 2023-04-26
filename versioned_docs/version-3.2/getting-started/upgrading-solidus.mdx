@@ -21,6 +21,19 @@ You should also make sure to [update any extensions](using-extensions.mdx#stayin
 installed, since new releases may have come out to support the new Solidus version or take advantage
 of new functionality it introduces.
 
+Solidus contains a task to help you with the upgrading process. Remember to run
+it when you get hands-on:
+
+```bash
+bin/rails g solidus:update
+```
+
+It will:
+
+- Copy all new [Solidus database migrations](#updating-the-database) to your host application.
+- Generate an initializer to help you [update to the new
+  defaults](#updating-preferences).
+
 ## Ruby and Rails upgrades
 
 Solidus' policy on Ruby and Ruby on Rails support is fairly simple: each release supports up to the
@@ -82,6 +95,20 @@ repository to let the maintainer know that they need to update their extension.
 
 :::
 
+## Updating the database
+
+Especially during major version upgrades, when you run the `bin/rails g
+solidus:update` task, new database migrations updating the Solidus database
+schema might be copied to your host application.
+
+It would be best if you never ran them blindly. Instead, look into them in
+detail, understand them, check if they could cause an issue with your production
+data, and, if needed, modify them to match your specific situation. Depending on
+your data volume, usage, and schema modifications on your side, you might prefer
+to ditch them or perform a longer but safer update journey. The documentation
+for the [strong_migrations](https://github.com/ankane/strong_migrations) gem
+contains helpful tips you can check.
+
 ## Updating preferences
 
 There're some aspects of Solidus behavior that you can tweak on your application. For instance,
@@ -116,7 +143,8 @@ a couple of options:
 * Explicitly use the old default in `spree.rb` if you're sure you still want to use it.
 * Do nothing if the new default doesn't entail a change from your side.
 
-To help with this process, Solidus comes with the `solidus:update` generator:
+Recall that Solidus comes with the `solidus:update` generator to help you with
+the process:
 
 ```bash
 bin/rails g solidus:update
