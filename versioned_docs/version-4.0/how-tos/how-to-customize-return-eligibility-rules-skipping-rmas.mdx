@@ -1,0 +1,64 @@
+---
+sidebar_position: 3
+---
+
+# How to customize return eligibility rules: skipping RMAs
+
+Solidus' [built-in process for returns][returns] is mighty and flexible, and
+even allows you to disable RMAs as a prerequisite to creating a customer
+return.
+
+Go ahead and create an order from the storefront. You must go through
+the entire checkout process, from adding items to the cart to confirming the
+payment.
+
+Next, you need to capture the payments in the system and perform the shipments.
+You can do it either from the admin panel or through the console. E.g.:
+
+```ruby
+order = Spree::Order.find_by_number('R723438584')
+order.payments.map(&:capture!)
+order.shipments.map(&:ship!)
+```
+
+Let us go to the heart of the matter. When you add return items to a customer's
+return, Solidus checks whether they are eligible for being returned. By
+default, it uses
+[`Spree::ReturnItem::EligibilityValidator::Default`][eligibility-validator-default].
+Even if you can [replace it altogether][configure-eligibility-validator], the
+default validator is flexible enough to allow us to skip only the requirement
+for an RMA.
+
+Take a look at the stack of steps that `EligibilityValidator::Default` calls:
+
+```ruby title="core/app/models/spree/return_item/eligibility_validator/default.rb"
+# ...
+self.permitted_eligibility_validators = [
+  ReturnItem::EligibilityValidator::OrderCompleted,
+  ReturnItem::EligibilityValidator::TimeSincePurchase,
+  ReturnItem::EligibilityValidator::RMARequired,
+  ReturnItem::EligibilityValidator::InventoryShipped,
+  ReturnItem::EligibilityValidator::NoReimbursements
+]
+# ...
+```
+
+Let's use the Solidus initializer to remove the unwanted one:
+
+```ruby title="config/initializers/spree.rb"
+# ...
+Rails.application.config.to_prepare do
+  ::Spree::ReturnItem::EligibilityValidator::Default.permitted_eligibility_validators.delete(
+    ::Spree::ReturnItem::EligibilityValidator::RMARequired
+  )
+end
+# ...
+```
+
+And that's it! You can now simplify the return flow by creating customer
+returns without going through a previous authorization. You can go ahead and
+check it out in the admin panel.
+
+[returns]: /advanced-solidus/returns.mdx
+[eligibility-validator-default]: https://github.com/solidusio/solidus/blob/master/core/app/models/spree/return_item/eligibility_validator/default.rb
+[configure-eligibility-validator]: https://github.com/solidusio/solidus/blob/008192cd82dc9e8c270b47782624172ac02b3552/core/app/models/spree/return_item.rb#L14
