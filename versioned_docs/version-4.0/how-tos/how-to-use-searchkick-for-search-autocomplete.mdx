@@ -1,0 +1,363 @@
+---
+sidebar_position: 10
+---
+
+# How to use Searchkick for search autocomplete
+
+In this guide, we'll see how to improve the autocomplete capabilities offered
+by default in [Solidus Starter Frontend][ssf], providing support for large
+dataset and advanced features like full-text search, typo tolerance, etc.
+
+This how-to will use a gem called [Searchkick][searchkick-github], which
+is one of the most popular choices in the Rails ecosystem.
+
+## Installing Searchkick
+
+Let's get started by adding the necessary gems to our Gemfile:
+
+```
+bundle add searchkick elasticsearch
+```
+
+:::info
+
+Searchkick supports both Elasticsearch and OpenSearch. This guide
+section covers the installation with Elasticsearch. Please, refer to
+[Searchkick README][searchkick-github] for more installation options.
+
+:::
+
+## Indexing Configuration
+
+We can now customize our Product model to tell it how its information
+should be indexed. We can [customize][override-core] the `Spree::Product`
+core model:
+
+```ruby title="app/overrides/my_store/spree/product/add_searchkick.rb"
+module AmazingStore
+  module Spree
+    module Product
+      module AddSearchkick
+        def self.prepended(base)
+          unless base.respond_to?(:searchkick_index)
+            base.searchkick word_start: [:name]
+          end
+        end
+
+        def search_data
+          { name: name }
+        end
+
+        def should_index?
+          kept?
+        end
+
+        ::Spree::Product.prepend self
+      end
+    end
+  end
+end
+```
+
+A brief explanation about what we just added to the
+`Spree::Product` model:
+
+- `searchkick word_start: [:name]` enables Searchkick for this
+  model. `word_start: [:name]` will index the name of the product
+  in a special way that allows a partial match with the initial
+  part of the string. By default, it matches the entire word.
+  We will see later why we need this.
+- `unless base.respond_to?(:searchkick_index)` conditional surrounds
+  the statement above to avoid Searchkick to try to load itself multiple
+  times in development, where the code is reloaded at each new request.
+- `search_data` tells Searchkick which fields we want to index.
+  For this example, `name` is enough but you could consider adding
+  more fields depending on your needs.
+- `should_index?` determines which records will be indexed. In this
+  case, to keep it simple we only index products that are not
+  soft-deleted.
+
+Now that we've got the basis, it's time for our first real indexing.
+Opening a Rails console, we can run:
+
+```ruby title="bin/rails c"
+Spree::Product.reindex
+```
+
+:::info
+
+Be sure you have Elasticsearch up and running. Please, follow the
+official [installation instructions][elasticsearch-install-guide],
+or if you are a MacOS and Homebrew user, just run:
+
+```sh
+brew install elastic/tap/elasticsearch-full
+brew services start elasticsearch-full
+```
+
+:::
+
+At this point, we can verify that a basic search is working.
+Assuming you have some products which include the `ruby`
+word in one of the indexed fields, you can run:
+
+```ruby title="bin/rails c"
+Spree::Product.search("ruby").map(&:name)
+# => ["Ruby Hoodie", "Ruby Polo", "Ruby Mug", "Ruby Tote", "Ruby Hoodie Zip"]
+```
+
+Yey, it works! 🎉
+
+Time to index our categories as well:
+
+```ruby title="app/overrides/my_store/spree/taxon/add_searchkick.rb"
+module AmazingStore
+  module Spree
+    module Taxon
+      module AddSearchkick
+        def self.prepended(base)
+          unless base.respond_to?(:searchkick_index)
+            base.searchkick word_start: [:name]
+          end
+        end
+
+        def search_data
+          { name: name }
+        end
+
+        ::Spree::Taxon.prepend self
+      end
+    end
+  end
+end
+```
+
+We can now run a reindex for `Spree::Taxon` and verify it's
+working:
+
+```ruby title="bin/rails c"
+Spree::Taxon.reindex
+Spree::Taxon.search("ruby").map(&:name)
+# => ["Ruby"]
+```
+
+## Enhancing search autocomplete
+
+[Solidus Starter Frontend][ssf] comes with a simple search autocomplete out of
+the box. In this section of the guide, we will change its behavior to use the
+newly added advanced search functionalities.
+
+:::info
+
+The search autocomplete feature has been added to the Starter Frontend
+since Solidus 3.4.0. If you don't have it, please refer to
+[Autocomplete main search with products and taxons][autocomplete-pr] to
+backport that feature in your storefront.
+
+:::
+
+To let the autocomplete controller use Searchkick, we need to change the
+code of the `AutocompleteResultsController` provided like this:
+
+```diff title="app/controllers/autocomplete_results_controller.rb"
+
+  def autocomplete_products
+    if params[:keywords].present?
+-      searcher = build_searcher(params.merge(per_page: 5))
+-      searcher.retrieve_products
++      Spree::Product.search(params[:keywords], fields: [{name: :word_start}], limit: 5)
+    else
+      Spree::Product.none
+    end
+  end
+
+  def autocomplete_taxons
+    if params[:keywords].present?
+-       Spree::Taxon
+-         .where(Spree::Taxon.arel_table[:name].matches("%#{params[:keywords]}%"))
+-         .limit(5)
++       Spree::Taxon.search(params[:keywords], fields: [{name: :word_start}], limit: 5)
+    else
+      Spree::Taxon.none
+    end
+  end
+```
+
+- `fields: [{name: :word_start}]` part is required to tell Searchkick that we
+  want to use the special index for partial matching, previously defined in
+  the models.
+
+
+With just these small changes, the autocomplete will finally use Searchkick
+under the hood.
+
+
+## Next steps
+
+We just scratched the surface of what's possible with Searchkick, and
+it's left to each store to implement the configuration that better suits
+its needs. Still, there are some big things worth considering and in
+this section, we'll see the most relevant for a typical Solidus store.
+
+:::info
+
+[Searchkick README][searchkick-github] is really well done and contains
+more details about the information reported in this guide. Please, always
+refer to that documentation to get extended and updated information.
+
+:::
+
+
+### Reindex Strategies
+
+By default, every time you change a record if Searchkick is enabled
+on that model, a reindex will be triggered for that record only.
+While this is very useful, it can hurt stores' performances.
+
+To mitigate this problem, it is suggested to use the Asynchronous
+Reindex Strategy, which will push the update to a background job.
+
+:::info
+
+Please refer to Rails' [Active Job][active-job] guide to setup your
+system for background jobs support.
+
+:::
+
+To enable this strategy, you can edit the directive that enabled
+Searchkick on the models, like this:
+
+```diff title="app/overrides/my_store/spree/product/add_searchkick.rb"
+-   base.searchkick word_start: [:name]
++   base.searchkick word_start: [:name], callbacks: :async
+```
+
+### Reindex Associations
+
+Another important aspect of automatic reindexing is how
+associations are reindexed. In fact, data is not automatically
+synced when an association is updated. This is useful if the
+information indexed for a given record depends on the state of
+another resource of your application, associated with that record.
+
+For example, imagine you only want to index products that have
+stock in your warehouses. You can easily add this behavior using
+the `should_index?` method as we saw before:
+
+
+```diff title="app/overrides/my_store/spree/product/add_searchkick.rb"
+    def should_index?
+-     kept?
++     kept? && total_on_hand > 0
+    end
+```
+
+:::info
+
+`total_on_hand` checks all the product variants' stock levels via a
+model called Spree::StockItem. This model contains all the information
+about the remaining stock for a given variant in a given warehouse.
+
+:::
+
+Nice and clean, but what if someone purchases that product and its stock
+goes to 0?
+
+We need to also tell Solidus to reindex products associated with the
+corresponding StockItem, every time they get an update.
+
+```ruby title="app/overrides/my_store/spree/stock_item/reindex_product_on_change.rb"
+module AmazingStore
+  module Spree
+    module StockItem
+      module ReindexProductOnChange
+        def self.prepended(base)
+          base.after_commit :reindex_product
+        end
+
+        private
+
+        def reindex_product
+          variant.product.reindex
+        end
+
+        ::Spree::StockItem.prepend self
+      end
+    end
+  end
+end
+```
+
+Now, every time a stock level changes, the system will reindex the
+corresponding product to determine if it's still eligible to be part of the
+autocomplete search results.
+
+### Completely replace Solidus Search with Searchkick.
+
+You might be wondering why we are using these powerful Searchkick capabilities
+for autocomplete results only instead of replacing the whole Solidus searcher
+to use this new approach. That's a good point, actually!
+
+Unfortunately, replacing the whole searcher with Searchkick properly requires us
+to support a lot of other features, like filtering products per taxons, accepting
+scopes already defined on `Spree::Products` and many other things that would have
+made this how-to way more complex. We'll leave here an initial implementation idea,
+which only replaces the matching keyword logic from ActiveRecord to Searchkick.
+
+First of all, let's restore using the searcher in the autocomplete results controller
+for products:
+
+```diff title="app/controllers/autocomplete_results_controller.rb"
+  def autocomplete_products
+    if params[:keywords].present?
+-      Spree::Product.search(params[:keywords], fields: [{name: :word_start}], limit: 5)
++      searcher = build_searcher(params.merge(per_page: 5))
++      searcher.retrieve_products
+    else
+      Spree::Product.none
+    end
+  end
+```
+
+Now, we can create our own custom searcher based on Searchkick:
+
+```ruby title="app/models/my_store/searchkick_searcher.rb"
+module MyStore
+  class SearchkickSearcher < Spree::Core::Search::Base
+    protected
+
+    def get_products_conditions_for(base_scope, query)
+      unless query.blank?
+        searchkick_products = Spree::Product.search(query, fields: [{name: :word_start}])
+        base_scope.where(ids: searchkick_products.pluck(:id))
+      end
+      base_scope
+    end
+  end
+end
+```
+
+As you can see, this class inherits from [the core searcher][base-searcher],
+and replaces just the method responsible for filtering results by the keyword
+passed to the searcher.
+
+As the final step, we can tell Solidus to use this class with the proper configuration:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  config.searcher_class = 'MyStore::SearchkickSearcher'
+  # ...
+end
+```
+
+That's it. Now, if you want, you can iterate and replace more parts of the searcher
+using Searchkick.
+
+
+[ssf]: https://github.com/solidusio/solidus_starter_frontend
+[searchkick-github]: https://github.com/ankane/searchkick
+[elasticsearch-install-guide]: https://www.elastic.co/guide/en/elasticsearch/reference/current/install-elasticsearch.html
+[override-core]: /customization/customizing-the-core#using-overrides
+[autocomplete-pr]: https://github.com/solidusio/solidus_starter_frontend/pull/300
+[active-job]: https://guides.rubyonrails.org/active_job_basics.html
+[base-searcher]: https://github.com/solidusio/solidus/blob/019ba27e24fcbc255db7fd3efdb5820efe0662c7/core/lib/spree/core/search/base.rb
