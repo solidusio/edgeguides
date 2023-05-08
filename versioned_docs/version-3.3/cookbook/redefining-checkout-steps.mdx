@@ -24,21 +24,23 @@ The default Solidus checkout flow follows these steps, from start to finish:
 
 ## Removing checkout steps
 
-You'll need to decorate the order model to add or remove checkout steps. Inside the decorator, you
+You'll need to override the order model to add or remove checkout steps. Inside the override, you
 just need to add `remove_checkout_step` and pass in the name of the step you want to remove. For
-example, if you wanted to remove the address step, your decorator might look like this:
+example, if you wanted to remove the address step, your override might look like this:
 
-```ruby title="app/decorators/my_app/spree/order_decorator.rb"
+```ruby title="app/overrides/my_app/spree/order/remove_checkout_step.rb"
 # frozen_string_literal: true
 
 module MyApp
   module Spree
-    module OrderDecorator
-      def self.prepended(base)
-        base.remove_checkout_step :address
-      end
+    module Order
+      module RemoveCheckoutStep
+        def self.prepended(base)
+          base.remove_checkout_step :address
+        end
 
-      ::Spree::Order.prepend self
+        ::Spree::Order.prepend self
+      end
     end
   end
 end
@@ -54,20 +56,22 @@ complete.
 ## Adding checkout steps
 
 If you want to add a custom checkout step, you will need to call `add_checkout_step` in the order
-decorator, and pass in your custom step name, as well as a `before` or `after` attribute, so that
+override, and pass in your custom step name, as well as a `before` or `after` attribute, so that
 the order state machine knows where to put this custom step in the checkout flow.
 
-```ruby title="app/decorators/my_app/spree/order_decorator.rb"
+```ruby title="app/overrides/my_app/spree/order/add_checkout_step.rb"
 # frozen_string_literal: true
 
 module MyApp
   module Spree
-    module OrderDecorator
-      def self.prepended(base)
-        base.insert_checkout_step :my_custom_step, {before: :confirm}
-      end
+    module Order
+      module AddCheckoutStep
+        def self.prepended(base)
+          base.insert_checkout_step :my_custom_step, { before: :confirm }
+        end
 
-      ::Spree::Order.prepend self
+        ::Spree::Order.prepend self
+      end
     end
   end
 end
@@ -103,16 +107,20 @@ named `before_#{checkout_step_name}` exists. If it does, it runs that method. Th
 can run custom logic before the controller moves on to your step, which can be handy if you want to
 set things up for the view.
 
-```ruby title="app/controllers/my_app/checkout_controller_decorator.rb"
+```ruby title="app/overrides/my_app/spree/checkout_controller/add_before_custom_step.rb"
 # frozen_string_literal: true
 
 module MyApp
-  module CheckoutControllerDecorator
-    def before_my_custom_step
-      @custom_object = CustomObject.new()
-    end
+  module Spree
+    module CheckoutController
+      module AddBeforeCustomStep
+        def before_my_custom_step
+          @custom_object = CustomObject.new()
+        end
 
-    ::Spree::CheckoutController.prepend self
+        ::Spree::CheckoutController.prepend self
+      end
+    end
   end
 end
 ```
@@ -141,19 +149,21 @@ You can conditionally include steps in the checkout flow if necessary, by passin
 with the step in `add_checkout_step`. For example, if we only want to include our custom step if the
 orders total is over $50, we can pass that requirement in as a conditional:
 
-```ruby title="app/decorators/my_app/spree/order_decorator.rb"
+``ruby title="app/overrides/my_app/spree/order/add_checkout_step.rb"
 # frozen_string_literal: true
 
 module MyApp
   module Spree
-    module OrderDecorator
-      def self.prepended(base)
-        base.insert_checkout_step :my_custom_step, {
+    module Order
+      module AddCheckoutStep
+        def self.prepended(base)
+          base.insert_checkout_step :my_custom_step, {
           before: :confirm, if: -> (order) { order.total > 50 }
         }
-      end
+        end
 
-      ::Spree::Order.prepend self
+        ::Spree::Order.prepend self
+      end
     end
   end
 end
