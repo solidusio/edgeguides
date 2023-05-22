@@ -149,7 +149,7 @@ You can conditionally include steps in the checkout flow if necessary, by passin
 with the step in `add_checkout_step`. For example, if we only want to include our custom step if the
 orders total is over $50, we can pass that requirement in as a conditional:
 
-``ruby title="app/overrides/my_app/spree/order/add_checkout_step.rb"
+```ruby title="app/overrides/my_app/spree/order/add_checkout_step.rb"
 # frozen_string_literal: true
 
 module MyApp
