@@ -1,0 +1,103 @@
+---
+sidebar_position: 9
+---
+
+# State machines
+
+In this guide, we'll see what state machines are and how they are part of the
+Solidus toolbelt for dealing with business flows.
+
+As a programmer, state is one of the most challenging parts to model in a system. For instance, if
+you ask a semaphore which light is turned on, it might answer red, green, or amber, depending on
+when you ask it and what happened before the request: the _state_ of the semaphore depends on
+user-initiated and external events.
+
+A [finite state machine](https://en.wikipedia.org/wiki/Finite-state\_machine)
+(FSM) is a design pattern where a system, or one of its components, can be in
+one and only one of a limited number of states at a given time. Transitions are
+allowed between states under well-known events. As long as the initial state
+and the list of past events are known, you can recreate a state machine at any
+point.
+
+For instance, a semaphore can be in a red, green, or amber state. When a
+pedestrian presses a button, it transitions from green to amber. When on amber,
+it goes to red if 5 seconds pass. If red, it turns green after 180 seconds. If
+you know a semaphore was green at time zero, and the list of events has been
+button-press, 500 seconds, button-press, 3 seconds, you know it's amber now.
+
+Several parts of an e-commerce system fit this paradigm well. An order can be
+in progress, waiting
+for payment, or completed. It goes to completed when the payment is made. At that point,
+reimbursement can still be processed or completed. A payment... well, you get the idea.
+
+## State machines in Solidus
+
+Solidus defines [a few state
+machines](https://github.com/solidusio/solidus/tree/master/core/lib/spree/core/state\_machines)
+on top of some models.
+
+Each state machine describes its valid states and the allowed transitions. It
+also defines event methods that can be called from the outside to trigger
+internal changes. Finally, they can also declare some hooks that run when
+specific transitions happen.&#x20;
+
+Internally, Solidus' state machines use the
+[`states_machine`](https://github.com/state-machines/state\_machines) gem (more
+precisely,
+[`states_machine-activerecord`](https://github.com/state-machines/state\_machines-activerecord))
+. Take a look at [`states_machine`'s
+README](https://github.com/state-machines/state\_machines/blob/master/README.md)
+for more details on its usage and API.
+
+## Customizing state machines
+
+State machines modules are included in the corresponding model, so all the
+strategies described in the [core customization
+section](../customization/customizing-the-core.mdx) are valid.
+
+When customizing state machines, you should differentiate two different use cases:
+
+1. You need to modify the domain where the state machine flow belongs. For
+instance, you're working on the order checkout and want to prevent it from
+completing if some requirement is not met.
+2. You need to add orthogonal behavior to the flow, like sending an email or
+updating an external service when a payment is received.
+
+It would be best if you kept in mind that state machine transitions (including
+their `after_` hooks) are wrapped within a database transaction. On the first
+use case, adding new transition hooks is okay. However, if your requirement is
+tangential to the main flow, it's better to override the whole event method so
+that you can do your work when the primary database transaction is over.
+
+A good example of adding orthogonal behavior is event subscribers. There's no
+point in blocking database access until your subscribers have finished running.
+In fact, it's a bad practice: a failed subscriber could roll back the whole DB
+transaction and potentially leave your system in an inconsistent state.
+
+The customizations explained above allow surgical-precision changes to the
+state machine's flows. Still, sometimes, you may need to change extensive parts
+of how they act for more deep behavioral modifications. In that case, Solidus
+allows replacing the entire state machine with something custom. As always,
+with great power comes great responsibility. Replacing the whole state machine
+should be the outcome of an informed decision. Solidus relies on well-known
+state machine states and events in many areas of the core, so be prepared to
+adjust other parts of Solidus to work with your custom implementation.
+
+:::danger
+
+It's better to be conservative when customizing state machines. Try to apply
+the smallest possible set of changes, and if possible, avoid changing the
+defined states. You're dealing with the core of the domain model: large changes
+could branch out in unanticipated ways!
+
+:::
+
+## How-to guides
+
+- [How to customize existing state machines][how-to-customize-existing-state-machines]
+- [How to add orthogonal behavior: publishing events][how-to-add-orthogonal-behavior]
+- [How to replace an existing state machine][how-to-replace-an-existing-state-machine]
+
+[how-to-customize-existing-state-machines]: /how-tos/how-to-customize-existing-state-machines.mdx
+[how-to-add-orthogonal-behavior]: /how-tos/how-to-add-orthogonal-behavior-to-state-machines-publishing-events.mdx
+[how-to-replace-an-existing-state-machine]: /how-tos/how-to-replace-an-existing-state-machine.mdx

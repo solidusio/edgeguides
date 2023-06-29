@@ -1,0 +1,71 @@
+---
+sidebar_position: 7
+---
+
+# How to use a custom promotion adjuster
+
+Every time an order is updated, its eligible promotions might
+not be valid anymore; for example, this could happen if a promotion is
+tight to a specific order total threshold, and this value changes within
+the update. In the same way, changing the order could make it eligible
+for new promotions.
+
+In this guide, we'll see how to use our custom logic to recalculate adjustments every time an
+order is updated.
+
+In Solidus, this behavior is encapsulated in the
+[`Spree::Promotion::OrderAdjustmentsRecalculator`][order_adjustments_recalculator],
+class, which is called every time the order is updated. This class iterates over all
+existing promotion adjustments and recalculates their amount and eligibility.
+
+:::caution
+
+Please, keep in mind that promotion adjustments are handled before taxes are
+calculated, such that taxes always respect promotions.
+
+:::
+
+We'll now see how to use our own class instead of the one provided
+by Solidus.
+
+First of all, let's declare which promotion adjuster class we want to
+use, with the corresponding configuration:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+  config.promotion_adjuster_class = 'MyStore::PromotionAdjuster'
+end
+```
+
+Lastly, let's create our custom class, which implements the same interface
+of the original promotion adjuster class provided by Solidus:
+
+```ruby title="app/models/my_store/promotion_adjuster.rb"
+module MyStore
+  class PromotionAdjuster
+    def initialize(order)
+      @order = order
+    end
+
+    def call
+      # Your custom logic here.
+    end
+  end
+end
+```
+
+:::info
+
+Keep in mind that if you define your class as:
+
+```ruby
+class PromotionAdjuster < ::Spree::Promotion::OrderAdjustmentsRecalculator
+```
+
+you will be able to use `super` in its methods to execute parts of the
+original class provided by Solidus.
+
+:::
+
+[order_adjustments_recalculator]: https://github.com/solidusio/solidus/blob/v3.3/core/app/models/spree/promotion/order_adjustments_recalculator.rb

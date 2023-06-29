@@ -1,0 +1,106 @@
+---
+sidebar_position: 2
+---
+
+import PRLink from '@site/src/theme/PRLink';
+import MinimalRequirements from '@site/src/theme/MinimalRequirements';
+
+# Solidus v4.0 (2023-05-08)
+
+<MinimalRequirements ruby="3.0" rails="7.0" />
+
+Finally, we released Solidus 4.0! 🎉
+
+This release marks an important milestone for Solidus. New installations are now fully supporting the starter frontend,
+which works out of the box with the most common payment gateway integrations: PayPal, Stripe and Braintree.
+
+:::info
+
+Please, when upgrading, remember to review our generic [upgrade guides](/getting-started/upgrading-solidus.mdx) and run:
+
+```
+bin/rails g solidus:update
+```
+
+You can also check the complete [Changelog](https://github.com/solidusio/solidus/blob/v4.0/CHANGELOG.md) in our repository.
+
+:::
+
+Following our release policy, we try to make any major release as similar as possible to the last version of the previous series (v3.4 in this case).
+
+As with any major release though, there are some breaking changes, which we are going to cover here.
+The majority of them have been part of a deprecation cycle, but there are things you should check and possibly fix
+before or during the upgrade.
+
+Here's a list of things you should take care of.
+
+## Changes/Removals without deprecation
+
+## <PRLink description="Removed support for Rails < 7 & Ruby < 3" number="5012" />
+
+To have Solidus ready for what comes next, we need everyone to use at least Rails 7. That's because we have a plan to
+switch the Admin Panel to the Hotwire stack, which is now the default in the Rails world.
+
+**Before upgrading to Solidus v4.0, please be sure you are on Rails 7.0.** Here's a link to the Rails documentation about [upgrading from one version to the other][upgrading-rails].
+
+Please, keep in mind that Solidus v3.4 support both Rails 6.0, 6.1 and 7.0, which gives everyone the possibility to upgrade
+Rails iteratively before the Solidus major upgrade.
+
+[upgrading-rails]: https://guides.rubyonrails.org/upgrading_ruby_on_rails.html
+
+Along with that, we also removed support for older Ruby versions: **you need at least Ruby 3.0 to use Solidus v4.0**.
+
+## <PRLink description="Make option value to variant association unique" number="4146" />
+
+The same option value cannot be associated anymore with a given variant multiple times. It's very likely
+that you are not doing this, but this change introduces a new unique index on the `spree_option_values_variants` database table, which is going to fail if you have duplicate records.
+
+Please, double-check your production database before this new migration is executed. Here's an example script you can run to test if you have duplicates:
+
+```ruby
+Spree::OptionValuesVariant.select(:variant_id,:option_value_id).group(:variant_id,:option_value_id).having("count(*) > 1").size
+=> {[49, 3]=>3}  # means that there are 3 Spree::OptionValuesVariant with variant_id: 49 and option_value_id: 3.
+```
+
+If the script above returns anything different from `{}`, you need to remove those duplicates.
+
+## <PRLink description="Remove deprecated_address_id column from shipments" number="4379" />
+
+We have not used this column since we removed all references to it in 2016. Be sure you are also
+never using it.
+
+## <PRLink description="Remove position column from spree_taxons" number="4754" />
+
+Apparently, taxons used to be a list in very early versions of Spree, and have then been refactored to be a nested set. Nested sets are strict supersets of lists,
+so the `position` column is entirely unnecessary.
+
+Please, be sure you are never using it, and if you do, just re-add it with a new migration.
+
+## <PRLink description="Remove unused columns from spree_promotion_rules" number="4881" />
+
+We are cleaning up the `spree_promotion_rules` table from useless columns:
+
+- `product_group_id` refers to something that was removed from Spree in version 1.1 (see https://github.com/spree-contrib/spree_product_groups).
+- `code` refers to nothing.
+
+## <PRLink description="Drop unused table promotion_action_line_items" number="4882" />
+
+There's another table with identical columns that is being referenced in the codebase, `spree_line_item_actions`.
+
+You shouldn't, but please, be sure you are not using `promotion_action_line_items`.
+
+## Changes/Removals with deprecation
+
+Most of the v4.0 removals have been deprecated first, which means that if you are on v3.4, and you addressed all the deprecation warnings you see in your logs, you should be safe.
+
+Here's a list of the PRs that remove this deprecated code. For additional details, please read them commit by commit:
+
+- [Remove solidus_frontend from the meta gem](https://github.com/solidusio/solidus/pull/5026)
+- [Remove deprecated code from Core component](https://github.com/solidusio/solidus/pull/4989)
+- [Remove deprecated code from API component](https://github.com/solidusio/solidus/pull/5020)
+- [Remove deprecated code from Backend component](https://github.com/solidusio/solidus/pull/5021)
+- [Remove deprecated Preferences](https://github.com/solidusio/solidus/pull/5022)
+- [Remove deprecated factories usage](https://github.com/solidusio/solidus/pull/5023) + [Remove deprecated spree/testing_support file](https://github.com/solidusio/solidus/pull/5063)
+- [Remove deprecated order updater promotions code](https://github.com/solidusio/solidus/pull/4890)
+- [Remove support for deprecated promo rules matching policy](https://github.com/solidusio/solidus/pull/5019)
+- [Remove support for legacy event system](https://github.com/solidusio/solidus/pull/5024)
