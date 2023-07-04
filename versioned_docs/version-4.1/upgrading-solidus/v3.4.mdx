@@ -11,7 +11,7 @@ import MinimalRequirements from '@site/src/theme/MinimalRequirements';
 
 This is a slimmer release, but a very important one as it'll be the last on the 3.x series. [Following our policy](https://solidus.io/release_policy/#last_minor_before_major), there won't be other changes except removing deprecated code in release v4. That means if you adapt your store to be free of warnings, you should be ready to go when v4 is out (and it's just around the corner!).
 
-Please, remember to review our generic [upgrade guides](/getting-started/upgrading-solidus.mdx) and run the `bin/rails g solidus:update` task. You can also check the complete [Changelog](https://github.com/solidusio/solidus/blob/v3.4/CHANGELOG.md) in our repository.
+Please, remember to review our generic [upgrade guides](/upgrading-solidus/index.mdx) and run the `bin/rails g solidus:update` task. You can also check the complete [Changelog](https://github.com/solidusio/solidus/blob/v3.4/CHANGELOG.md) in our repository.
 
 ## <PRLink description="New taxon and taxonomy validations" number="4851" />
 
@@ -83,7 +83,7 @@ That's a small quality of life improvement. If you're checking out an order in t
 
 ## <PRLink description="All-encompassing update task" number="4957" />
 
-Before, running `bin/rails solidus:update` would only generate the initializer to [update default Solidus preferences](../getting-started/upgrading-solidus#updating-preferences]). Now, it'll also copy the new migration files to your host application. Remember, you'll still need to check and run them by yourself.
+Before, running `bin/rails solidus:update` would only generate the initializer to [update default Solidus preferences](/upgrading-solidus/index.mdx#updating-preferences]). Now, it'll also copy the new migration files to your host application. Remember, you'll still need to check and run them by yourself.
 
 ## <PRLink description="Deprecate promotions with an `any` policy" number="4991" />
 

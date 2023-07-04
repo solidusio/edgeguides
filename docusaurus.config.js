@@ -145,7 +145,21 @@ const config = {
         indexName: 'edgeguides',
         contextualSearch: false,
       },
-    }),
+    }
+  ),
+  plugins: [
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        redirects: [
+          {
+            to: '/upgrading-solidus',
+            from: '/getting-started/upgrading-solidus',
+          },
+        ],
+      },
+    ],
+  ],
 };
 
 module.exports = config;
