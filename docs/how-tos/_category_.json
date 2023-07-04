@@ -1,6 +1,6 @@
 {
   "label": "How-tos",
   "position": 5,
-  "collapsible": false,
-  "collapsed": false
+  "collapsible": true,
+  "collapsed": true
 }
