@@ -32,7 +32,7 @@ will almost certainly be a good starting point for anyone starting to work with 
 ### Unit vs. system tests
 
 In general, there's no hard rule on whether something should be tested with a unit test or a system
-test. Each developer and development team has their own style and philosophy, and you should find
+test. Each developer and development team has its own style and philosophy, and you should find
 your own and adapt it over time, as your application grows and your needs evolve.
 
 Our recommendation is to have a balanced test diet: write unit tests for all possible scenarios
@@ -64,9 +64,25 @@ application, because you're calling your code but not verifying its behavior.
 Rather than obsessing over test coverage, create guidelines around how to write meaningful,
 effective tests. High test coverage will come as a natural byproduct.
 
-## Configuring your test environment
 
-Here's the bare minimum you'll need to get started with testing your Solidus app:
+## Testing Solidus with Solidus Starter Frontend installed
+
+In case you installed Solidus selecting the Starter Frontend as storefront, you will notice that
+you have some specs already in place. You can find them in the `spec` folder of your application.
+
+Most of the steps covered in the rest of the guide are already done for you, but it's still a good
+idea to read through the guide to understand how your test suite is configured and the reasons behind
+the choices we made.
+
+Please note that the main entry point for the configuration provided by the Starter Frontend is placed
+at `spec/solidus_starter_frontend_spec_helper.rb` instead of `spec/spec_helper.rb` and `spec/rails_helper.rb`
+as a regular Rails application would do. That's because we wanted to still let the freedom to build your
+own test suite, independent from the one we provide.
+
+## Configuring your test environment from scratch
+
+If you didn't use the Starter Frontend and want to start from scratch, here's the bare minimum you'll need
+to get started with testing your Solidus app:
 
 ```ruby title="Gemfile"
 group :development, :test do
@@ -125,23 +141,22 @@ module AmazingStore
   class Application < Rails::Application
     # ...
 
-    # Don't initialize FactoryBot if it's not in the current Bundler group.
     if defined?(FactoryBotRails)
-      initializer after: 'factory_bot.set_factory_paths' do
+      initializer after: "factory_bot.set_factory_paths" do
         require 'spree/testing_support/factory_bot'
 
-        # The paths for Solidus factories.
+        # The paths for Solidus' core factories.
         solidus_paths = Spree::TestingSupport::FactoryBot.definition_file_paths
 
         # Optional: Any factories you want to require from extensions.
         extension_paths = [
-          # MySolidusExtension::Engine.root.join("lib/solidus_content/factories/order.rb"),
-          # MySolidusExtension::Engine.root.join("lib/solidus_content/factories/product.rb"),
+          # MySolidusExtension::Engine.root.join("lib/my_solidus_extension/testing_support/factories"),
+          # or individually:
+          # MySolidusExtension::Engine.root.join("lib/my_solidus_extension/testing_support/factories/resource.rb"),
         ]
 
         # Your application's own factories.
         app_paths = [
-          # Rails.root.join('lib/factories'),
           Rails.root.join('spec/factories'),
         ]
 
@@ -434,7 +449,7 @@ end
 ### Order helpers
 
 Sometimes, you need to generate an order in a given state. Solidus ships with a set
-of [order factories](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/testing_support/factories/order_factory.rb)
+of [order factories](https://github.com/solidusio/solidus/blob/v4.1/core/lib/spree/testing_support/factories/order_factory.rb)
 you can use to generate different types of orders, and these should be your first choice.
 
 However, you will sometimes need a bit more granularity than what the factories provide \(e.g., when

@@ -34,7 +34,6 @@ together. A standard Solidus installation is composed of the following gems:
 models and eCommerce business logic. This is the bare minimum for a Solidus install.
 * [solidus\_backend](https://github.com/solidusio/solidus/tree/master/backend): provides the
 standard Solidus backend, a powerful administrative UI you can use to manage your Solidus store.
-standard Solidus storefront along with helpers to build your own.
 * [solidus\_api](https://github.com/solidusio/solidus/tree/master/api): provides the Solidus REST
 API. The API is required by the backend, but you may also use it for your own purposes (e.g. for
 JS interactions in the storefront).
@@ -54,15 +53,19 @@ you a complete store. This is the approach we'll be following in this guide.
 
 ### In a new app
 
-If you don't have an existing Ruby on Rails application yet, simply create one with Sqlite3 as your
-database:
+If you don't have an existing Ruby on Rails application yet, simply create one with:
 
 ```bash
-$ rails new amazing_store
+$ rails new -T amazing_store
 ```
 
-Solidus doesn't require the JavaScript compiler shipped with Rails by default (Webpacker). You are
-still free to install it and use it in your store, though.
+:::info
+
+This command will generate a new Rails application in the `amazing_store` directory. This application
+will be using Sqlite3 as the database adapter by default and will skip generating default test files
+(via the `-T` option). If you want to see all the installation options offered by Rails, run `rails new --help`.
+
+:::
 
 Once you have generated your new Rails application, you can proceed as if you were installing
 Solidus [in an existing app](#in-an-existing-app).
@@ -72,26 +75,31 @@ Solidus [in an existing app](#in-an-existing-app).
 If you have an existing Ruby on Rails application, installing Solidus is fairly simple. In your CLI:
 
 ```bash
-$ bundle add 'solidus'
-# Add `--help` to learn about all available options
+$ bundle add solidus
 $ bin/rails generate solidus:install
 ```
+
+:::info
+
+If you want to see all the installation options offered by Solidus, run `bin/rails generate solidus:install --help`.
+
+:::
 
 The installer will prompt you on a few questions before completing the
 installation:
 
-- It will ask if you would like to use the default authentication solution,
-[Devise](https://github.com/heartcombo/devise), or implement your own.
-- It will also prompt you to choose which storefront you want to install. We
-recommend picking
+- Which storefront you want to install. We
+provide a ready-to-use template called
 [solidus\_starter\_frontend](https://github.com/solidusio/solidus_starter_frontend)
-to quickly get up & running. You might need to choose the deprecated
-[solidus\_frontend](https://github.com/solidusio/solidus_frontend) if you want
-to use an extension that still relies on it. There's also the option to choose
-no frontend.
-- Next, it will ask what payment service you would like to install with Solidus. Currently,
-it comes packaged with [Paypal](https://developer.paypal.com/home) and
-[Bolt](https://www.bolt.com/install) as the two default options.
+to quickly get up and running. There's also the option to choose
+no storefront and build your own.
+- What payment service you would like to install with Solidus. Currently,
+it comes packaged with
+[Paypal](https://github.com/solidusio/solidus_paypal_commerce_platform/),
+[Stripe](https://github.com/solidusio/solidus_stripe/) and
+[Braintree](https://github.com/solidusio/solidus_braintree) but you can also
+choose to start without a payment service via the "none" option and add one later.
+If you choose one, remember to check their READMEs for additional configuration steps.
 
 Once the installation has completed, you can now start your Rails server:
 
@@ -100,7 +108,8 @@ $ bin/rails server
 ```
 
 You should now be able to access your storefront at [http://localhost:3000](http://localhost:3000).
-You can also access Solidus' admin UI at [http://localhost:3000/admin](http://localhost:3000/admin) with the default credentials (email: admin@example.com, password: test123).
+You can also access Solidus' admin UI at [http://localhost:3000/admin](http://localhost:3000/admin)
+with the default credentials (email: `admin@example.com`, password: `test123`).
 
 ## First-time configuration
 
@@ -110,7 +119,7 @@ generated initializer in `config/initializers/spree.rb`.
 The very first line on it will be very similar to this one:
 
 ```ruby
-Spree.load_defaults '3.2'
+Spree.load_defaults '4.1'
 ```
 
 Some of the default values for Solidus preferences depend on the Solidus version. That line makes
