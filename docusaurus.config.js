@@ -62,6 +62,21 @@ const config = {
         },
         items: [
           {
+            href: "/",
+            label: "Docs",
+            position: "left",
+          },
+          {
+            href: "/policies/security",
+            label: "Security",
+            position: "left",
+          },
+          {
+            href: "/policies/release_policy",
+            label: "Releases",
+            position: "left",
+          },
+          {
             href: "https://solidus.io",
             label: "solidus.io",
             position: "right",
@@ -117,6 +132,10 @@ const config = {
                 label: "Stack Overflow",
                 href: "https://stackoverflow.com/questions/tagged/solidus",
               },
+              {
+                label: "Community Guidelines",
+                href: "/policies/community-guidelines",
+              },
             ],
           },
           {
@@ -148,6 +167,15 @@ const config = {
     }
   ),
   plugins: [
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'policies',
+        path: 'policies',
+        routeBasePath: 'policies',
+        sidebarPath: false,
+      },
+    ],
     [
       '@docusaurus/plugin-client-redirects',
       {
