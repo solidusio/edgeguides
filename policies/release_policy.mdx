@@ -1,0 +1,64 @@
+---
+sidebar_position: 2
+---
+
+# Release policy
+
+This document presents the Solidus team's commitment to the release cadence and policy for new Solidus releases. Users should take that as soft guidelines and not as carved in stone. We might modify it to accommodate the current state of development. On top of that, we're an Open Source project with limited resources. Nonetheless, we expect that will help Solidus users have a sense of when new features will be available and plan upgrades in advance.
+
+Solidus is in strict compliance with [Semantic Versioning](https://semver.org/). Our definition of a Breaking Change is any update to the Solidus code that can break a host application, except for:
+
+*   Issues due to the application using an interface explicitly marked as private.
+*   Issues due to the application monkey patching Solidus code.
+*   Issues due to a fix for a security or very important bug for which it hasn't been possible to implement a non-breaking solution.
+*   Issues due to the application using a Ruby, Rails or any other dependency version that is no longer maintained by the corresponding community.
+
+_The used examples for version numbers don't need to correspond to actual Solidus releases._
+
+## Patch versions: releases on backports
+
+_For example, a new patch release is transitioning from v3.2.0 to v3.2.1._
+
+Solidus releases a new patch version for a given minor whenever **something is [backported](/policies/security.mdx)**.
+
+A new patch version only contains bugs or security fixes. Most of the time, this is done backward compatible, but it could introduce a breaking change if there's no other way to fix an issue.
+
+The backport policy is not strict, but users should expect all security issues and sensible bugs to be backported to maintained versions.
+
+## Minor versions: quarterly releases
+
+_For example, a new minor release is transitioning from v3.2.1 to v3.3.0._
+
+The Solidus team will evaluate releasing a new minor **every quarter**.
+
+A new minor version can contain new features and bugs or security fixes, but it'll always add them in a backward-compatible way. Deprecation warnings are expected, but stores should keep working as before without changes to the application code as long as users run the update instructions.
+
+See the [last minor before every major section](#last_minor_before_major).
+
+## Major versions: every two years
+
+_For example, a new major release is transitioning from v3.2.0 to v4.0.0._
+
+Solidus aims to release a new major version at least **every two years**.
+
+A new major version contains breaking changes, and deprecated code is removed.
+
+See the [last minor before every major section](#last_minor_before_major).
+
+## Last minor before every major {#last_minor_before_major}
+
+_For example, the last minor before a major is v3.2.10 if the next release is v4.0.0._
+
+The final minor version in a major series (e.g., v3.2.10) and the first one in the next (e.g., v4.0.0) are identical, besides removing deprecated code.
+
+All the deprecation warnings on the last minor version are removed in the next major, and the application code is expected to comply. That means an application that has been updated to the latest minor and adapted to avoid any deprecation warning should keep working on the first minor release of the next series.
+
+There could be exceptions when there's no way to introduce a new feature without deprecating old behavior first, but that should be well documented in the [Changelog](#changelog).
+
+Master is frozen after the final minor version in a series and until the next major is released. Both releases should happen very close in time.
+
+## Changelog
+
+The [Changelog in Solidus' main branch](https://github.com/solidusio/solidus/blob/main/CHANGELOG.md) is the unique source of truth for the changes made to the project.
+
+It shouldn't be expected for the Changelog files in other branches in the repository or packaged gems to be complete.
