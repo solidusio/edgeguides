@@ -207,17 +207,19 @@ end
 
 ActiveRecord should now start keeping the number of likes in the `likes_count` column.
 
-In order to expose this field to API clients, we'll need to add a JSON field to the products API. We
-could just copy-paste the `product.json.jbuilder` view from Solidus and add the field there, but
-then we would need to remember to update our custom view every time the original view is changed.
-
-Instead, Solidus provides a more manageable way to add attributes to API resources via
-the `ApiHelpers` module. Let's see how we can do it and test it:
+In order to expose this field to API clients, we'll need to add a JSON field to the products API:
 
 ```ruby title="config/initializers/spree.rb"
 # ...
 Spree::Api::Config.product_attributes << :likes_count
 ```
+
+:::info
+
+For more information about how to extend the attributes of existing API resources, please refer to the
+[Add attributes to existing resources][how-to-add-attributes-to-existing-resources] How-To.
+
+:::
 
 That's all we need! We have created a new API resource and implemented a new endpoint to manipulate
 it, and we have seen how to add fields to an existing API resource. If you feel adventurous, how
@@ -226,5 +228,7 @@ about trying to implement an endpoint for _removing_ an existing product like?
 ## How-to guides
 
 - [How to sign in to the Solidus API using solidus_auth_devise][how-to-sign-in-to-the-solidus-api-using-solidus_auth_devise]
+- [Add attributes to existing resources][how-to-add-attributes-to-existing-resources]
 
-[how-to-sign-in-to-the-solidus-api-using-solidus_auth_devise]: ../how-tos/how-to-sign-in-to-the-solidus-api-using-solidus_auth_devise.mdx
+[how-to-sign-in-to-the-solidus-api-using-solidus_auth_devise]: /how-tos/how-to-sign-in-to-the-solidus-api-using-solidus_auth_devise.mdx
+[how-to-add-attributes-to-existing-resources]: /how-tos/api/add-attributes-to-existing-resources.mdx
