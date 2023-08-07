@@ -1,23 +1,45 @@
 :root {
-    --ifm-color-primary: #0045db;
-    --ifm-color-primary-dark: #003ec5;
-    --ifm-color-primary-darker: #003bba;
-    --ifm-color-primary-darkest: #003099;
-    --ifm-color-primary-light: #004cf1;
-    --ifm-color-primary-lighter: #004ffc;
-    --ifm-color-primary-lightest: #1e65ff;
-    --ifm-background-color: #fafbfc;
+    --ifm-color-primary: #dc3728;
+    --ifm-color-primary-dark: #c92f21;
+    --ifm-color-primary-darker: #be2c1f;
+    --ifm-color-primary-darkest: #9d2419;
+    --ifm-color-primary-light: #e04c3e;
+    --ifm-color-primary-lighter: #e1564a;
+    --ifm-color-primary-lightest: #e7756b;
+    --ifm-background-color: #f5f3f0;
+    --ifm-font-family-base: 'Graphik', 'system-ui', 'sans-serif';
+    --ifm-font-family-monospace: "Source Code Pro", 'monospace', 'sans-serif';
 }
 
 [data-theme='dark'] {
-    --ifm-color-primary: #4a7ff2;
-    --ifm-color-primary-dark: #bdcbe5;
-    --ifm-color-primary-darker: #acbede;
-    --ifm-color-primary-darkest: #7a96cb;
-    --ifm-color-primary-light: #ffffff;
-    --ifm-color-primary-lighter: #ffffff;
-    --ifm-color-primary-lightest: #ffffff;
-    --ifm-background-color: #242830;
+    --ifm-color-primary: #dc3728;
+    --ifm-color-primary-dark: #c92f21;
+    --ifm-color-primary-darker: #be2c1f;
+    --ifm-color-primary-darkest: #9d2419;
+    --ifm-color-primary-light: #e04c3e;
+    --ifm-color-primary-lighter: #e1564a;
+    --ifm-color-primary-lightest: #e7756b;
+    --ifm-background-color: #222222;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap');
+
+@font-face {
+    font-family: 'Graphik';
+    src: url('/fonts/graphik/graphik-regular-web.woff2') format('woff2'),
+    url('/fonts/graphik/graphik-regular-web.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Graphik';
+    src: url('/fonts/graphik/graphik-medium-web.woff2') format('woff2'),
+    url('/fonts/graphik/graphik-medium-web.woff') format('woff');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
 }
 
 .pull_request {
