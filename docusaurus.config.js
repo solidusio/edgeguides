@@ -182,6 +182,14 @@ const config = {
             to: "/upgrading-solidus",
             from: "/getting-started/upgrading-solidus",
           },
+          {
+            to: "/customization/customizing-your-storefront",
+            from: "/developers/customizations/overview",
+          },
+          {
+            to: "/getting-started/installing-solidus",
+            from: "/developers/getting-started/first-time-installation",
+          },
         ],
       },
     ],
