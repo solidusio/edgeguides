@@ -1,0 +1,32 @@
+---
+sidebar_position: 20
+---
+
+# How to setup Colorado Delivery Fee
+
+Solidus taxation system supports the [Colorado retail delivery fee][colorado-delivery-fee]
+out of the box. In this how-to, we will see the steps required to configure your store to enable this tax.
+
+## Via Admin Panel
+
+1. Create a new Zone for the state of Colorado.
+2. Create a new TaxRate within that zone, with:
+  - The new Colorado Zone as its zone.
+  - A rate of `0.27`.
+  - `Order Level` as `Tax Rate Level`.
+  - `FlatFee` as its base calculator.
+
+
+![Colorado Delivery Fee Setup](./images/colorado-delivery-fee-setup.gif)
+
+## Via rake task
+
+Solidus also provides a [rake task][rake-task] to help with the process. It will add the
+new Tax Rate to the default Tax Category if it exists. To execute it, please run:
+
+```bash
+bin/rails taxes:colorado_delivery_fee
+```
+
+[colorado-delivery-fee]: https://tax.colorado.gov/retail-delivery-fee
+[rake-task]: https://github.com/solidusio/solidus/blob/v3.3.0/core/lib/tasks/colorado_delivery_fee.rake
