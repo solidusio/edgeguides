@@ -31,7 +31,7 @@ You can also check the complete [Changelog](https://github.com/solidusio/solidus
 
 :::
 
-## <PRLink description="Add a new admin theme" number="5092" />
+## <PRLink number="5092">Add a new admin theme</PRLink>
 
 https://github.com/solidusio/solidus/pull/5092 is the first step towards the new Admin. It introduces a new
 theme, which is a set of colors and styles that can be applied to the Admin.
@@ -42,7 +42,7 @@ To switch to the new theme, you can set the following preference:
 Spree::Backend::Config.theme = 'solidus_admin'
 ```
 
-## <PRLink description="Allow changing the order recalculator" number="5110" />
+## <PRLink number="5110">Allow changing the order recalculator</PRLink>
 
 The `order.recalculate` and `order.recalculator` are introduced as aliases to the now deprecated
 `order.update` and `order.updater` in order to clarify the intention of these methods.
@@ -55,7 +55,7 @@ your own class that inherits from the current OrderUpdater class and set the new
 Spree::Config.order_recalculator_class = 'YourCustomOrderRecalucator'
 ```
 
-## <PRLink description="Remove respond_to :html from Spree::BaseController" number="5158" />
+## <PRLink number="5158">Remove respond_to :html from Spree::BaseController</PRLink>
 
 When we removed the gem `responders` as a core dependency (it still is for backend and api),
 we forgot to move the `respond_to :html` statement from `Spree::BaseController`, which is part
@@ -71,7 +71,7 @@ could be broken if these statements are true together:
 
 If that's the case, you can just add `respond_to :html` in that controller to fix it.
 
-## <PRLink description="Allow lambda in menu item :match_path option and URL" number="5152" />
+## <PRLink number="5152">Allow lambda in menu item :match_path option and URL</PRLink>
 
 This change allows setting a path for a menu item via a lambda executed at runtime. If engines other than Solidus
 would like their route in the main menu, this is how they can do it dynamically without having to hard-code the path.

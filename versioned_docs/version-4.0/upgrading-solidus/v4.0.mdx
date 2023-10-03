@@ -36,7 +36,7 @@ Here's a list of things you should take care of.
 
 ## Changes/Removals without deprecation
 
-## <PRLink description="Removed support for Rails < 7 & Ruby < 3" number="5012" />
+## <PRLink number="5012">Removed support for Rails < 7 & Ruby < 3</PRLink>
 
 To have Solidus ready for what comes next, we need everyone to use at least Rails 7. That's because we have a plan to
 switch the Admin Panel to the Hotwire stack, which is now the default in the Rails world.
@@ -50,7 +50,7 @@ Rails iteratively before the Solidus major upgrade.
 
 Along with that, we also removed support for older Ruby versions: **you need at least Ruby 3.0 to use Solidus v4.0**.
 
-## <PRLink description="Make option value to variant association unique" number="4146" />
+## <PRLink number="4146">Make option value to variant association unique</PRLink>
 
 The same option value cannot be associated anymore with a given variant multiple times. It's very likely
 that you are not doing this, but this change introduces a new unique index on the `spree_option_values_variants` database table, which is going to fail if you have duplicate records.
@@ -64,26 +64,26 @@ Spree::OptionValuesVariant.select(:variant_id,:option_value_id).group(:variant_i
 
 If the script above returns anything different from `{}`, you need to remove those duplicates.
 
-## <PRLink description="Remove deprecated_address_id column from shipments" number="4379" />
+## <PRLink number="4379">Remove deprecated_address_id column from shipments</PRLink>
 
 We have not used this column since we removed all references to it in 2016. Be sure you are also
 never using it.
 
-## <PRLink description="Remove position column from spree_taxons" number="4754" />
+## <PRLink number="4754">Remove position column from spree_taxons</PRLink>
 
 Apparently, taxons used to be a list in very early versions of Spree, and have then been refactored to be a nested set. Nested sets are strict supersets of lists,
 so the `position` column is entirely unnecessary.
 
 Please, be sure you are never using it, and if you do, just re-add it with a new migration.
 
-## <PRLink description="Remove unused columns from spree_promotion_rules" number="4881" />
+## <PRLink number="4881">Remove unused columns from spree_promotion_rules</PRLink>
 
 We are cleaning up the `spree_promotion_rules` table from useless columns:
 
 - `product_group_id` refers to something that was removed from Spree in version 1.1 (see https://github.com/spree-contrib/spree_product_groups).
 - `code` refers to nothing.
 
-## <PRLink description="Drop unused table promotion_action_line_items" number="4882" />
+## <PRLink number="4882">Drop unused table promotion_action_line_items</PRLink>
 
 There's another table with identical columns that is being referenced in the codebase, `spree_line_item_actions`.
 

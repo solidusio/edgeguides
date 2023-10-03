@@ -13,7 +13,7 @@ This is a slimmer release, but a very important one as it'll be the last on the 
 
 Please, remember to review our generic [upgrade guides](/upgrading-solidus/index.mdx) and run the `bin/rails g solidus:update` task. You can also check the complete [Changelog](https://github.com/solidusio/solidus/blob/v3.4/CHANGELOG.md) in our repository.
 
-## <PRLink description="New taxon and taxonomy validations" number="4851" />
+## <PRLink number="4851">New taxon and taxonomy validations</PRLink>
 
 New validations were added to the `Taxon` and `Taxonomy` models but are behind the new temporary `extra_taxon_validations` and `extra_taxonomy_validations` preferences.
 
@@ -36,7 +36,7 @@ On top of that, some of your tests may break if you have incorrectly built Taxon
 - As before, if you pass no `taxonomy`, a Taxonomy and its root Taxon will be made.
 - Now, the `parent` will be inferred from the given `taxonomy` or default created Taxonomy. This means, the created Taxon will always be nested (if you want a root Taxon, create a Taxonomy and get its root).
 
-## <PRLink description="Configurable order update attributes class" number="4955" />
+## <PRLink number="4955">Configurable order update attributes class</PRLink>
 
 `Spree::OrderUpdateAttributes` class is no longer hard-coded. That will grant you flexibility if you need to store additional attributes during checkout.
 
@@ -65,7 +65,7 @@ module MyStore
 end
 ```
 
-## <PRLink description="Configure allowed ransackable scopes" number="4956" />
+## <PRLink number="4956">Configure allowed ransackable scopes</PRLink>
 
 We already had allowed ransackable attributes and associations to configure [authorization on Ransack](https://activerecord-hackery.github.io/ransack/going-further/other-notes/#authorization-allowlistingdenylisting). We added the missing `allowed_ransackable_scopes` piece, allowing you to modify the defaults without overriding the `.ransack_scopes` method:
 
@@ -73,19 +73,19 @@ We already had allowed ransackable attributes and associations to configure [aut
 Spree::Product.allowed_ransackable_scopes.concat([:new_scope])
 ```
 
-## <PRLink description="Improvements for the risk analysis report" number="4883" />
+## <PRLink number="4883">Improvements for the risk analysis report</PRLink>
 
 The payment risk analysis summary rendered for orders considered dangerous now contains information for all the associated payments instead of only considering the last one.
 
-## <PRLink description="Easily change from frontend to admin view for an order" number="4886" />
+## <PRLink number="4886">Easily change from frontend to admin view for an order</PRLink>
 
 That's a small quality of life improvement. If you're checking out an order in the storefront, you can now prepend `/admin` to the route and land in the admin panel counterpart. Very helpful during development and testing.
 
-## <PRLink description="All-encompassing update task" number="4957" />
+## <PRLink number="4957">All-encompassing update task</PRLink>
 
 Before, running `bin/rails solidus:update` would only generate the initializer to [update default Solidus preferences](/upgrading-solidus/index.mdx#updating-preferences]). Now, it'll also copy the new migration files to your host application. Remember, you'll still need to check and run them by yourself.
 
-## <PRLink description="Deprecate promotions with an `any` policy" number="4991" />
+## <PRLink number="4991">Deprecate promotions with an `any` policy</PRLink>
 
 Actually, promotions with a `match_policy` of `any` were deprecated on v3.2. We forgot to add a deprecation warning, so you may only realize it now.
 
@@ -97,10 +97,10 @@ bin/rake solidus:split_promotions_with_any_match_policy
 
 That will create separate promotions for each of the rules of your promotions with `any` match policy, which should have the same outcome for customers.
 
-## <PRLink description="Deprecation of payment offsets" number="5008" />
+## <PRLink number="5008">Deprecation of payment offsets</PRLink>
 
 That's just some dangling code removal, as payment offsets (the old refund system) have not been used on Solidus for a long time. You must move entirely to the well-established refund system if you're still using them.
 
-## <PRLink description="Deprecated `#line_item_shipment_price`" number="4876" />
+## <PRLink number="4876">Deprecated `#line_item_shipment_price`</PRLink>
 
 The `Admin::OrdersHelper#line_item_shipment_price` method has been deprecated. You can use the equivalent `Spree::LineItem#display_amount` instead.
