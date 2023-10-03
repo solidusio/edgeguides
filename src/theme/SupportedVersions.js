@@ -2,6 +2,7 @@ import React from 'react';
 
 export default function SupportedVersions() {
   const versions = [
+    { number: 'v4.2', releaseDate: '2023-09-29', eolDate: '2025-06-29' },
     { number: 'v4.1', releaseDate: '2023-06-29', eolDate: '2024-12-29' },
     { number: 'v4.0', releaseDate: '2023-05-08', eolDate: '2024-11-08' },
     { number: 'v3.4', releaseDate: '2023-04-21', eolDate: '2024-10-21' },
