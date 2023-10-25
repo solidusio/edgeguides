@@ -290,10 +290,9 @@ instance:
 Spree::Backend::Config.configure do |config|
   # ...
   config.menu_items << config.class::MenuItem.new(
-    [:rejected_orders],
-    'ban',
+    label: :rejected_orders,
+    icon: 'ban',
     url: '/admin/orders?q[rejected_eq]=true',
-    position: 0
   )
 end
 ```
