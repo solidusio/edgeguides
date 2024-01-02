@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function SupportedVersions() {
   const versions = [
-    { number: 'v4.3', releaseDate: '2023-12-22', eolDate: '2025-06-22' },
+    { number: 'v4.3', releaseDate: '2023-12-22' },
     { number: 'v4.2', releaseDate: '2023-09-29', eolDate: '2025-03-29' },
     { number: 'v4.1', releaseDate: '2023-06-29', eolDate: '2024-12-29' },
     { number: 'v4.0', releaseDate: '2023-05-08', eolDate: '2024-11-08' },
@@ -20,6 +20,14 @@ export default function SupportedVersions() {
     { number: 'v2.5', releaseDate: '2018-03-27', eolDate: '2019-09-27' },
     { number: 'v2.4', releaseDate: '2017-11-07', eolDate: '2019-05-07' }
   ];
+
+  // add 18 months to the release date to get the end of life date
+  const eolDate = (releaseDate) => {
+    const oneMonth = 30 * 24 * 60 * 60 * 1000
+    return (new Date(new Date(releaseDate).getTime() + 18 * oneMonth)).toISOString().split("T")[0]
+  }
+
+  versions.forEach(version => version.eolDate = version.eolDate || eolDate(version.releaseDate))
 
   return (
     <div className="supported_versions">
