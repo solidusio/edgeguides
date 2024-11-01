@@ -1,0 +1,81 @@
+---
+sidebar_position: 3
+---
+
+# How to use custom logic to calculate return refunds
+
+We'll see how to customize the refund amount customers get when they perform a
+[return][returns]. Solidus performs full-amount refunds by default, but we can
+change it easily.
+
+We need a completed order, with payments captured and shipments delivered. Go
+through the checkout process and fulfill those conditions in the admin or
+console:
+
+```ruby
+order = Spree::Order.find_by_number('R723438584')
+order.payments.map(&:capture!)
+order.shipments.map(&:ship!)
+```
+
+You can go to the admin panel and check how the total amount for each inventory
+unit is presented by default when creating a new RMA for that order. That's the
+logic done by the [default return calculator][refund-calculator-default], which
+is [configured][configure-refund-calculator] in the return item model.
+
+Sometimes, though, stores need a stricter policy. Imagine that the full refund
+is only granted during the first week after placing the order. During the
+second week, there's a 25% penalty; beyond that, only 50% of the item's price
+is refunded.
+
+We can create our custom refund calculator accounting for those requirements
+while we can still lean on the default implementation:
+
+```ruby title="app/services/amazing_store/calculator/returns/with_penalty.rb"
+# frozen_string_literal: true
+
+module AmazingStore
+  module Calculator
+    module Returns
+      class WithPenalty < Spree::Calculator::Returns::DefaultRefundAmount
+        def compute(return_item)
+          default = super
+          case days_since_order(return_item)
+          when 0..7
+            default
+          when 8..14
+            default * 0.75
+          else
+            default * 0.5
+          end
+        end
+
+        private
+
+        def days_since_order(return_item)
+          (Date.today - return_item.inventory_unit.order.created_at.to_date).to_i
+        end
+      end
+    end
+  end
+end
+```
+
+We need to configure the returns item model to enable our calculator. Let's
+leverage the Solidus' initializer for that:
+
+```ruby title="config/initializers/spree.rb"
+# ...
+Rails.application.config.to_prepare do
+  ::Spree::ReturnItem.refund_amount_calculator = AmazingStore::Calculator::Returns::WithPenalty
+end
+# ...
+```
+
+That's it! Restart the server and check it out yourself. You might want to
+manually update the order's `:created_at` field to test the different possible
+situations.
+
+[returns]: /advanced-solidus/returns.mdx
+[refund-calculator-default]: https://github.com/solidusio/solidus/blob/master/core/app/models/spree/calculator/returns/default_refund_amount.rb
+[configure-refund-calculator]: https://github.com/solidusio/solidus/blob/31187cec36ccefca33406d5ffb5914db3eca78f2/core/app/models/spree/return_item.rb#L30
