@@ -34,7 +34,7 @@ use, with the corresponding configuration:
 ```ruby title="config/initializers/spree.rb"
 Spree.config do |config|
   # ...
-  config.promotion_adjuster_class = 'MyStore::PromotionAdjuster'
+  config.promotions.order_adjuster_class = 'MyStore::PromotionAdjuster'
 end
 ```
 
