@@ -5,6 +5,13 @@ needs-diataxis-rewrite: true
 
 # Promotions system
 
+:::info
+
+This is documentation for the legacy promotion system that ships with Solidus up until Solidus 5.
+If you want to use the new promotion system, refer to the [documentation on Github](https://github.com/solidusio/solidus/blob/main/promotions/README.md).
+
+:::
+
 ## Architecture overview
 
 Solidus ships with a powerful rule-based promotions system that allows you to grant flexible
@@ -211,9 +218,9 @@ promotion rule instance:
 
 The last step is to register our new promotion rule in an initializer:
 
-```ruby title="config/initializers/promotions.rb"
+```ruby title="config/initializers/spree.rb"
 # ...
-Rails.application.config.spree.promotions.rules << 'AmazingStore::Promotion::Rules::Payment'
+Spree::Config.promotions.rules << 'AmazingStore::Promotion::Rules::Payment'
 ```
 
 When you create a new promotion in the backend, we should now see the _Payment_ promotion rule. For
@@ -319,9 +326,9 @@ for an example of actions with preferences.
 
 Finally, we need to register our action by adding the following to an initializer:
 
-```ruby title="config/initializers/promotions.rb"
+```ruby title="config/initializers/spree.rb"
 # ...
-Rails.application.config.spree.promotions.actions << 'AmazingStore::Promotion::Actions::HalfShipping'
+Spree::Config.promotions.actions << 'AmazingStore::Promotion::Actions::HalfShipping'
 ```
 
 Like before, let's add a human-friendly description:
