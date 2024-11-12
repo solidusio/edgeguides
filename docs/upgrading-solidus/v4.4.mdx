@@ -11,6 +11,8 @@ import MinimalRequirements from '@site/src/theme/MinimalRequirements';
 
 Solidus v4.4 is out! 🎉
 
+This release continues [the amazing work](https://github.com/solidusio/solidus/pulls?q=is%3Apr+author%3AMadelineCollier+is%3Aclosed) from [Madeline](https://github.com/MadelineCollier) to finalize the new Solidus Admin interface, adds Rails 7.2 support and introduces a new promotion system for new stores.
+
 ## <PRLink number="5805">Hello, `solidus_promotions`</PRLink>
 
 A major new development is the release of `solidus_promotions` and `solidus_legacy_promotions`.
@@ -43,4 +45,21 @@ to your Gemfile and follow the instructions [here](https://github.com/solidusio/
 
 If you want to upgrade your store to the new promotion system, follow the instructions [here](https://github.com/solidusio/solidus/blob/v4.4/promotions/MIGRATING.md)
 
-[...]
+## <PRLink number="5843">Rails 7.2 support</PRLink>
+
+This made it necessary to bump the minimum Ruby version to 3.1 as well. Upgrading your store to Ruby 3.1 should be easy and you probably already have done it.
+
+## Moving `solidus_user_roles` extension into core and admin
+
+We started to move the `solidus_user_roles` extension into core and the new admin. The new migrations check the existence of the tables, so it should be save to install
+even if you have the extension installed, which you still need if you are using the current `solidus_backend` admin.
+
+### PRs
+
+- <PRLink number="5831">5831</PRLink>
+- <PRLink number="5833">5833</PRLink>
+- <PRLink number="5846">5846</PRLink>
+
+## <PRLink number="5883">Deprecate and dashboard code</PRLink>
+
+If you still use dashboards, please copy all controllers and views from `solidus_backend` to your application.
