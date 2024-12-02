@@ -1,6 +1,14 @@
 ---
 sidebar_position: 10
 ---
+# Introduction
+Brands are a frequently required information in ecommerce. 
+They allow 
+* more comprehensive analytics;
+* They allow your customers to filter products from a certain manufacturer;
+* They are frequently used in product feeds for marketing platforms such as Google Shopping. 
+
+With the integration of Brands inside Solidus all above detailed scenarios are possible. 
 
 # How to Use a Custom Brand Selector
 
@@ -8,7 +16,7 @@ In Solidus, a product's brand is determined using a configurable `brand_selector
 
 This guide explains how to implement and configure a custom brand selector to suit your application's unique requirements.
 
-### Default Behavior
+## Default Behavior
 
 By default, the `Spree::TaxonBrandSelector` works as follows:
 
@@ -31,7 +39,7 @@ To override the default behavior, you can create a new class that implements the
 
 For example, let's say you want to define brands based on specific product properties rather than taxons. Here's how you can do it:
 
-### Step 1: Create Your Custom Class
+## Step 1: Create Your Custom Class
 
 ```ruby title="app/models/my_store/custom_brand_selector.rb"
 module MyStore
@@ -53,7 +61,7 @@ module MyStore
 end
 ```
 
-### Step 2: Update the Configuration
+## Step 2: Update the Configuration
 
 To use your custom brand selector, update the initializer to configure the `brand_selector_class`:
 
@@ -65,7 +73,7 @@ end
 ```
 
 
-### Verifying the Custom Behavior
+## Verifying the Custom Behavior
 
 Once you've implemented and configured your custom class, you can verify its behavior by calling the `brand` method on any product. This method will now use your custom selector logic:
 
