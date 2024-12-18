@@ -33,6 +33,10 @@ reach out in the [Solidus Slack workspace](http://slack.solidus.io/).
 6. Our team will review your PR, provide feedback if necessary, and work with you to address any required changes.
 7. Once your contribution has been approved and meets our guidelines, it will be merged into the main repository.
 
+## Some general guidelines
+1. Avoid introducing new libraries into starter-frontend and avoid heavy libraries such as jquery, clean javascript is preferred.
+2. If you work on extensions that impact the starter-frontend align with the design language, do not introduce new icon sets. 
+
 ## Versioned Doc
 
 Our documentation is versioned, which means that each Solidus version has a different version of the guides, which users can navigate based on the Solidus version they are using. If the guide page you are adding or updating needs to be backported to other versions of the documentation, please use the related [instructions in the README](https://github.com/solidusio/edgeguides#versions).
