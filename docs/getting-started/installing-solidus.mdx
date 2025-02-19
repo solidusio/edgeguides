@@ -23,6 +23,7 @@ relational databases should work as well.
 manipulating product images and other assets. You need one or the other,
 depending on the [configured variant
 processor](https://guides.rubyonrails.org/configuring.html#config-active-storage-variant-processor).
+* To run Solidus in conjunction with an external CDN you will have to do some configuration steps outlined below.
 
 ## Library architecture
 
@@ -52,6 +53,8 @@ you a complete store. This is the approach we'll be following in this guide.
 ## Installation steps
 
 ### In a new app
+
+Solidus depends on any different components and gems. Always keep an eye out to temporary changes due to updates to dependencies. If you feel something is not right checkout the readme file in the Solidus repository. 
 
 If you don't have an existing Ruby on Rails application yet, simply create one with:
 
@@ -167,3 +170,24 @@ and `Spree::Backend::Config` or `Spree::Api::Config` for the backend and API com
 respectively, in the console.
 
 :::
+
+## CDNs and Active Storage
+
+By default, Active Storage assumes private access to services. This means generating signed, single-use URLs for blobs. If you'd rather make blobs publicly accessible, specify public: true in your app's config/storage.yml.
+
+```
+gcs: &gcs
+  service: GCS
+  project: ""
+
+private_gcs:
+  <<: *gcs
+  credentials: <%= Rails.root.join("path/to/private_key.json") %>
+  bucket: your_own_bucket-<%= Rails.env %>
+
+public_gcs:
+  <<: *gcs
+  credentials: <%= Rails.root.join("path/to/public_key.json") %>
+  bucket: your_own_bucket-<%= Rails.env %>
+  public: true
+```
