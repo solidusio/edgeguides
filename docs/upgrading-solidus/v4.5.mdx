@@ -37,3 +37,21 @@ The purpose of metadata fields is to allow customers and admins alike to provide
 ## <PRLink number="3852">Remove Spree::UserAddress#archived flag</PRLink>
 
 This removes the "archived" flag on user address book records and now simply removes the association between a user and a address record if an address gets removed form the users address book.
+
+## Solidus developer experience improvement: Faster bootup with extensions and configuration
+
+Solidus has a rich extension ecosystem for payment methods, volume pricing, reviews, and many more features.
+Up until Solidus 4.5, we would load any patches to core Solidus classes (which most extensions do) during the Rails startup process.
+Using the [`flickwerk` gem](https://github.com/friendlycart/flickwerk), we can now delay loading any patches to when the class being patched is loaded. This allows us to keep the Rails startup process fast.
+The two extensions that Solidus ships with, `solidus_promotions` and `solidus_legacy_promotions`, have already been adapted to the new way of loading patches.
+`Flickwerk`-style patches only work for classes that are autoloaded. In the Solidus ecosystem, that's everything in `app`.
+As part of this effort, we have moved the state machine classes and the permission sets from the `lib` folder (which is not autoloaded) to the `app` folder (which is).
+
+We've also moved some configuration options from autoloadable class variables to the `Spree::Config` object so that configuring Solidus does not implicitly load any classes during bootup.
+
+- <PRLink number="6090">6090</PRLink>
+- <PRLink number="6062">6062</PRLink>
+- <PRLink number="6056">6056</PRLink>
+- <PRLink number="6051">6051</PRLink>
+- <PRLink number="6050">6050</PRLink>
+- <PRLink number="6049">6049</PRLink>
