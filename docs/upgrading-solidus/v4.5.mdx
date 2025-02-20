@@ -1,0 +1,39 @@
+---
+sidebar_position: -4.5
+---
+
+import PRLink from '@site/src/theme/PRLink';
+import MinimalRequirements from '@site/src/theme/MinimalRequirements';
+
+# Solidus v4.5 (2025-02-20)
+
+<MinimalRequirements ruby="3.1" rails="7.0" />
+
+Solidus v4.5 is out! 🎉
+
+This release adds Rails 8.0, Ruby 3.4 support and continues our effort to finalize the new Solidus Admin interface.
+
+Also we now have a interface for storing Meta Data on resources.
+
+## <PRLink number="6091">Rails 8.0 support</PRLink>
+
+If you create a new store with Solidus and Rails 8.0 please make sure to follow [the instructions in the
+README](https://github.com/solidusio/solidus?tab=readme-ov-file#getting-started) about a `sprocket-rails` and Rails 8.0 related issue.
+
+## <PRLink number="6117">Ruby 3.4 support</PRLink>
+
+Due to the Ruby core team is splitting the standardlib into gems it might be the case that gems that have been shipped with Ruby now
+needs to be installed as separate gems. We already included `csv` as dependency, but your store might need additional gems.
+Just take a look at deprecation messages in your current stores logs simply add them to your `Gemfile`.
+
+## <PRLink number="6046">Adding SolidusAdmin Resources</PRLink>
+
+This should make it easier to continue the work on the new Admin and for stores integrating their own custom resources into Solidus admin.
+
+## <PRLink number="6118">Admin and User Metadata</PRLink>
+
+The purpose of metadata fields is to allow customers and admins alike to provide additional information to transactions to either extend the informations contained or allow to insert additional data to correlate transactions with third party systems.
+
+## <PRLink number="3852">Remove Spree::UserAddress#archived flag</PRLink>
+
+This removes the "archived" flag on user address book records and now simply removes the association between a user and a address record if an address gets removed form the users address book.
