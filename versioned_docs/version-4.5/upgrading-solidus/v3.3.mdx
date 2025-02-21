@@ -1,0 +1,157 @@
+---
+sidebar_position: -3.3
+---
+
+import PRLink from '@site/src/theme/PRLink';
+import MinimalRequirements from '@site/src/theme/MinimalRequirements';
+
+# Solidus v3.3 (2022-01-24)
+
+<MinimalRequirements ruby="2.7" rails="6.0" />
+
+New year, new Solidus release! This time, we acknowledge our [new policy around Ruby & Rails support](https://solidus.io/release_policy/). It also comes with new features, bug fixes, as well as some deprecations that will be removed in the next major release. Take the time to upgrade. We've committed with the community to release more often, so keeping up to date will help you when Solidus v4.0 is out, which will happen sooner than later.
+
+Before getting hands-on, please review our generic [upgrade guides](/upgrading-solidus/index.mdx). You can also check the complete [Changelog](https://github.com/solidusio/solidus/blob/v3.3/CHANGELOG.md) in our repository.
+
+## <PRLink number="4817">Added support for Ruby v3.2</PRLink>
+
+Solidus v3.3 comes with support for the recently released v3.2 of Ruby. You can safely upgrade to it without Solidus getting in your way.
+
+## <PRLink number="4845">Removed support for Ruby v2.5</PRLink>
+
+With v3.3, Solidus performs a long-due cleanup of its codebase, removing support for EOL's Ruby versions v2.5 & v2.6. If you're on Solidus v3.2 and you want to upgrade to v3.3:
+
+- Update your Solidus v3.2 store to Ruby v2.6.
+- Update your Solidus v3.2 store to Ruby v2.7.
+- Update your Solidus v3.2 store to v3.3.
+
+## <PRLink number="4848">Removed support for Ruby v2.6</PRLink>
+
+Solidus v3.3 no longer supports Ruby v2.6, which reached the EOL status. You'll need to:
+
+- Update your Solidus v3.2 store to Ruby v2.7.
+- Update your Solidus v3.2 store to v3.3.
+
+## <PRLink number="4850">Removed support for Rails v5.2</PRLink>
+
+Rails v5.2 (EOL) support has been removed from Solidus v3.3:
+
+- Update your Solidus v3.2 store to Rails v6.0.
+- Update your Solidus v3.2 store to v3.3.
+
+## <PRLink number="4491">Support for the new Colorado delivery fee</PRLink>
+
+We've updated our taxation system to support the new [Colorado retail delivery fee](https://tax.colorado.gov/retail-delivery-fee).
+Please, check [the corresponding guide page][how-to-setup-colorado-delivery-fee] to setup
+this new tax on your store.
+
+[how-to-setup-colorado-delivery-fee]: ../how-tos/how-to-setup-colorado-delivery-fee
+
+## <PRLink number="4853">Deprecate discriminatory wording for Ransack methods</PRLink>
+
+We're deprecating `.whitelisted_ransackable_attributes` & `.whitelisted_ransackable_associations` in favor of `.allowed_ransackable_attributes` & `.allowed_ransackable_associations`, respectively. The old terms won't be available on the next major.
+
+## <PRLink number="4660">Version upgraded for packaged underscore.js</PRLink>
+
+We've upgraded the packaged version of [underscore.js](https://underscorejs.org/) from v1.8.3 to v1.13.6. In case you were using it, check compatibility.
+
+## <PRLink number="4712">Deprecated #mails_from preference</PRLink>
+
+We've deprecated the `#mails_from` preference, as it wasn't used in the Solidus codebase anymore. Make sure you aren't using it for anything else. Otherwise, the expected way to handle the default `From:` field for transactional emails is the `Spree::Store#mail_from_address` attribute.
+
+## <PRLink number="4858">Store static preferences using string class names</PRLink>
+
+It's no longer necessary to wrap the definition of static preferences within a `.to_prepare` block to avoid [referencing a constant on an initializer](https://guides.rubyonrails.org/v6.1.0/autoloading_and_reloading_constants.html#autoloading-when-the-application-boots).
+
+You can change code like:
+
+```ruby title="config/initializers/spree.rb"
+Rails.application.config.to_prepare do
+  Spree::Config.static_model_preferences.add(
+    AmazingStore::Greeter,
+    'greeter_preferences',
+    name: ENV["GREETER_NAME"],
+  )
+end
+```
+
+with:
+
+
+```ruby title="config/initializers/spree.rb"
+Spree::Config.static_model_preferences.add(
+  'AmazingStore::Greeter',
+  'greeter_preferences',
+  name: ENV["GREETER_NAME"],
+)
+```
+
+## <PRLink number="4460">Configurable promotion adjuster</PRLink>
+
+You can now change what the default promotion adjuster does. Configure the `Spree::Config.promotion_adjuster_class`
+preference with a class that takes the order on initialization and responds to the `#call` method.
+
+Read [the corresponding how-to][how-to-use-a-custom-promotion-adjuster] for more information.
+
+[how-to-use-a-custom-promotion-adjuster]: ../how-tos/how-to-use-a-custom-promotion-adjuster
+
+## <PRLink number="4677">Configurable algorithm to prioritize store credits</PRLink>
+
+Before v3.3, store credits were always sorted by the priority of their type. Now you can change
+that behavior by configuring the `Spree::Config.store_credit_prioritizer_class` preference with
+a class that takes the store credits and the order on initialization and responds to the `#call`
+method.
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+  config.store_credit_prioritizer_class = 'MyStore::StoreCreditPrioritizer'
+end
+```
+
+```ruby title="app/models/my_store/store_credit_prioritizer.rb"
+module MyStore
+  class StoreCreditPrioritizer
+    def initialize(store_credits, order)
+      @store_credits = store_credits
+      @order = order
+    end
+
+    def call
+      # ...
+    end
+  end
+end
+```
+
+## <PRLink number="4739">Allow shipping category on variants</PRLink>
+
+It was already possible for a variant to have a different tax category than its product. Now, that's also true for the shipping category.
+
+## <PRLink number="4843">Default implementation for PaymentMethod#try_void</PRLink>
+
+When adding a new payment integration, it was required to implement the `PaymentMethod#try_void` method. However, it turned out that the logic was always very similar. We now provide a default implementation that would be enough in most situations.
+
+## <PRLink number="4861">Improved bogus credit card voiding</PRLink>
+
+Before this change, all attempts to void a payment with this testing payment method in the admin panel were successful. It's now possible to simulate a failure by trying to cancel an order with a captured payment.
+
+## <PRLink number="4767">Variant and product autocomplete functions flexibility with Ransack</PRLink>
+
+It's now possible to customize the autocompletion for variants and products on the backend via a callback returning a Ransack query. E.x.:
+
+```javascript
+$('#product-dropdown').productAutocomplete({
+  multiple: false,
+  searchCallback: (searchString) => ({
+    q: {
+      name_cont: searchString,
+      available_on_not_null: true
+    })
+  }
+})
+```
+
+## <PRLink number="4852">Add available in product's Ransack scopes</PRLink>
+
+`.available` is now available to be used as a [Ransack scope](https://activerecord-hackery.github.io/ransack/going-further/other-notes/#using-scopesclass-methods) in `Spree::Product`

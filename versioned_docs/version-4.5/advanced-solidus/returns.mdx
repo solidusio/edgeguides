@@ -1,0 +1,108 @@
+---
+sidebar_position: 8
+---
+
+# Returns
+
+This guide will go through what Solidus offers to manage the return of
+purchased items: the compensation of their cost in different ways or the
+exchange with other products.
+
+Sometimes things don't go as expected during an online transaction. Items can
+get damaged in their way, or the wrong product is shipped by error. Other
+times, companies have flexible return policies to remove friction in the
+payment step. In any case, e-commerce stores need a process to monitor returns
+and reliably support customers and administrators.
+
+## RMA: return authorizations
+
+The journey of a return usually begins with the buyer asking for it, whether
+via form or email. At that moment, the customer service can create an RMA
+(Return Merchandise Authorization) with a unique number that can be used as a
+reference for any further communication.
+
+In Solidus, an RMA is represented by the
+[`Spree::ReturnAuthorization`][return-authorization] model. It contains a
+number and other information like the stock location where items should be
+delivered or a memo for a free-text description.
+
+A `Spree::ReturnAuthorization` has an authorized state on creation, but it can
+be canceled if desired. We must note that, at this point, we're still dealing
+with user requests, not actual returns. A store can authorize a request and
+keep processing it, regardless of its final result (e.g., not ending up
+accepting a return), or it can cancel it for being invalid and not deserving
+further consideration.
+
+## Return items
+
+An RMA must reference one or more of the products a customer purchased. For
+instance, a user bought five cups, but one of them arrived damaged. Depending
+on the store policy, they might ask for a reimbursement or an exchange for
+another cup. At a later stage, the request will be approved, edited or denied.
+
+In Solidus, each return item is represented through a
+[`Spree::ReturnItem`][return-item] record. Notice that a `Spree::ReturnItem`
+instance is associated with a [`Spree::InventoryUnit`][inventory-unit]. That's
+the most concrete level of product identification in orders; i.e., orders can
+have several line items for different variants, and each line item may contain
+one or more. The inventory unit maps one to one to a physical (or digital, for
+what it's worth) object, such as a broken cup.
+
+A `Spree::ReturnItem` contains information about the requested reimbursement
+amount and how it should be processed (e.g., refund or store credit) or another
+unit with which the store should replace it.
+
+Finally, two status fields govern the lifecycle of an item to return:
+
+- The **acceptance status** controls the eligibility of the return per-se. Initially
+_pending_, it should end up _accepted_ in case of going forward.
+- The **reception status** marks whether the store has already received the
+returned package. In a standard scenario, it should transition from _awaiting_
+to _received_.
+
+## Customer returns
+
+Finally, after the return authorization has moved forward, it'll materialize in
+a customer return. At that point, a store will already have the returned items
+back. It might be that the customer support department rejected some of the
+requests or accepted all of them.
+
+In Solidus, that's represented by a [`Spree::CustomerReturn`][customer-return]
+record. Similar to RMAs, it's a simple model. It only contains an
+identification number and a stock location that is a final override of the
+RMA's proposal. Customer returns are flexible and not tied to a single return
+authorization. Because of that, `Spree::ReturnItem` belongs not only to
+`Spree::ReturnAuthorization` but also to `Spree::CustomerReturn`.
+
+## Reimbursements
+
+The final step is fulfilling the store obligations and performing the agreed
+reimbursement or exchange. The store will need another shipment with the new
+items in the latter case.
+
+[`Spree::Reimbursement`][reimbursement] takes care of wrapping everything up.
+It's associated with a `Spree::CustomerReturn`, but the system is flexible
+enough so that more than one can be created until all returned items have been
+processed.
+
+Typically, administrators can edit the returned item details, like the amount
+to refund, the article to use as a substitute, or if it should be marked as
+resellable. The system will also take care of creating a new shipment if
+needed. In the end, a new reimbursement record will be created with a state of
+either reimbursed or errored.
+
+## How-to guides
+
+- [How to customize the default elibility: skipping RMAs][how-to-customize-default-eligibility]
+- [How to modify valid exchange items][how-to-modify-valid-exchange-items]
+- [How to use custom logic to calculate refunds][how-to-use-custom-logic-to-calculate-refunds]
+
+[return-authorization]: https://github.com/solidusio/solidus/blob/master/core/app/models/spree/return_authorization.rb
+[return-item]: https://github.com/solidusio/solidus/blob/master/core/app/models/spree/return_item.rb
+[inventory-unit]: https://github.com/solidusio/solidus/blob/master/core/app/models/spree/inventory_unit.rb
+[customer-return]: https://github.com/solidusio/solidus/blob/master/core/app/models/spree/customer_return.rb
+[reimbursement]: https://github.com/solidusio/solidus/blob/master/core/app/models/spree/reimbursement.rb
+
+[how-to-customize-default-eligibility]: /how-tos/rma_and_returns/how-to-customize-return-eligibility-rules-skipping-rmas.mdx
+[how-to-modify-valid-exchange-items]: /how-tos/rma_and_returns/how-to-modify-valid-exchange-items-in-returns.mdx
+[how-to-use-custom-logic-to-calculate-refunds]: /how-tos/rma_and_returns/how-to-use-custom-logic-to-calculate-return-refunds.mdx
