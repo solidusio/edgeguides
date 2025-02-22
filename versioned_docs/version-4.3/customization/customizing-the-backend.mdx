@@ -7,6 +7,22 @@ needs-diataxis-rewrite: true
 
 This guide will teach you how to customize the Solidus admin panel.
 
+## Transitioning from Spree::Admin to SolidusAdmin
+
+Please note that currently there are two different admin engines running in parallel:
+
+1. `solidus_backend` as required by default from the `solidus` gem, under the namespace `Spree::Admin`
+2. `solidus_admin` as installed by default for new stores since solidus v4.3 and uses the namespace `SolidusAdmin`
+
+SolidusAdmin routes have preference over Spree::Admin if the following conditions are met:
+
+1. The `Show Legacy UI` button is switched off at the bottom of the admin sidebar
+2. The resource's action is implemented in SolidusAdmin
+3. The routes are drawn and not excluded by the `SolidusAdmin::Config['enable_alpha_features']` flag
+
+During this transitory period make sure you follow instructions that matches the actual admin engine being 
+used for the particular resource.
+
 ## Designing your feature
 
 When adding a feature to the backend UI, it's important that you spend some time designing the ideal
