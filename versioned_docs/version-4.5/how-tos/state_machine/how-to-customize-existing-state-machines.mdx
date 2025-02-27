@@ -1,0 +1,52 @@
+---
+sidebar_position: 2
+---
+
+# How to customize existing state machines
+
+Sometimes you might need to tweak Solidus' core model to fit your business
+needs. In that case, you might want to tweak a state machine to obey your
+extended domain.
+
+Say that you must store the time when a payment has been marked as completed.
+First, you need to add a new `#completed_at` field to the payments table:
+
+```bash
+bin/rails g migration AddCompletedAtToSpreePayments completed_at:time
+bin/rails db:migrate
+```
+
+Next, you can leverage the payment state machine to fill it. You can add an
+`after_transition hook` using an [override][customize-core] (don't forget the setup code in `config/application.rb`):
+
+```ruby title="app/overrides/my_store/payment_set_completed_at.rb"
+# frozen_string_literal: true
+
+module MyStore
+  module PaymentSetCompletedAt
+    def self.prepended(base)
+      base.state_machine.after_transition(to: :completed) do
+        self.completed_at = Time.zone.now
+      end
+    end
+
+    ::Spree::Payment.prepend self
+  end
+end
+```
+
+That's all you need to do. From this moment, the state machine will be
+responsible for storing when a payment is completed.
+
+:::danger
+
+Be aware of not overusing transition hooks in the state machines. When the involved logic requires
+reaching external services or, more generally, is decoupled from the main flow, you're better
+off [leveraging the event bus][how-to-add-orthogonal-behavior]. Otherwise, you
+will eventually run into the typical gotchas and downsides of abusing
+`ActiveRecord` callbacks.
+
+:::
+
+[customize-core]: /customization/customizing-the-core.mdx#using-overrides
+[how-to-add-orthogonal-behavior]: /how-tos/state_machine/how-to-add-orthogonal-behavior-to-state-machines-publishing-events.mdx
