@@ -84,6 +84,29 @@ subscriptions.
 
 :::
 
+### Built-in event subscribers
+
+Solidus comes with built-in event subscribers for some event-driven functionality in the system. For
+example, all transactional emails are initiated through event subscribers.
+
+When the `solidus_core` engine is loaded, all of the built-in event subscribers are loaded from
+`Spree::Config.environment.subscribers`. If you wanted to exclude some of the built-in subscribers
+you could do so from an initializer in your application:
+
+```ruby
+# config/initializers/spree.rb
+
+Spree.config do |config|
+  config.environment.subscribers = [
+    "Spree::OrderCancelMailerSubscriber",
+    "Spree::OrderConfirmationMailerSubscriber",
+    "Spree::OrderInventoryCancellationMailerSubscriber"
+  ]
+end
+```
+
+See `Spree::AppConfiguration` for an up-to-date list of Solidus' built-in subscribers.
+
 ### Custom events
 
 You're free to register your custom events into `Spree::Bus`. However, it's a good practice if you
