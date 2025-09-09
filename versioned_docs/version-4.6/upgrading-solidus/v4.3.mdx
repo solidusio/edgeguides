@@ -1,0 +1,45 @@
+---
+sidebar_position: -4.3
+---
+
+import PRLink from '@site/src/theme/PRLink';
+import MinimalRequirements from '@site/src/theme/MinimalRequirements';
+
+# Solidus v4.3 (2023-12-22)
+
+<MinimalRequirements ruby="3.0" rails="7.0" />
+
+Solidus v4.3 is out! 🎉
+
+This release has very few changes to consider when upgrading, because the majority of the work of this release
+has been done on the new Admin interface, which is taking shape but is still under development.
+
+The main change to the core is the compatibility of Solidus with Rails 7.1.
+
+Additionally, for new installations, we started to roll out the new admin interface as the default one, for all the pages
+that we support. Another important change for new installations is the new design applied to the starter frontend theme,
+which is now based on Tailwind CSS and is much more modern and flexible than the previous one.
+
+Here are a couple of changes to take into account when upgrading:
+
+## <PRLink number="5498">Use configurable promo adjuster in callback</PRLink>
+
+This change allows you to configure the code that is run to check if a promotion is still available right before completing an order.
+
+It comes with a little behavioral change. Previously, the promo adjuster was only used to calculate the eligibility of each adjustment.
+Now it does a little bit more: it calculates not only their eligibility, but also checks whether the adjustment's sum of amount is still correct.
+So it actually checks the promo total that the error message indicates it should have checked.
+
+## <PRLink number="5541">Deprecate Spree::NamedType Concern</PRLink>
+
+We deprecated and marked for removal the `Spree::NamedType` concern, which was used to define a couple of scopes and validations
+on models that have a `name` field.
+
+If you are using it in your project, please replace it with a more explicit:
+
+```ruby
+scope :active, -> { where(active: true) }
+default_scope -> { order(arel_table[:name].lower) }
+
+validates :name, presence: true, uniqueness: { case_sensitive: false, allow_blank: true }
+```
