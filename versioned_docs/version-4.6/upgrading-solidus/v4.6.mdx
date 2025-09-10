@@ -62,8 +62,8 @@ end
 ```
 
 :::warning
-
-Please make sure you run these migrations on a staging environment before deploying to production. If you have a large number of orphaned records, the migration might take a while to complete.
+Please make sure you run these migrations on a staging environment **before deploying** to production. If you have a large number of orphaned records, the migration might take a while to complete.
+:::
 
 ### Postgres Users
 
@@ -93,9 +93,9 @@ class ChangeCountriesIsoToUnique < ActiveRecord::Migration[7.0]
 end
 ```
 
-:::note
-
-You need to disable the transaction for the migration when using `algorithm: :concurrently`.
+:::info
+You need to disable the transaction with `disable_ddl_transaction!` for the migration when using `algorithm: :concurrently`.
+:::
 
 ### Country Iso Uniqueness
 
@@ -128,9 +128,9 @@ class ChangeCountriesIsoToUnique < ActiveRecord::Migration[7.0]
 end
 ```
 
-:::note
-
+:::info
 Postgres users, please make sure to add the index concurrently as described above.
+:::
 
 ## 🚀 Key Highlights
 
