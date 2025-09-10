@@ -3,6 +3,7 @@ sidebar_position: -4.6
 ---
 
 import MinimalRequirements from '@site/src/theme/MinimalRequirements';
+import PRLink from '@site/src/theme/PRLink';
 
 # Solidus v4.6 (2025-09-09)
 
@@ -139,6 +140,14 @@ This release introduces a major refactor of the email system, moving from couple
 - **New Order Events**: Added comprehensive order lifecycle events for better extensibility
 - **Configurable Email Subscribers**: Email sending is now handled by configurable event subscribers, making it easier to customize or replace email behavior
 - **Separated Mailer Logic**: Order confirmation, shipping notifications, and cancellation emails are now handled by dedicated subscribers
+
+#### Please review the following PRs for more details
+
+- <PRLink number="6234">Configurable Solidus event subscribers</PRLink>
+- <PRLink number="6219">Move carton shipped emails to subscriber</PRLink>
+- <PRLink number="6205">Add subscribers for inventory cancellation and order cancellation emails</PRLink>
+- <PRLink number="6199">Move OrderMailerSubscriber#send_confirmation_email</PRLink>
+- <PRLink number="6156">Separate order mailer subscriber from reimbursement mailer subscriber</PRLink>
 
 ### Reverse Charge VAT Support
 Added comprehensive support for EU reverse charge VAT requirements:
