@@ -10,6 +10,127 @@ import MinimalRequirements from '@site/src/theme/MinimalRequirements';
 
 We're excited to announce the release of Solidus v4.6.0, packed with improvements across all components of the framework. This release focuses on enhanced email handling, reverse charge VAT support, improved admin UI components, and better Rails compatibility.
 
+## Database Integrity Changes
+
+In this release we included a lot of foreign key migrations to enhance data integrity.
+
+Especially if you are using an old database with lots of orphaned records and an engine that enforces foreign keys (like PostgreSQL) you should carefully review the new migrations and test them in your staging environment before deploying to production.
+
+Each migration file has instructions on how to handle potential issues.
+
+### Example
+
+This migration adds a foreign key to the `spree_user_addresses` table. If there are any orphaned records (i.e. records that reference an address that does not exist), the migration will fail.
+
+```ruby
+class AddAddressbookForeignKey < ActiveRecord::Migration[7.0]
+  ...
+
+  def up
+    ...
+    add_foreign_key :spree_user_addresses, :spree_addresses, column: :address_id, null: false
+  rescue ActiveRecord::StatementInvalid => e
+    ...
+  end
+
+  def down
+    ...
+  end
+end
+```
+
+The commented out code can be used to remove those orphaned records before adding the foreign key constraint.
+
+```ruby
+class AddAddressbookForeignKey < ActiveRecord::Migration[7.0]
+  ...
+
+  def up
+    say_with_time "Removing orphaned address book entries (no corresponding address)" do
+      Spree::UserAddress.left_joins(:address).where(spree_addresses: { id: nil }).delete_all
+    end
+    add_foreign_key :spree_user_addresses, :spree_addresses, column: :address_id, null: false
+  rescue ActiveRecord::StatementInvalid => e
+    ...
+  end
+
+  def down
+    ...
+  end
+end
+```
+
+:::warning
+
+Please make sure you run these migrations on a staging environment before deploying to production. If you have a large number of orphaned records, the migration might take a while to complete.
+
+### Postgres Users
+
+In Postgres, adding a foreign key blocks writes on both tables. So in large databases extra care should be taken to minimize downtime.
+Please update the migrations to use `NOT VALID` by using `validate: false` and then validate the foreign key in a separate step.
+
+```ruby
+add_foreign_key :spree_user_addresses, :spree_addresses, column: :address_id, null: false, validate: false
+```
+
+Then, after the migration has been run, you can validate the foreign key in a separate migration.
+
+```ruby
+validate_foreign_key :spree_user_addresses, :spree_addresses, column: :address_id
+```
+
+The same is advised for index changes. By concurrently adding indexes, downtime can be minimized.
+
+```ruby
+class ChangeCountriesIsoToUnique < ActiveRecord::Migration[7.0]
+  disable_ddl_transaction!
+
+  def change
+    remove_index :spree_countries, :iso, algorithm: :concurrently
+    add_index :spree_countries, :iso, unique: true, algorithm: :concurrently
+  end
+end
+```
+
+:::note
+
+You need to disable the transaction for the migration when using `algorithm: :concurrently`.
+
+### Country Iso Uniqueness
+
+In addition to the foreign key migrations, we also added a unique index to the `spree_countries` table on the `iso` column.
+
+If you have duplicate countries in your database, the migration will fail. You can adjust the migration to remove duplicate countries before adding the index.
+
+```ruby
+class ChangeCountriesIsoToUnique < ActiveRecord::Migration[7.0]
+  def change
+    remove_index :spree_countries, :iso
+
+    say_with_time "Removing duplicate countries" do
+      Spree::Country.select(:iso).group(:iso).having("count(*) > 1").pluck(:iso).each do |iso|
+        countries = Spree::Country.where(iso: iso).order(:id).to_a
+        original_country = countries.shift
+        countries.each do |duplicate_country|
+          Spree::State.where(country_id: duplicate_country.id).update_all(country_id: original_country.id)
+          Spree::Address.where(country_id: duplicate_country.id).update_all(country_id: original_country.id)
+          Spree::StockLocation.where(country_id: duplicate_country.id).update_all(country_id: original_country.id)
+          Spree::ZoneMember.where(zoneable_type: "Spree::Country", zoneable_id: duplicate_country.id).update_all(zoneable_id: original_country.id)
+        end
+        puts "  - Removed #{countries.size} duplicate country with ISO code #{iso}"
+        countries.each(&:destroy)
+      end
+    end
+
+    add_index :spree_countries, :iso, unique: true
+  end
+end
+```
+
+:::note
+
+Postgres users, please make sure to add the index concurrently as described above.
+
 ## 🚀 Key Highlights
 
 ### Event-Driven Email System
