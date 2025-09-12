@@ -137,7 +137,7 @@ Postgres users, please make sure to add the index concurrently as described abov
 ### Event-Driven Email System
 This release introduces a major refactor of the email system, moving from coupled mailer calls to a flexible event subscriber pattern:
 
-- **New Order Events**: Added comprehensive order lifecycle events for better extensibility
+- **New Order Events**: `carton_shipped`, `order_canceled`, and `order_short_shipped` events to allow for even more order extensibility
 - **Configurable Email Subscribers**: Email sending is now handled by configurable event subscribers, making it easier to customize or replace email behavior
 - **Separated Mailer Logic**: Order confirmation, shipping notifications, and cancellation emails are now handled by dedicated subscribers
 
