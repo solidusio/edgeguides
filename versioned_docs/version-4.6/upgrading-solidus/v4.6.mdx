@@ -9,7 +9,7 @@ import PRLink from '@site/src/theme/PRLink';
 
 <MinimalRequirements ruby="3.1" rails="7.0" />
 
-We're excited to announce the release of Solidus v4.6.0, packed with improvements across all components of the framework. This release focuses on enhanced email handling, reverse charge VAT support, improved admin UI components, and better Rails compatibility.
+We're excited to announce the release of Solidus v4.6.0, packed with improvements across all components of the framework. This release focuses on event-based transactional email configuration, reverse charge VAT support, and improved admin UI components
 
 ## Database Integrity Changes
 
@@ -97,7 +97,7 @@ end
 You need to disable the transaction with `disable_ddl_transaction!` for the migration when using `algorithm: :concurrently`.
 :::
 
-### Country Iso Uniqueness
+### Country ISO Uniqueness
 
 In addition to the foreign key migrations, we also added a unique index to the `spree_countries` table on the `iso` column.
 
@@ -137,7 +137,7 @@ Postgres users, please make sure to add the index concurrently as described abov
 ### Event-Driven Email System
 This release introduces a major refactor of the email system, moving from coupled mailer calls to a flexible event subscriber pattern:
 
-- **New Order Events**: Added comprehensive order lifecycle events for better extensibility
+- **New Order Events**: `carton_shipped`, `order_canceled`, and `order_short_shipped` events to allow for even more order extensibility
 - **Configurable Email Subscribers**: Email sending is now handled by configurable event subscribers, making it easier to customize or replace email behavior
 - **Separated Mailer Logic**: Order confirmation, shipping notifications, and cancellation emails are now handled by dedicated subscribers
 
@@ -156,8 +156,8 @@ Added comprehensive support for EU reverse charge VAT requirements:
 - **Address Integration**: Reverse charge fields added to address handling
 - **API Support**: Full API coverage for reverse charge functionality
 
-### Enhanced Admin UI Components
-Significant improvements to the modern Solidus Admin interface:
+### Admin UI Components
+More improvements to the new Solidus Admin interface:
 
 - **New Select Component**: Improved performance and UX for dropdown selections
 - **Alert Component**: New alert system for better user feedback
@@ -167,10 +167,7 @@ Significant improvements to the modern Solidus Admin interface:
 ## 📦 Component Updates
 
 ### Solidus Core
-- **Migration Improvements**: All migrations can now be properly rolled back
-- **Rails Compatibility**: Better support for multiple Rails versions with proper migration inheritance
-- **Database Relations**: Enhanced addressbook with proper foreign keys and associations
-- **Logging**: Replaced `puts` statements with proper Rails logging throughout tasks and generators
+- **Database Integrity**: Added foreign keys to ie. user addressbook, product properties, promotions and stock tables
 
 ### Solidus Admin
 - **UI Performance**: Optimized select component performance for large datasets
@@ -215,15 +212,8 @@ Significant improvements to the modern Solidus Admin interface:
 ## 🔄 Breaking Changes
 
 - Email sending behavior has changed from direct mailer calls to event subscribers. While backward compatible, custom email logic may need updates
-- Migration version enforcement may require attention if you have custom migrations with incorrect versions
-- Some internal API helper methods have been refactored (primarily affects custom API extensions)
-
-## 📈 What's Next
-
-This release sets the foundation for more flexible email handling and better internationalization support. The event-driven architecture opens up new possibilities for customization and third-party integrations.
+- Foreign Key migrations may require attention if you have orphaned records or use postgres.
 
 ---
 
 For the complete list of changes, see the [full changelog](https://github.com/solidusio/solidus/compare/v4.5.0...v4.6.0).
-
-**Upgrade today** to take advantage of these improvements and new features!
