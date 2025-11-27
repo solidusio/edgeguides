@@ -1,0 +1,106 @@
+---
+sidebar_position: 2
+needs-diataxis-rewrite: true
+---
+
+# Introduction into the Solidus API
+
+While you don't have to use Solidus as a headless system, it comes with all features to do so
+The entire Solidus system is, with a few configuration exceptions, fully API accessible.
+The best way to explore our API is the [documentation available on Stoplight](https://solidus.stoplight.io/docs/solidus/e0fd2dd6925ca-solidus-api). 
+//We also provide ready to use [Postman Collections](https://documenter.getpostman.com/view/36834077/2sAYdimooZ) for you to try out. 
+
+Hereby some things are to be considered: 
+- Solidus leans on solidus_auth_devise to manage authentication, [but this doesn't mean you can't implement your own](https://guides.solidus.io/advanced-solidus/custom-authentication/);
+- Solidus can support webhooks, but needs a [core supported extension for that](https://github.com/solidusio/solidus_webhooks);
+- the default authentication uses a bearer token, but there is [an extension for JWT](https://github.com/solidusio-contrib/solidus_jwt), this extension is community supported though.
+
+In addition to the documentation to create your own authentication, you find extensive documentation inside the repositories for each extension. 
+
+# Getting started with the Solidus API
+
+After following the install guide you can directly access your new Solidus instance by retrieving the new admin user token via the backend. 
+If you used the installer with the sample data, your can use `admin@example.com` and `test123` as password to log into your new store at `http(s)://mydomain/admin/` and navigate to the default user's profile. 
+
+You can use your API key to access all resources in the API. The API key must be passed in the Authorization header in the following form:
+Authorization: Bearer API_KEY
+
+//We should document how to give API tokens for all users.
+By default, API keys are only generated for admins, but you can easily customize Solidus to generate them for all users, which is useful for instance if you want users to be able to sign in and manage their profile via the API.
+
+
+## Does the Solidus API allow me to store my own or third party meta data? 
+
+Sometimes Solidus needs to play well with other systems, we have created meta data support on all transactional ressources for that. 
+You can visit the dedicated guide page for that. 
+
+## I still need to modify and customize the API, what should I do? 
+
+We do have a [complete beginner's guide for that](https://guides.solidus.io/customization/customizing-the-api/). If you struggle or need help, you can always hit the core team up on the [slack support channel](https://slack.solidus.io/). 
+
+# Links 
+[Full Solidus API Documentation](https://solidus.stoplight.io/docs/solidus/e0fd2dd6925ca-solidus-api)
+
+# Meta Data Overview
+
+Meta Data allows you to store additional data in your ressources in form of Key Value Pairs via API. 
+This can be particular useful anywhere where you need to store custom information such as: 
+- customization data such as text strings or links to additional files used for example to store image files for custom t-shirts or engravement for jewelery; 
+- correlate transactions in 3rd party systems such as payment IDs; 
+- any other information you might deem useful. 
+
+Solidus Meta Data is not a blob or file storage of any kind. You can use it to link to files, not to store files. 
+
+# Implementation Considerations
+For how the line items are build you should consider some limitations: 
+
+If you construct an order with two identical products and meta data for both line items has identical key values the latest value added will overwrite previous values. 
+Meta Data supports arrays but it is on your responsbility to build the update logic in a manor that overwrites the current set of meta data correct values and if needed poll the currently present meta data and expand the string to an array to pass multiple values or concatenate them. 
+
+## Meta Data Security Settings
+
+In the default configuration meta data has no restrictions what so ever. You can add those restrictions though: 
+The meta data configuration allows you to set following values: 
+
+```
+    # @!attribute [rw] meta_data_validation_enabled
+    #   @return [Boolean] Indicates whether validation for customer and admin metadata columns is enabled.
+    #   When this is set to true, the following preferences will be used to validate the metadata:
+    #   - The maximum number of keys that can be added to the metadata columns (meta_data_max_keys).
+    #   - The maximum length of each key in the metadata columns (meta_data_max_key_length).
+    #   - The maximum length of each value in the metadata columns (meta_data_max_value_length).
+    #   (default: +false+)
+    preference :meta_data_validation_enabled, :boolean, default: false
+
+    # @!attribute [rw] meta_data_max_keys
+    #   @return [Integer] Maximum keys that can be allocated in customer and admin metadata column (default: +6+)
+    preference :meta_data_max_keys, :integer, default: 6
+
+    # @!attribute [rw] meta_data_max_key_length
+    #   @return [Integer] Maximum length that key can have in customer and admin metadata column (default: +16+)
+    preference :meta_data_max_key_length, :integer, default: 16
+
+    # @!attribute [rw] meta_data_max_value_length
+    #   @return [Integer] Maximum length that value can have in customer and admin metadata column (default: +256+)
+    preference :meta_data_max_value_length, :integer, default: 256
+```
+
+In the default configuration there's no limit to meta data. While this configuration allows you maximum flexibility on integrating any amount of values at any time. 
+By setting `meta_data_validation_enabled` to `true` you can enable the default security settings.
+
+The default configuration allows limits metadata to following settings: 
+- 6 Key Value Pairs;
+- Any Key can consist of a maximum of 16 characters;
+- Any Value can consist of a maximum of 256 characters.
+
+## Meta Data Access Model 
+
+In the default configuration you have two access models: 
+
+|              | Admin Metadata                                    | User Metadata on Orders and Line Items |
+|--------------|---------------------------------------------------|----------------------------------------------------------------------:|
+| User Access  | N/A                                               | Can be accessed on line-items and orders up to the order beeing complete. |
+| Admin Access | Is accessible, editable and readable at any time. | Is accessible, editable and readable at any time.                     |
+
+The goal of this configuration is to create a persistent meta data record for user interactions from the point that an order has been paid for. 
+This is particularily interesting to avoid changes in line items after values have been set and the order is in the process of beeing or has been executed. 
