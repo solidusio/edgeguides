@@ -2,6 +2,8 @@ import React from 'react';
 
 export default function SupportedVersions() {
   const versions = [
+    { number: 'v4.6', releaseDate: '2025-09-09' },
+    { number: 'v4.5', releaseDate: '2025-02-20' },
     { number: 'v4.4', releaseDate: '2024-11-12' },
     { number: 'v4.3', releaseDate: '2023-12-22' },
     // The following need to specify an end of life date because it
