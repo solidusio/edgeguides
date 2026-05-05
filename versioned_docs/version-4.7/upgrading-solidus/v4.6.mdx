@@ -1,0 +1,219 @@
+---
+sidebar_position: -4.6
+---
+
+import MinimalRequirements from '@site/src/theme/MinimalRequirements';
+import PRLink from '@site/src/theme/PRLink';
+
+# Solidus v4.6 (2025-09-09)
+
+<MinimalRequirements ruby="3.1" rails="7.0" />
+
+We're excited to announce the release of Solidus v4.6.0, packed with improvements across all components of the framework. This release focuses on event-based transactional email configuration, reverse charge VAT support, and improved admin UI components
+
+## Database Integrity Changes
+
+In this release we included a lot of foreign key migrations to enhance data integrity.
+
+Especially if you are using an old database with lots of orphaned records and an engine that enforces foreign keys (like PostgreSQL) you should carefully review the new migrations and test them in your staging environment before deploying to production.
+
+Each migration file has instructions on how to handle potential issues.
+
+### Example
+
+This migration adds a foreign key to the `spree_user_addresses` table. If there are any orphaned records (i.e. records that reference an address that does not exist), the migration will fail.
+
+```ruby
+class AddAddressbookForeignKey < ActiveRecord::Migration[7.0]
+  ...
+
+  def up
+    ...
+    add_foreign_key :spree_user_addresses, :spree_addresses, column: :address_id, null: false
+  rescue ActiveRecord::StatementInvalid => e
+    ...
+  end
+
+  def down
+    ...
+  end
+end
+```
+
+The commented out code can be used to remove those orphaned records before adding the foreign key constraint.
+
+```ruby
+class AddAddressbookForeignKey < ActiveRecord::Migration[7.0]
+  ...
+
+  def up
+    say_with_time "Removing orphaned address book entries (no corresponding address)" do
+      Spree::UserAddress.left_joins(:address).where(spree_addresses: { id: nil }).delete_all
+    end
+    add_foreign_key :spree_user_addresses, :spree_addresses, column: :address_id, null: false
+  rescue ActiveRecord::StatementInvalid => e
+    ...
+  end
+
+  def down
+    ...
+  end
+end
+```
+
+:::warning
+Please make sure you run these migrations on a staging environment **before deploying** to production. If you have a large number of orphaned records, the migration might take a while to complete.
+:::
+
+### Postgres Users
+
+In Postgres, adding a foreign key blocks writes on both tables. So in large databases extra care should be taken to minimize downtime.
+Please update the migrations to use `NOT VALID` by using `validate: false` and then validate the foreign key in a separate step.
+
+```ruby
+add_foreign_key :spree_user_addresses, :spree_addresses, column: :address_id, null: false, validate: false
+```
+
+Then, after the migration has been run, you can validate the foreign key in a separate migration.
+
+```ruby
+validate_foreign_key :spree_user_addresses, :spree_addresses, column: :address_id
+```
+
+The same is advised for index changes. By concurrently adding indexes, downtime can be minimized.
+
+```ruby
+class ChangeCountriesIsoToUnique < ActiveRecord::Migration[7.0]
+  disable_ddl_transaction!
+
+  def change
+    remove_index :spree_countries, :iso, algorithm: :concurrently
+    add_index :spree_countries, :iso, unique: true, algorithm: :concurrently
+  end
+end
+```
+
+:::info
+You need to disable the transaction with `disable_ddl_transaction!` for the migration when using `algorithm: :concurrently`.
+:::
+
+### Country ISO Uniqueness
+
+In addition to the foreign key migrations, we also added a unique index to the `spree_countries` table on the `iso` column.
+
+If you have duplicate countries in your database, the migration will fail. You can adjust the migration to remove duplicate countries before adding the index.
+
+```ruby
+class ChangeCountriesIsoToUnique < ActiveRecord::Migration[7.0]
+  def change
+    remove_index :spree_countries, :iso
+
+    say_with_time "Removing duplicate countries" do
+      Spree::Country.select(:iso).group(:iso).having("count(*) > 1").pluck(:iso).each do |iso|
+        countries = Spree::Country.where(iso: iso).order(:id).to_a
+        original_country = countries.shift
+        countries.each do |duplicate_country|
+          Spree::State.where(country_id: duplicate_country.id).update_all(country_id: original_country.id)
+          Spree::Address.where(country_id: duplicate_country.id).update_all(country_id: original_country.id)
+          Spree::StockLocation.where(country_id: duplicate_country.id).update_all(country_id: original_country.id)
+          Spree::ZoneMember.where(zoneable_type: "Spree::Country", zoneable_id: duplicate_country.id).update_all(zoneable_id: original_country.id)
+        end
+        puts "  - Removed #{countries.size} duplicate country with ISO code #{iso}"
+        countries.each(&:destroy)
+      end
+    end
+
+    add_index :spree_countries, :iso, unique: true
+  end
+end
+```
+
+:::info
+Postgres users, please make sure to add the index concurrently as described above.
+:::
+
+## 🚀 Key Highlights
+
+### Event-Driven Email System
+This release introduces a major refactor of the email system, moving from coupled mailer calls to a flexible event subscriber pattern:
+
+- **New Order Events**: `carton_shipped`, `order_canceled`, and `order_short_shipped` events to allow for even more order extensibility
+- **Configurable Email Subscribers**: Email sending is now handled by configurable event subscribers, making it easier to customize or replace email behavior
+- **Separated Mailer Logic**: Order confirmation, shipping notifications, and cancellation emails are now handled by dedicated subscribers
+
+#### Please review the following PRs for more details
+
+- <PRLink number="6234">Configurable Solidus event subscribers</PRLink>
+- <PRLink number="6219">Move carton shipped emails to subscriber</PRLink>
+- <PRLink number="6205">Add subscribers for inventory cancellation and order cancellation emails</PRLink>
+- <PRLink number="6199">Move OrderMailerSubscriber#send_confirmation_email</PRLink>
+- <PRLink number="6156">Separate order mailer subscriber from reimbursement mailer subscriber</PRLink>
+
+### Reverse Charge VAT Support
+Added comprehensive support for EU reverse charge VAT requirements:
+
+- **Store Configuration**: New reverse charge status field for stores
+- **Address Integration**: Reverse charge fields added to address handling
+- **API Support**: Full API coverage for reverse charge functionality
+
+### Admin UI Components
+More improvements to the new Solidus Admin interface:
+
+- **New Select Component**: Improved performance and UX for dropdown selections
+- **Alert Component**: New alert system for better user feedback
+- **Refactored Address Forms**: Cleaner, more maintainable address input components
+- **Table Improvements**: Fixed sorting functionality and better semantic markup
+
+## 📦 Component Updates
+
+### Solidus Core
+- **Database Integrity**: Added foreign keys to ie. user addressbook, product properties, promotions and stock tables
+
+### Solidus Admin
+- **UI Performance**: Optimized select component performance for large datasets
+- **Component Library**: New reusable UI components (Alert, improved Select)
+- **Form Handling**: Better textarea support and form validation
+- **Lookbook Integration**: Fixed installation issues for component documentation
+
+### Solidus Backend
+- **Payment Refunds**: Fixed critical issue with refunding uncompleted payments
+- **AJAX Performance**: Added intelligent 500ms delay for Select2 AJAX requests to reduce server load
+
+### Solidus API
+- **Helper Refactoring**: Improved user role and authentication helper methods
+- **Performance**: Better caching for current API user lookups
+
+### Solidus Promotions
+- **New Calculator**: Added PercentWithCap calculator for more flexible discount options
+- **Localization**: Improved calculator label translations using Rails i18n
+- **Flickwerk Integration**: Better patch management in initializers
+
+## 🔧 Technical Improvements
+
+### Testing & Development
+- **Browser Testing**: Migrated from Chrome to Firefox for more stable system specs
+- **Flaky Test Fixes**: Resolved numerous intermittent test failures
+- **Linting**: Improved code quality with updated linting rules
+
+### Dependencies
+
+- **Updated ImportMap Rails**: Upgraded to v2 for better asset management
+- **Migration Standards**: Enforced consistent migration versioning across the framework
+
+## 🐛 Bug Fixes
+
+- Fixed typos throughout the codebase ([#6207](https://github.com/solidusio/solidus/pull/6207))
+- Resolved currency display issues in admin order listings ([#5929](https://github.com/solidusio/solidus/pull/5929))
+- Fixed metadata migration compatibility with custom user classes ([#6157](https://github.com/solidusio/solidus/pull/6157))
+- Corrected form tag closure issues in table components ([#6172](https://github.com/solidusio/solidus/pull/6172))
+- Improved deprecation warning messages for better developer experience ([#6163](https://github.com/solidusio/solidus/pull/6163))
+- Fixed documentation comments to reflect default settings ([#6171](https://github.com/solidusio/solidus/pull/6171))
+
+## 🔄 Breaking Changes
+
+- Email sending behavior has changed from direct mailer calls to event subscribers. While backward compatible, custom email logic may need updates
+- Foreign Key migrations may require attention if you have orphaned records or use postgres.
+
+---
+
+For the complete list of changes, see the [full changelog](https://github.com/solidusio/solidus/compare/v4.5.0...v4.6.0).

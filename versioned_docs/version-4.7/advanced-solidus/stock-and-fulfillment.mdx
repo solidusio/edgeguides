@@ -1,0 +1,739 @@
+---
+sidebar_position: 10
+needs-diataxis-rewrite: true
+---
+
+# Stock management
+
+## Architecture overview
+
+The stock system in Solidus is possibly one of the most complicated and powerful provided by the
+platform. It consists of several pieces, all working in unison.
+
+It all begins when an order is about to transition to the `delivery` state. When that happens, the
+order state
+machine [calls the `create_proposed_shipments`](https://github.com/solidusio/solidus/blob/v3.0/core/lib/spree/core/state\_machines/order.rb#L103)
+method on the order, which in turn [uses the configured **stock
+coordinator**](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/order.rb#L493)
+to re-create the order's shipments.
+
+:::caution
+
+If you remove the `delivery` state from the order state machine, or override the state machine with
+your own, the stock coordinator won't be called automatically anymore, and it will be up to you to
+call it at the right time.
+
+:::
+
+The **stock coordinator** is the main actor in the stock system and coordinates all the other
+components. It takes an order as input and builds a list of proposed shipments for that order, along
+with their available shipping rates (e.g., FedEx Home Delivery for $10, FedEx Overnight for $20,
+etc.).
+
+The default implementation of the stock coordinator
+is [`Spree::Stock::SimpleCoordinator`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/stock/simple\_coordinator.rb)
+, but you can use a different coordinator if you want. In the rest of this guide, we'll assume you'
+re using the default `SimpleCoordinator` and we'll explain its inner workings.
+
+:::caution
+
+The default `SimpleCoordinator` class contains stock coordination logic that is the result of years
+of eCommerce experience and community contributions. We strongly recommend going with the default
+implementation and only overriding its subcomponents, unless you _really_ know what you're doing.
+
+:::
+
+The work done by the stock estimator can be split in two logical chunks:
+
+1. First, the estimator **creates the packages** for the
+   order. [Packages](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/stock/package.rb)
+   are a simplified version of shipments, meant to hold information about which stock is leaving
+   from which stock location.
+2. It then converts the packages into shipments and **estimates the shipping rates** for those
+   shipments, depending on the shipping methods available in the store.
+
+Let's see which other service objects are involved in these two processes!
+
+### Package creation
+
+The following actors are involved in the package creation phase:
+
+* **Stock location filter:** this class is responsible for filtering the stock locations created in
+  the backend and only returning the ones that should be used for the current order (e.g., you may
+  want to only use stock locations in the customer's country).
+* **Stock location sorter:** this class is responsible for sorting the list of filtered stock
+  locations in order of priority (e.g., you may want to pick inventory from the stock location
+  closest to the customer).
+* **Stock allocator:** this class is responsible for allocating stock from the selected stock
+  locations (e.g., you may want to allocate on-hand inventory before backordering).
+* **Stock splitters:** this class is responsible for splitting the allocated inventory units into
+  different packages (e.g., you may want to keep all packages below a certain weight, and ship
+  multiple packages if needed).
+
+The process for package creation is fairly straightforward:
+
+1. First, the coordinator uses the **configured stock location** filter to get the list of stock
+   locations to use for the current order.
+2. Then, the filtered list is sorted with the **configured stock location sorter**.
+3. Then, the filtered and sorted stock locations, along with the inventory units to allocate, are
+   passed to the **configured stock allocator**, which maps each stock location to a list of on-hand
+   inventory units to ship and backorderable inventory units to backorder. (At this point, an "
+   insufficient stock" error is raised if there's leftover inventory that couldn't be allocated from
+   any stock location.)
+4. Then, the list of on-hand and backorderable inventory units is converted into **packages**, one
+   package per stock location.
+5. Finally, the list of packages is passed to the **configured stock splitters**, which may further
+   split up the original packages.
+
+At this point, we have our final list of packages. It's now time to convert them into real shipments
+and estimate their shipping rates.
+
+### Rate estimation
+
+The rate estimation process follows a similar pattern:
+
+1. First, the coordinator converts the packages into shipments.
+2. Then, it calls the **configured estimator** to calculate the shipping rates for each package.
+3. Finally, it links the shipping rates for each package to the corresponding shipment.
+
+Because the estimator is configurable, you can override the estimation logic however you want.
+
+However, for the purpose of this guide, we'll assume you're using the
+default [`Spree::Stock::Estimator`](https://github.com/solidusio/solidus/blob/v3.0/core/app/models/spree/stock/estimator.rb)
+, and we'll explain its process too:
+
+1. First, the estimator retrieves the list of shipping methods available for the package being
+   estimated. This determination takes into account the current store, the order's shipping address
+   and the currency on the shipping method's calculator.
+2. Then, it calculates the rate for each available shipping method, by using the calculator
+   configured on the shipping method.
+3. Then, it filters out any rates that belong to backend-only shipping methods, in case the
+   calculation is being performed from the storefront.
+4. Then, it selects the default shipping rate by using the configured **shipping rate selector**.
+5. Finally, it sorts the shipping rates by using the configured **shipping rate sorter**.
+
+The result of this process is a sorted list of shipping rates for the original package, with a
+default shipping rate already pre-selected for the user.
+
+### Inventory unit creation
+
+When the stock coordinator needs to construct shipments for an order, it needs to generate inventory
+units for that shipment. It delegates this task to
+the [configured inventory unit builder](https://github.com/solidusio/solidus/blob/3ce8dc4bf8fc9b85418cdaff4c53748bb807996c/core/app/models/spree/stock/simple\_coordinator.rb#L27-L28)
+. This configurable class is responsible for building (but not saving) the inventory units that make
+up the order.
+
+## Customizing package creation
+
+There are several pieces you can customize in the package creation process:
+
+* the **stock location filter,** to customize which stock locations Solidus picks inventory from;
+* the **location sorter,** to customize how Solidus prioritizes stock locations to pick inventory
+  from;
+* the **allocator,** to customize how Solidus prioritizes inventory units to allocate from the
+  filtered and sorted stock locations;
+* the **splitters,** to customize how Solidus splits the allocated inventory units in packages.
+
+In the next paragraphs, we'll see a brief example for each of these customizations!
+
+### Stock location filter
+
+:::info
+
+The [default stock location filter](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/location\_filter/active.rb)
+simply filters out the inactive stock locations.
+
+:::
+
+Let's say you are a giant brand with warehouses all over the US, and you only ever want to ship from
+the stock locations in the customer's state.
+
+You can do that by writing a custom stock location filter that looks like this:
+
+```ruby title="app/models/awesome:store/stock/location:filter/order:state.rb"
+module AwesomeStore
+  module Stock
+    module LocationFilter
+      class OrderState < Spree::Stock::LocationFilter::Base
+        def filter
+          stock_locations.active.where(state: order.ship_address.state)
+        end
+      end
+    end
+  end
+end
+```
+
+As you can see, the logic is pretty simple: we take an initial list of stock locations (the default
+stock coordinator will simply pass all stock locations here) and then we only pick the ones that are
+active and where the state matches the state on the order's shipping address.
+
+In order to start using our new stock location filter, you just need to configure it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.location_filter_class = 'AwesomeStore::Stock::LocationFilter::OrderState'
+end
+```
+
+### Stock location sorter
+
+:::info
+
+[By default,](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/location\_sorter/unsorted.rb)
+stock locations are unsorted, but Solidus provides a
+built-in [`DefaultFirst`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/location\_sorter/default\_first.rb)
+sorter that will put the default stock location first.
+
+:::
+
+Let's say that you ship from a mix of your own warehouses and third-party warehouses, and you want
+to ship from your own warehouses first in order to minimize fulfillment cost.
+
+You could do this with a custom stock location sorter:
+
+```ruby title="app/models/awesome:store/stock/location:sorter/self:owned:first.rb"
+module AwesomeStore
+  module Stock
+    module LocationSorter
+      class SelfOwnedFirst < Spree::Stock::LocationSorter::Base
+        def sort
+          # We're assuming the `self_owned` column is `true` when the warehouse
+          # is self-owned, and `false` when it's ownerd by a third-party.
+          stock_locations.order(self_owned: :desc)
+        end
+      end
+    end
+  end
+end
+```
+
+The implementation is pretty similar to that of the stock location filter: you take an initial list
+of sorted stock locations and you return a sorted list.
+
+Now that you have implemented your sorter, you need to enable it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.location_sorter_class = 'AwesomeStore::Stock::LocationSorter::SelfOwnedFirst'
+end
+```
+
+### Stock allocator
+
+:::info
+
+The [default stock allocator](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/allocator/on\_hand\_first.rb)
+picks on hand inventory units before backordered inventory units.
+
+:::
+
+Let's say you're a drop-shipping business, but you also hold a tiny amount of inventory on-hand for
+VIP customers or other special cases. In this case, you want to make sure you backorder all items
+and never touch your on-hand inventory unless absolutely needed (e.g.., if the customer ordered an
+item that's not being produced anymore and cannot be backordered).
+
+You could accomplish this with a custom stock allocator such as the following:
+
+```ruby title="app/models/awesome:store/stock/allocator/backordered:first.rb"
+module AwesomeStore
+  module Stock
+    module Allocator
+      class BackorderedFirst < Spree::Stock::Allocator::Base
+        def allocate_inventory(desired)
+          # Allocate backordered inventory first
+          backordered = allocate_backordered(desired)
+          desired -= backordered.values.sum if backordered.present?
+
+          # Allocate any non-backorderable inventory from on-hand inventory
+          on_hand = allocate_on_hand(desired)
+          desired -= on_hand.values.sum if on_hand.present?
+
+          # `desired` at this point should be empty if we managed to
+          # allocate all required inventory
+          [on_hand, backordered, desired]
+        end
+
+        protected
+
+        # In these two methods, `availability` is a `Spree::Stock::Availability`
+        # instance, which maps a list of variants to their availability in the
+        # filtered stock locations
+
+        def allocate_backordered(desired)
+          allocate(availability.backorderable_by_stock_location_id, desired)
+        end
+
+        def allocate_on_hand(desired)
+          allocate(availability.on_hand_by_stock_location_id, desired)
+        end
+
+        def allocate(availability_by_location, desired)
+          # `availability_by_location` is a `Spree::StockQuantities` instance
+          # that makes it easier to perform operations on inventory units
+          availability_by_location.transform_values do |available|
+            # Find the desired inventory which is available at this location
+            packaged = available & desired
+            # Remove found inventory from desired
+            desired -= packaged
+            packaged
+          end
+        end
+      end
+    end
+  end
+end
+```
+
+This allocator is extremely similar to Solidus' default stock allocator, but it works backwards: it
+allocates backordered inventory units before starting to pick on-hand inventory units.
+
+:::info
+
+Because operations on inventory units can be a bit complicated for a developer to perform manually,
+Solidus provides two helper
+classes, [`Spree::Stock::Availability`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/availability.rb)
+and [`Spree::StockQuantities`](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock\_quantities.rb)
+, which make it easier to reason about and perform algebraic operations on inventory units. Feel
+free to take a look at their source code to understand how they work in detail.
+
+:::
+
+### Stock splitters
+
+:::info
+
+The default splitter chain will split packages
+by [shipping category](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/splitter/shipping\_category.rb)
+and then
+by [availability](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/splitter/backordered.rb) (
+i.e., by separating on hand and backordered items in different packages).
+
+There's also a `Weight` splitter that is not enabled by default, which will split packages so that
+they are all below a certain weight threshold.
+
+:::
+
+An important aspect to understand about stock splitters is that, unlike all the other components of
+the stock system, you can have multiple stock splitters configured at the same time to form a **
+splitter chain**.
+
+When the packages are ready to be split, Solidus will pass the initial list of packages to the first
+splitter in the chain, and each splitter is responsible for running its logic and passing the result
+to the next splitter in the chain, until the end of the chain is reached.
+
+As an example, let's say you ship some frozen products that are packaged in dry ice. You want to
+split frozen products and regular products in separate packages.
+
+You could accomplish this with a custom stock splitter such as the following:
+
+```ruby
+module AwesomeStore
+  module Stock
+    module Splitter
+      class FrozenItems < Spree::Stock::Splitter::Base
+        def split(packages)
+          split_packages = []
+
+          packages.each do |package|
+            # Split each package in frozen and non-frozen items
+            split_packages += split_package(package)
+          end
+
+          # `return_next` is a helper that will pass the split
+          # packages to the next splitter in the chain
+          return_next split_packages
+        end
+
+        private
+
+        def split_package(package)
+          frozen_items = []
+          non_frozen_items = []
+
+          package.contents.each do |item|
+            # We are assuming that `Spree::Variant` responds to `#frozen?`
+            if item.variant.frozen?
+              frozen_items << item
+            else
+              non_frozen_items << item
+            end
+          end
+
+          # The `build_package` method is a helper that takes a
+          # list of items and builds a package with them.
+          [
+            # Build the package for frozen items
+            build_package(frozen_items),
+            # Build the package for non-frozen items
+            build_package(non_frozen_items),
+          ]
+        end
+      end
+    end
+  end
+end
+```
+
+The implementation here is slightly more complicated than usual, so let's walk through it:
+
+1. First, we loop through each package that is passed to the splitter.
+2. Then, for each package, we separate the frozen and the non-frozen items in two separate packages.
+3. Then, we pass the final list of split packages to the next stock location splitter.
+
+:::caution
+
+As you may imagine, the order of stock splitters is important to determine the final result of the
+splitter chain. When you implement a custom stock splitter, make sure to add it in the right place!
+If you want full control over the splitter chain, you can override the `stock_splitters` array
+completely rather than appending to it.
+
+:::
+
+Now that we have our new splitter, we need to add it to the splitter chain:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.environment.stock_splitters << 'AwesomeStore::Stock::Splitter::FrozenItems'
+end
+```
+
+## Customizing rate estimation
+
+As far as the rate estimation is concerned, there are two pieces you can customize:
+
+* the **estimator,** to customize how Solidus calculates shipping rates for a shipment;
+* the **shipping rate selector**, to customize how Solidus selects a default shipping rate;
+* the **shipping rate sorter**, to customize how Solidus sorts shipping rates.
+
+In the next paragraphs, we'll see a brief example for each of these customizations!
+
+### **Shipping rate estimator**
+
+:::info
+
+The [default shipping rate estimator](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/estimator.rb)
+simply uses the shipping methods you have configured on your store, along with the respective
+calculators, to calculate the right shipping rate for each shipment/shipping method combination.
+
+:::
+
+For large/complex stores, using fixed shipping rates, or attempting to re-create the shipping rate
+calculation logic used by carriers, is simply not feasible. When that's the case, you can override
+Solidus' shipping rate estimator to bypass the configured shipping methods completely and use an
+external data source such as an API (e.g., [EasyPost](https://www.easypost.com/)).
+
+Let's see an example with EasyPost:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class EasypostEstimator
+      def shipping_rates(package, _frontend_only = true)
+        # Create a new shipment with the EasyPost API and
+        easypost_rates = get_rates_from_easypost(package)
+
+        # Retrieve the rates for the EasyPost shipment
+        shipping_rates = easypost_rates.map do |easypost_rate|
+          # Turn the EasyPost rate into a Solidus shipping rate
+          build_shipping_rate(easypost_rate)
+        end
+
+        # Choose the default shipping rate through the configured shipping rate selector
+        unless shipping_rates.empty?
+          default_shipping_rate = Spree::Config.shipping_rate_selector_class.new(shipping_rates).find_default
+          default_shipping_rate.selected = true
+        end
+
+        # Sort the shipping rates through the configured shipping rate sorter
+        Spree::Config.shipping_rate_sorter_class.new(shipping_rates).sort
+      end
+
+      private
+
+      def get_rates_from_easypost(package)
+        # API integration logic here...
+      end
+
+      def build_shipping_rate(easypost_rate)
+        # Find or create a new shipping method in Solidus
+        # for this EasyPost rate
+        shipping_method = Spree::ShippingMethod.find_or_create_by(
+          carrier: easypost_rate.carrier,
+          service_level: easypost_rate.service,
+        ) do |shipping_method|
+          shipping_method.name = "#{easypost_rate.carrier} #{easypost_rate.service}"
+          shipping_method.calculator = Spree::Calculator::Shipping::FlatRate.create
+          shipping_method.shipping_categories = Spree::ShippingCategory.all
+          shipping_method.available_to_users = true
+        end
+
+        # Build a Solidus shipping rate for this EasyPost rate
+        Spree::ShippingRate.new(
+          shipping_method: shipping_method,
+          name: "#{easypost_rate.carrier} #{easypost_rate.service}",
+          cost: easypost_rate.rate,
+        )
+      end
+    end
+  end
+end
+```
+
+The API integration logic has been left out on purpose, so let's walk through the rest of the
+implementation:
+
+1. First, we call the EasyPost API to create a shipment and retrieve the proposed rates.
+2. Then, we transform the EasyPost rates into `Spree::ShippingRate` instances.
+3. Then, we choose the default rate through the configured shipping rate selector.
+4. Then, we sort the rates through the configured shipping rate sorter.
+5. Finally, we return the sorted rates.
+
+:::info
+
+Notice how, in the `build_shipping_rate` method, we are finding or creating the shipping method for
+each EasyPost rate, since we're not relying on the shipping methods stored in the DB but reading
+them directly from EasyPost. An alternative would be to only generate EasyPost rates for shipping
+methods that already exist in the Solidus DB (e.g., to give admins more granular control over which
+shipping methods to enable).
+
+:::
+
+Now that our estimator is ready, we just need to configure it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.estimator_class = 'AwesomeStore::Stock::EasypostEstimator'
+end
+```
+
+### Shipping rate selector
+
+:::info
+
+The [default shipping rate selector](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/shipping\_rate\_selector.rb)
+pre-selects the lowest-priced shipping rate for the user.
+
+:::
+
+What if we wanted to pre-select the shipping rate with the quickest delivery time? We could easily
+accomplish this through a custom shipping rate selector:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class ShippingRateSelector
+      attr_reader :shipping_rates
+
+      def initialize(shipping_rates)
+        @shipping_rates = shipping_rates
+      end
+
+      def find_default
+        # This assumes `Spree::ShippingRate` responds to `#delivery_time`
+        # with the number of days it will take to deliver the package
+        shipping_rates.min_by(&:delivery_time)
+      end
+    end
+  end
+end
+```
+
+The logic here is extremely simple: we accept a list of shipping rates as input, and we simply
+return the shipping rate that needs to be selected as the default, by looking for the shipping rate
+with the lowest delivery time.
+
+As usual, we now need to tell Solidus to use our shipping rate selector:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.shipping_rate_selector_class = 'AwesomeStore::Stock::ShippingRateSelector'
+end
+```
+
+### Shipping rate sorter
+
+:::info
+
+The [default shipping rate sorter](https://github.com/solidusio/solidus/blob/6c0da5d618a6d04d13ef50ec01ae17c3b06f6259/core/app/models/spree/stock/shipping\_rate\_sorter.rb)
+sorts the shipping rates by price, from lowest to highest.
+
+:::
+
+Let's say we also want to sort the shipping rates by delivery time, so that the customer can more
+easily make an informed decision.
+
+All we need to do is create a custom shipping rate sorter:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class ShippingRateSorter
+      attr_reader :shipping_rates
+
+      def initialize(shipping_rates)
+        @shipping_rates = shipping_rates
+      end
+
+      def sort
+        # This assumes `Spree::ShippingRate` responds to `#delivery_time`
+        # with the number of days it will take to deliver the package
+        shipping_rates.sort_by(&:delivery_time)
+      end
+    end
+  end
+end
+```
+
+As you can see, shipping rate sorters are very simple: they accept a list of shipping rates and
+return it sorted. In our case, we are sorting the shipping rates by a custom `delivery_time`
+attribute.
+
+Then, we just tell Solidus to use our custom shipping rate sorter:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.shipping_rate_sorter_class = 'AwesomeStore::Stock::ShippingRateSorter'
+end
+```
+
+## Customizing inventory unit creation
+
+Some stores may need to customize inventory unit creation. This is the case when stores have line
+items that don't map normally to the actual fulfilled items. For example, you might sell a "bundle"
+product that needs to be expanded into the composite items of the bundle in the shipment.
+
+There are three important classes that need to be overridden to accomplish customizations around
+this: the inventory unit builder, the availability validator, and the inventory validator.
+
+### Inventory unit builder
+
+The inventory unit builder is the class responsible for actually looping over the line items in the
+order and constructing the inventory units from them. This class is where you would implement your
+logic that transforms your "bundle" line items into their composite parts.
+
+You would implement your custom builder:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class InventoryUnitBuilder
+      def initialize(order)
+        @order = order
+      end
+
+      # This method must return unsaved inventory units for all items in
+      # the given order.
+      def units
+        @order.line_items.flat_map do |line_item|
+          # Put your custom logic here.
+        end
+      end
+
+      # This method must return unsaved inventory units that that should
+      # exist for this line item, but currently do not
+      def missing_units_for_line_item(line_item)
+        # Put your custom logic here.
+      end
+    end
+  end
+end
+
+```
+
+Then, you would tell Solidus to use it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.inventory_unit_builder_class = 'AwesomeStore::Stock::InventoryUnitBuilder'
+end
+```
+
+### Availability validator
+
+The availability validator is responsible for validating that there is inventory available for a
+given line item. If you're customizing the mapping of line items to inventory units, you'll need to
+reflect your new behaviour here.
+
+You can implement a custom availability validator:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class AvailabilityValidator < ActiveModel::Validator
+      def validate(line_item)
+        # This method takes a line item and returns a boolean indicating whether
+        # inventory is available for it. It also needs to attach a validation
+        # error to the quantity field of the line item.
+      end
+    end
+  end
+end
+```
+
+With the custom class in place, you can then tell Solidus to use it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.availability_validator_class = 'AwesomeStore::Stock::AvailabilityValidator'
+end
+```
+
+### Inventory validator
+
+The final class you'll need to customize to handle inventory unit creation customizations is the
+inventory validator. It is responsible for validating that the inventory units associated with a
+line item match what the line item requires as part of the checkout process.
+
+By default, this class simply checks that the number of inventory units matches the quantity of the
+line item.
+
+You can define a custom inventory validator:
+
+```ruby
+module AwesomeStore
+  module Stock
+    class InventoryValidator < ActiveModel::Validator
+      def validate(line_item)
+        # If the line item's inventory units do not match up with what it requires
+        # then this method should attach an error to the :inventory field of the
+        # line item and return that error.
+        #
+        # The stock logic looks like this:
+        if line_item.inventory_units.count != line_item.quantity
+          line_item.errors.add(:inventory, I18n.t(
+            'spree.inventory_not_available',
+            item: line_item.variant.name
+          ))
+        end
+      end
+    end
+  end
+end
+```
+
+With your custom inventory validator defined, you can tell Solidus to use it:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+
+  config.stock.inventory_validator_class = 'AwesomeStore::Stock::InventoryValidator'
+end
+```

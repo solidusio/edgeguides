@@ -1,0 +1,65 @@
+---
+sidebar_position: -4.5
+---
+
+import PRLink from '@site/src/theme/PRLink';
+import MinimalRequirements from '@site/src/theme/MinimalRequirements';
+
+# Solidus v4.5 (2025-02-20)
+
+<MinimalRequirements ruby="3.1" rails="7.0" />
+
+Solidus v4.5 is out! 🎉
+
+This release adds Rails 8.0, Ruby 3.4 support and continues our effort to finalize the new Solidus Admin interface.
+
+Also we now have a interface for storing Meta Data on resources and GTIN and conditions on products.
+
+## <PRLink number="6091">Rails 8.0 support</PRLink>
+
+If you create a new store with Solidus and Rails 8.0 please make sure to follow [the instructions in the
+README](https://github.com/solidusio/solidus?tab=readme-ov-file#getting-started) about a `sprocket-rails` and Rails 8.0 related issue.
+
+## <PRLink number="6117">Ruby 3.4 support</PRLink>
+
+Due to the Ruby core team is splitting the standardlib into gems it might be the case that gems that have been shipped with Ruby now
+needs to be installed as separate gems. We already included `csv` as dependency, but your store might need additional gems.
+Just take a look at deprecation messages in your current stores logs simply add them to your `Gemfile`.
+
+## <PRLink number="6046">Adding SolidusAdmin Resources</PRLink>
+
+This should make it easier to continue the work on the new Admin and for stores integrating their own custom resources into Solidus admin.
+
+## <PRLink number="6118">Admin and User Metadata</PRLink>
+
+The purpose of metadata fields is to allow customers and admins alike to provide additional information to transactions to either extend the informations contained or allow to insert additional data to correlate transactions with third party systems.
+
+## <PRLink number="6097">Added GTIN and Condition to variant for structured data use</PRLink>
+
+Introduction of Structured Data for ItemCondition and Global Trade Item Number ("GTIN").
+
+## <PRLink number="5989">Introducing product brand using taxon_brand_selector</PRLink>
+
+The new `Spree::TaxonBrandSelector` class fetches brands based on the "Brands" taxonomy. Developers can customize this functionality through the `brand_selector_class` attribute in `Spree::AppConfiguration`.
+
+## <PRLink number="6109">Add primary Taxon to products</PRLink>
+
+Fixes outcome variability on the breadcrumbs rendered on the frontpage and is part of a couple of PRs addressing the lack of some SEO features that became prevalent.
+
+## <PRLink number="3852">Remove Spree::UserAddress#archived flag</PRLink>
+
+This removes the `archived` flag on `spree_user_addresses` records and now simply removes the association between a user and a address record if an address gets removed form the users address book.
+
+## Solidus developer experience improvement
+
+Up until Solidus 4.5, we would load any patches (called decorators in most apps) to core Solidus classes during the Rails startup process.
+Using the [`flickwerk` gem](https://github.com/friendlycart/flickwerk), we can now delay loading any patches to when the class being patched is loaded.
+The two extensions that Solidus ships with, `solidus_promotions` and `solidus_legacy_promotions`, have already been adapted to the new way of loading patches.
+We've also moved some configuration options from autoloadable class variables to the `Spree::Config` object so that configuring Solidus does not implicitly load any classes during bootup.
+
+- <PRLink number="6090">6090</PRLink>
+- <PRLink number="6062">6062</PRLink>
+- <PRLink number="6056">6056</PRLink>
+- <PRLink number="6051">6051</PRLink>
+- <PRLink number="6050">6050</PRLink>
+- <PRLink number="6049">6049</PRLink>
