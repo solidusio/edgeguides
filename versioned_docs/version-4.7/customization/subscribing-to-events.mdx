@@ -1,0 +1,351 @@
+---
+sidebar_position: 3
+needs-diataxis-rewrite: true
+---
+
+# Subscribing to events
+
+Solidus comes with a publish-subscribe system courtesy
+of [Omnes](https://github.com/nebulab/omnes) (a pub/sub library for Ruby). It allows applications to
+hook into Solidus events (like completing an order) and extend the associated behavior.
+
+:::info
+
+You can run `Spree::Bus.registry.event_names`to get the list of available events.
+
+:::
+
+### Use cases
+
+The Event Bus should not be seen as a way to add behavior to the domain model that published the
+event. With that, we mean that subscribers' logic should be independent of the business flow that
+triggered them.
+
+For instance, take the `:order_finalized` event as an example. Collecting stats or sending a
+confirmation SMS to the user would be good candidates for subscribers. However, if you need to
+perform some logic that could prevent an order from being marked as completed, like checking some
+conditions about the user, that should not be a subscriber. Instead, you should look at other
+options to [customize the Solidus core](customizing-the-core.mdx).
+
+The reason is a direct consequence of the decoupling the Event Bus provides. That's something good,
+as it makes the upstream publisher independent of its subscribers' interface. However, it also
+introduces indirection, and you don't want to jump from subscriber to subscriber to know why
+something in the core transaction didn't work as expected. Think of what happens if your subscribers
+spawn an async process; you don't want the main flow to wait for them before completing or fail if
+they do.
+
+### Subscription to events
+
+Imagine you want to send an SMS whenever an order is completed. Luckily, Solidus emits an event
+called `:order_finalized` when that happens.
+
+To hook into that event, you can create an Omnes subscriber:&#x20;
+
+```ruby title="app/subscribers/my_store/sms_subscriber.rb"
+module MyStore
+  class SmsSubscriber
+    include Omnes::Subscriber
+
+    handle :order_finalized,
+           with: :notify_order_completed,
+           id: :sms_notify_order_completed
+
+    def notify_order_completed(event)
+      order = event.payload[:order]
+      SmsService.new.notify_order_completed(order)
+    end
+  end
+end
+```
+
+There're other possible ways to create subscriptions with Omnes. You can, for instance, subscribe to
+all events or run subscriptions asynchronously. Check its [README](https://github.com/nebulab/omnes)
+for details.
+
+You still need to subscribe to the Solidus event bus, globally accessible as the `Spree::Bus`
+constant. To activate subscriptions on load and refresh them on reload, wrap the code within
+a [`#to_prepare`](https://api.rubyonrails.org/classes/ActiveSupport/Reloader.html#method-c-to\_prepare)
+call in a Rails initializer:&#x20;
+
+```ruby title="config/initializers/omnes.rb"
+# frozen_string_literal: true
+
+Rails.application.config.to_prepare do
+  MyStore::SmsSubscriber.new.subscribe_to(Spree::Bus)
+end
+```
+
+:::warning
+
+Unlike in other Omnes buses you might want to create, be sure not to call `Spree::Bus.clear` on
+the `#to_prepare` block. `Spree::Bus` is owned by the Solidus engine, which is already taking care
+of cleaning it before code reload. If you clean it again, you'll lose Solidus defined events and
+subscriptions.
+
+:::
+
+### Built-in event subscribers
+
+Solidus comes with built-in event subscribers for some event-driven functionality in the system. For
+example, all transactional emails are initiated through event subscribers.
+
+When the `solidus_core` engine is loaded, all of the built-in event subscribers are loaded from
+`Spree::Config.environment.subscribers`. If you wanted to exclude some of the built-in subscribers
+you could do so from an initializer in your application:
+
+```ruby
+# config/initializers/spree.rb
+
+Spree.config do |config|
+  config.environment.subscribers = [
+    "Spree::OrderCancelMailerSubscriber",
+    "Spree::OrderConfirmationMailerSubscriber",
+    "Spree::OrderInventoryCancellationMailerSubscriber"
+  ]
+end
+```
+
+See `Spree::AppConfiguration` for an up-to-date list of Solidus' built-in subscribers.
+
+### Custom events
+
+You're free to register your custom events into `Spree::Bus`. However, it's a good practice if you
+namespace them so that you won't conflict with new events added in the future to core Solidus:
+
+```ruby
+Spree::Bus.register(:my_app_custom_event)
+```
+
+### Testing events
+
+The Event Bus on Solidus is a global bus. That means you might need a way to temporarily disable it
+except for the subscriber you want to test. The `.performing_only` method can be used to only listen
+to a given subscription for the duration of a block.
+
+```ruby title="spec/subscribers/my_store/sms_notification_subscriber_spec.rb"
+require 'rails_helper'
+
+RSpec.describe MyStore::SmsNotificationSubscriber do
+  let(:sms_queue) { SmsService.test_queue }
+  let(:subscription) { Spree::Bus.subscription(:sms_notify_order_completed) }
+
+  it 'sends an SMS when an order is finalized' do
+    order = create(:order)
+
+    Spree::Bus.performing_only(subscription) do
+      Spree::Bus.publish(:order_finalized, order: order)
+    end
+
+    expect(sms_queue.count).to be(1)
+  end
+end
+```
+
+#### Stubbing events
+
+Solidus also comes with stub helpers to make it straightforward to test that an event has been
+fired.
+
+To begin with, you need to include the `Spree::TestingSupport::BusHelpers` in your test file. After
+that, you need to call the `stub_spree_bus` method before asserting that a given event was
+published.
+
+```ruby title="spec/services/my_store/custom_service_spec.rb"
+require 'rails_helper'
+require 'spree/testing_support/bus_helpers'
+
+RSpec.describe MyStore::CustomService do
+  include Spree::TestingSupport::BusHelpers
+
+  describe 'call' do
+    it 'fires custom event' do
+      stub_spree_bus
+      order = create(:order)
+
+      described_class.new.call(order)
+
+      expect(:custom_event).to have_been_published
+    end
+  end
+end
+```
+
+You can also assert the published payload using the `with` modifier.
+
+```ruby title="spec/services/my_store/custom_service_spec.rb"
+# ...
+expect(:custom_event).to have_been_published.with(
+  a_hash_including(order: order)
+)
+# ...
+```
+
+### Observing events
+
+One of the tricky parts of event-driven design is that it's sometimes challenging to inspect the
+flow of the program. Think of debugging, logging, and so on. Omnes comes with a lot of facilities
+for observability.
+
+Besides the published event, subscriptions can take a second argument to access the line of code
+that published the event and when that happened.
+
+```ruby
+Spree::Bus.subscribe(:order_finalized) do |_event, context|
+  puts context.time
+  puts context.caller_location
+end
+# 2022-01-01 00:00:00 UTC
+# /path/to/file/that/published/the/event:99:in `<main>'
+```
+
+There's much more to that. Check [Omnes' README](https://github.com/nebulab/omnes) for details.
+
+### Upgrading from the legacy event system
+
+[Omnes](https://github.com/nebulab/omnes) is the default way to go for event-driven behavior since
+Solidus v3.2. However, before that, a custom event system based
+on [ActiveSupport::Notifications](https://api.rubyonrails.org/classes/ActiveSupport/Notifications.html)
+was in place. You might need to update your code if you're upgrading from Soldius v3.1 or before.
+
+Once you run the [update generator](/upgrading-solidus/index.mdx#updating-preferences),
+you'll have an option `config.use_legacy_events` commented out
+in `config/initializers/new_solidus_defaults.rb`. Don't activate it until you've gone through all
+the following points. However, you're good to go if your application is not using events for
+anything (not subscribing to Solidus events or using custom ones). In that case, you can disable
+legacy events straight away and stop reading now.
+
+#### Subscriber modules
+
+* Switch from a subscriber module to an Omnes subscriber. Be sure that event names are given as
+a `Symbol`:
+
+```ruby title="app/subscribers/my_subscriber.rb"
+# Instead of
+module MySubscriber
+  event_action :do_something, event_name: :order_finalized
+  event_action :order_recalculated
+
+  def do_something(event)
+   # ...
+  end
+
+  def order_recalculated(event)
+    # ...
+  end
+end
+# do
+class MySubscriber
+  include Omnes::Subscriber
+
+  handle :order_finalized, with: :do_something
+  handle :order_recalculated, with: :order_recalculated
+
+  def do_something(event)
+   # ...
+  end
+
+  def order_recalculated(event)
+    # ...
+  end
+end
+```
+
+* Subscribe Omnes subscribers to `Spree::Bus` in an initializer:
+
+```ruby title="config/initializers/omnes.rb"
+Rails.application.config.to_prepare do
+  MySubscriber.new.subscribe_to(Spree::Bus)
+end
+```
+
+#### Block subscriptions
+
+* Rename references from `Spree::Event` to `Spree::Bus`.&#x20;
+* Make sure that you subscribe to the event name as a `Symbol`.
+
+```ruby
+# Instead of
+Spree::Event.subscribe('order_finalized') {}
+# do
+Spree::Bus.subscribe(:order_finalized) {}
+```
+
+#### Regular expression subscriptions
+
+Regular expression subscriptions are not supported on Omnes by default. They're considered an
+anti-pattern, as you could unintentionally subscribe to new events added in the future if their
+names match your pattern (e.g., you subscribe to `/order/` and a new event `stock_backordered` is
+added).
+
+The chances are that if you're using regular expression subscriptions, your use case is subscribing
+to all events regardless of their nature (probably for logging purposes). In that case, you can lean
+on Omnes's `#subscribe_to_all` method (or `handle_all` for subscriber classes):
+
+```ruby
+# Instead of
+Spree::Event.subscribe /.*\.spree$/ do |event|
+  # do_something
+end
+# do
+Spree::Bus.subscribe_to_all do |event|
+  # do_something
+end
+```
+
+If you do want to use a regular expression for subscriptions, you can still use a custom Omnes
+matcher with `#subscribe_with_matcher` (or `handle_with_matcher` in a subscriber class):
+
+```ruby
+# Instead of
+Spree::Event.subscribe /order_/ do |event|
+  # do_something
+end
+# do
+ORDER_EVENTS_MATCHER = ->(event) { event.omnes_event_name.match?(/order_/) }
+Spree::Bus.subscribe_with_matcher(ORDER_EVENTS_MATCHER) do |event|
+  # do_something
+end
+```
+
+#### Publishing events
+
+* Rename `Spree::Event.fire` to `Spree::Bus.publish`.
+* Giving a block at publication time is no longer supported. It provided no value, plus its
+execution time (before vs. after subscriptions) was confusing:
+
+```ruby
+# Instead of
+Spree::Event.fire(:my_store_custom_event, order_id: order.id) do
+  do_something
+end
+# do
+do_something
+Spree::Bus.publish(:my_store_custom_event, order_id: order.id)
+```
+
+* Make sure that the published event name is a `Symbol`.
+* Register that event in an initializer within
+a [#to\_prepare](https://api.rubyonrails.org/classes/ActiveSupport/Reloader.html#method-c-to\_prepare)
+block:
+
+```ruby title="config/initializer/omnes.rb"
+Rails.application.config.to_prepare do
+  Spree::Bus.register(:my_store_custom_event)
+end
+```
+
+#### Updating extensions
+
+If you're maintaining an extension that needs to support both the legacy and the new event bus
+systems, you can leverage
+the [compatibility layer shipped with solidus\_support v0.9](https://github.com/solidusio/solidus\_support/blob/ba3c7d00f2da26f5bf5df54201697fa30c1ac60d/lib/solidus\_support/legacy\_event\_compat.rb)
+. Please, check it for details.
+
+:::success
+
+There're many more features supported by Omnes that were not possible with the legacy system, like
+async subscriptions, event instances, or the autodiscovery of event handlers from subscribers. This
+guide covered the bare minimum to update your store. Please, check
+its [README](https://github.com/nebulab/omnes) to extract all the potential that Omnes brings.
+
+:::

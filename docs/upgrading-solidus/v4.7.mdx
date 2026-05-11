@@ -1,0 +1,112 @@
+---
+sidebar_position: -4.7
+---
+
+import MinimalRequirements from "@site/src/theme/MinimalRequirements";
+import PRLink from "@site/src/theme/PRLink";
+
+# Solidus v4.7 (2026-04-16)
+
+<MinimalRequirements ruby="3.2" rails="7.2" />
+
+We're excited to announce the release of Solidus v4.7.0! This release brings a new in-memory order updater for improved performance, continued promotions enhancements, and Rails 8.1 support.
+
+## 🚀 Key Highlights
+
+### In-Memory Order Updater
+
+Solidus now has an alternative order updater implementation optimized for reducing database interactions. The team at SuperGood has worked on getting this change ready for production use.
+
+- **Increased performance for order updates** — By default, the new order updater makes fewer write calls to the database. This means that order- and checkout-related controller actions can resolve faster, with fewer round trips to the database server.
+- **Order update simulation** — By passing `persist: false` to the in-memory order updater, an order can be recalculated and rolled back to its last state without any database writes. This enables stores to let administrators and customers preview changes to orders before accepting those changes.
+
+To use this you need to opt-in by updating the `order_recalculator_class` in your app configuration.
+
+<PRLink number="5872">In-memory order updater</PRLink>
+
+:::info
+We would love to hear if you enable this on your store and have feedback on the implementation!
+:::
+
+### Rails 8.1 Support
+
+This release adds support for Rails 8.1, thanks to [Alistair Norman](https://github.com/alistairnorman). Rails 7.2 is now the minimum required version.
+
+<PRLink number="6414">Require Rails 7.2+</PRLink>
+
+### Solidus Promotions
+
+[Martin Meyerhoff](https://github.com/mamhoff) continues to improve the solidus_promotions implementation with a number of enhancements and refactors:
+
+- <PRLink number="6360">Changes to promotion condition API (combining `applicable?` and `eligible?` checks)</PRLink>
+- <PRLink number="6430">Model to evaluate promotion eligibility without applying a promotion</PRLink>
+- <PRLink number="6422">Updates to promotion migrator to better handle duplicate codes</PRLink>
+- <PRLink number="6425">Flatten promotion condition configuration</PRLink>
+- <PRLink number="6424">Validate promotion uniqueness per order</PRLink>
+- <PRLink number="6357">Deprecate promotion "level"</PRLink>
+- <PRLink number="6343">Fix First Order promotion condition to not fail on canceled orders</PRLink>
+
+### Configurable Stock Quantifier
+
+The stock quantifier is now configurable, allowing stores to customize how available stock is calculated for variants.
+
+<PRLink number="6335">Configurable stock quantifier</PRLink>
+
+### Configurable Order Mergeable Scope
+
+The scope used to determine which orders can be merged is now configurable, giving stores more control over order merging behavior during sign-in.
+
+<PRLink number="6384">Configurable Order Mergeable Scope</PRLink>
+
+### Configurable State Change Tracker
+
+The state change tracker is now a configurable class, making it possible to customize or replace how order state changes are tracked.
+
+<PRLink number="6375">Make state change tracker a configurable class</PRLink>
+
+### Recalculate Cart Prices
+
+A new `recalculate_cart_prices` option allows stores to update line item prices when an order is recalculated, useful for handling price changes while a cart is still open.
+
+<PRLink number="6399">Allow to recalculate cart prices</PRLink>
+
+## 📦 Component Updates
+
+### Solidus Core
+
+- **In-Memory Order Updater**: New alternative order updater optimized for fewer database interactions
+- **Rails 8.1 Support**: Full compatibility with the latest Rails release
+- **Product Filters**: Made product filters easier to override (<PRLink number="6408">PR</PRLink>)
+
+### Solidus Admin
+
+- **Lookbook Fix**: Fixed the Lookbook in sandbox applications (<PRLink number="6417">PR</PRLink>)
+
+## 🔧 Technical Improvements
+
+### Linting & Code Quality
+
+- Upgraded to newest ESLint (v10) (<PRLink number="6420">PR</PRLink>)
+- Switched to StandardRB for Ruby linting (<PRLink number="6421">PR</PRLink>)
+
+### Extension Updates
+
+Huge thanks to [Alistair Norman](https://github.com/alistairnorman) for updating CI to GitHub Actions across multiple extensions:
+
+- solidus_subscriptions
+- solidus_i18n
+- solidus_starter_frontend
+- solidus_dev_support
+
+Alistair also added Ruby 4 support to:
+
+- solidus_affirm
+- solidus_frontend_bootstrap
+
+## 🔄 Breaking Changes
+
+- Rails 7.2 is now the minimum required Rails version. Applications on Rails 7.0 or 7.1 will need to upgrade before updating Solidus.
+
+---
+
+For the complete list of changes, see the [full changelog](https://github.com/solidusio/solidus/compare/v4.6.0...v4.7.0).

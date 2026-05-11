@@ -1,0 +1,111 @@
+---
+sidebar_position: 10
+---
+
+# Add attributes to existing resources
+
+This guide will show you how to add attributes to existing resources in order
+to change and retrieve your custom attributes in API endpoints.
+
+For this how-to, we are going to add a new boolean attribute called `accept_reviews` to the product resource.
+This attribute will be part of the product response in the API endpoints.
+
+## Add the new attribute to existing resources
+
+To add new attributes to existing resources, you need to create a migration file
+and run the migration.
+
+### Create a migration file
+
+To create a migration file, run the following command:
+
+```bash
+bin/rails g migration add_accept_reviews_to_spree_products accept_reviews:boolean
+```
+
+This will create a migration file in `db/migrate` with similar content:
+
+```ruby
+class AddAcceptReviewsToSpreeProducts < ActiveRecord::Migration[7.0]
+  def change
+    add_column :spree_products, :accept_reviews, :boolean
+  end
+end
+```
+
+### Run the migration
+
+To run the migration, run the following command:
+
+```bash
+bin/rails db:migrate
+```
+
+## Add the new attribute to the serializer
+
+In order to expose this field to API clients, we'll need to add a JSON field to the products API. We
+could just copy-paste the `product.json.jbuilder` view from Solidus and add the field there, but
+then we would need to remember to update our custom view every time the original view is changed.
+
+Instead, Solidus provides a more manageable way to add attributes to API resources via
+the `Spree::Api::Config` module. Let's see how we can do it and test it:
+
+```ruby title="config/initializers/spree.rb"
+# ...
+Spree::Api::Config.product_attributes << :accept_reviews
+```
+
+:::info
+
+Extending the attributes, as shown above, will work for all API resources, not just products. You can
+find the list of the default available attributes in the [Spree::ApiConfiguration](https://github.com/solidusio/solidus/blob/main/api/lib/spree/api_configuration.rb)
+class.
+
+:::
+
+From now on, the `accept_reviews` attribute will be included in the response of the products API.
+
+
+## Allow the new attribute to be updated
+
+In order to allow the new attribute to be updated, we need to add it to the list of permitted attributes
+in the `Spree::PermittedAttributes` module. Let's see how we can do it and test it:
+
+```ruby title="config/initializers/spree.rb"
+# ...
+Spree::PermittedAttributes.product_attributes << :accept_reviews
+```
+
+:::info
+
+Extending the permitted attributes, as shown above, will work for all API resources, not just products. You can
+find the list of the default available attributes in the [Spree::PermittedAttributes](https://github.com/solidusio/solidus/blob/main/core/lib/spree/permitted_attributes.rb)
+and more details about how they are used across the project in [Spree::Core::ControllerHelpers::StrongParameters](https://github.com/solidusio/solidus/blob/main/core/lib/spree/core/controller_helpers/strong_parameters.rb#L11).
+
+:::
+
+From now on, the `accept_reviews` attribute will be allowed to be updated in the products API.
+
+### A special case for Line Items
+
+If you are trying to update a new attribute to the line item resource, you will need an extra step. In fact,
+for security reasons, the line item attributes do not follow the same pattern as the other resources and you'll
+need to bypass the restriction by adding the following line to your `Spree::PermittedAttributes` initializer:
+
+```ruby title="config/initializers/spree.rb"
+
+Spree::PermittedAttributes.line_item_attributes << { options: [:some_option] }
+
+```
+
+Now, you can create line items with the `some_option` attribute with a similar payload:
+
+```json
+{
+  line_item: {
+    variant_id: 123,
+    quantity: 1,
+    options: { some_option: "foobar" }
+  }
+}
+```

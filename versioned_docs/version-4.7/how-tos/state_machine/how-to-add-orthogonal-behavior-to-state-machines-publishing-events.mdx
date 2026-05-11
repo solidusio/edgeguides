@@ -1,0 +1,92 @@
+---
+sidebar_position: 1
+---
+
+# How to add orthogonal behavior to state machines: publishing events
+
+In this guide, we'll see how we can hook into the business flow transitions
+orchestrated by a state machine to add behavior that fits into another area
+domain.
+
+As noted in the [event bus][event-bus] guide, you can leverage the event bus to
+hook into core events. That's helpful when you need to perform something in
+response to a change in the system, but your logic is orthogonal (i.e.,
+decoupled) to the main flow. Transitions between state machine states are good
+candidates to become hotspots where tangential logic is triggered.
+
+:::caution
+
+Don't be confused about state machine events vs. bus events. State machine
+events are conditions that can produce a transition between valid states.
+They're local to the state machine component. On the other hand, bus events can
+be published and consumed anywhere within the system and, per se, have nothing
+to do with the state machines.
+
+:::
+
+For instance, you might want to update your ERP or send an SMS when a payment
+is marked as completed. The cleaner way to do that is to publish an event when
+that happens and then subscribe to it.
+
+First, you need to override the `#complete` state machine event on
+`Spree::Payment` (see the [overrides section][customize-core] for the required
+setup code):
+
+```ruby title="app/overrides/my_store/publish_payment_completed.rb"
+# frozen_string_literal: true
+
+module MyStore
+  module PublishPaymentCompleted
+    def complete
+      super.tap do |result|
+        Spree::Bus.publish(:payment_completed, payment: self) if result
+      end
+    end
+
+    ::Spree::Payment.prepend self
+  end
+end
+```
+
+The following is an example of a subscriber to the new event:
+
+```ruby title="app/subscribers/my_store/payments_subscriber.rb"
+module MyStore
+  class PaymentsSubscriber
+    include Omnes::Subscriber
+
+    handle :payment_completed,
+           with: :notify_payment_completed
+
+    def notify_payment_completed(event)
+      payment = event.payload[:payment]
+      Notifier.new.notify_payment_completed(payment)
+    end
+  end
+end
+```
+
+Don't forget to register the new event and subscribe to it:
+
+```ruby title="config/initializer/events.rb"
+Rails.application.config.to_prepare do
+  Spree::Bus.register(:payment_completed)
+  MyStore::PaymentsSubriber.new.subscribe_to(Spree::Bus)
+end
+```
+
+Done. Once the server is restarted, the `:payment_completed` event will be
+published every time a payment is completed. That will let its subscriber know
+it's time to do their job.
+
+:::info
+
+Ideally, Solidus would publish events for every state machine transition out of the box. Our event
+bus is fairly new and we're still working on it, but we'll get there eventually! In the meantime,
+you can check`Spree::Bus.registered_events` for the complete list of events that are already
+published.
+
+:::
+
+[event-bus]: /customization/subscribing-to-events.mdx
+[customize-core]: /customization/customizing-the-core.mdx#using-overrides
