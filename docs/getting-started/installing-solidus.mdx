@@ -79,6 +79,27 @@ If you have an existing Ruby on Rails application, installing Solidus is fairly 
 
 ```bash
 $ bundle add solidus
+```
+
+:::info
+
+If you encounter a `Sprockets::Railtie::ManifestNeededError` in the next step, `bin/rails generate`, you may need to do the following due to [a bug in `sprockets-rails`](https://github.com/rails/sprockets-rails/pull/546):
+Add the sprockets manifest into the generated rails app.
+
+:::
+
+```bash
+$ mkdir -p app/assets/config
+$ cat <<MANIFEST > app/assets/config/manifest.js
+//= link_tree ../images
+//= link_directory ../javascripts .js
+//= link_directory ../stylesheets .css
+MANIFEST
+```
+
+Run solidus installation wizard.
+
+```bash
 $ bin/rails generate solidus:install
 ```
 
