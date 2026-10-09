@@ -1,0 +1,69 @@
+---
+sidebar_position: -4.2
+---
+
+import PRLink from '@site/src/theme/PRLink';
+import MinimalRequirements from '@site/src/theme/MinimalRequirements';
+
+# Solidus v4.2 (2023-09-29)
+
+<MinimalRequirements ruby="3.0" rails="7.0" />
+
+Solidus v4.2 is out! 🎉
+
+This release brings the usual load of bug fixes and improvements, but also the new branding and some new features that we are happy to share with you.
+
+## <PRLink number="5309">Stop using partials and deface to customize the admin menu</PRLink>
+
+This change removes the need to use of partials and deface to customize the Admin menu. Instead, we now have a new `#children` attribute added to the `MenuItem` class in which second level menus are defined.
+
+Doing this brought a significant benefits in terms of simplicity and customization. Parent menu items can now ask the children if any of them is active without the need of duplicating the logic in the parent.
+
+Since the list of menu items is a simple array, it can be easily manipulated by other extensions, and in the host application. Finding a menu item is as simple as checking its `label`, e.g. `menu_items.find { _1.label == :products }`.
+
+```ruby
+Spree::Backend::Config.configure do |config|
+  # Let solidus know that we don't want to use the partials for second level
+  # menu items anymore. By enabling this whenver a menu item has both children
+  # and a partial, the partial will be ignored.
+  config.prefer_menu_item_partials = false
+
+  config.menu_items
+    .find { _1.label == :products }
+    .children << MenuItem.new(
+      label: :collections,
+      condition: -> { can? :admin, MyStore::ProductCollection },
+      url: '/product_collections'
+    )
+end
+```
+
+## <PRLink number="5392">Updated sidebar from the upcoming `SolidusAdmin`</PRLink>
+
+A new sidebar is also available that matches the style of the one in `SolidusAmin`, the new admin interface that is currently under development.
+
+The new sidebar is best experienced with the matching `solidus_admin` theme.
+
+```ruby
+Spree::Backend::Config.configure do |config|
+  config.theme = 'solidus_admin'
+  config.admin_updated_navbar = true
+end
+```
+
+We hope you like it!
+
+## <PRLink number="5068">Add support for the `SolidusAdmin` preview</PRLink>
+
+The new `SolidusAdmin` is still under development, but you can already preview it in your application.
+
+```shell
+bundle add solidus_admin
+bin/rails g solidus_admin:install
+```
+
+At the time of this writing it only covers product and order listing, and partial editing of products. We are working hard to bring more features to it, and we are looking forward to your feedback.
+
+Permission checks and authentication is shared with the existing admin interface, so you can use the same user to access both. A toggle is available at the bottom of the navigation menu to switch between the two interfaces.
+
+The new admin dashboard is mounted as an independent engine, and by default it can be disabled with a cookie, but that can be customized in the host application, e.g. to enable it only for a select number of users.
