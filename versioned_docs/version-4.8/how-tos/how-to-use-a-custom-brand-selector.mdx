@@ -1,0 +1,83 @@
+---
+sidebar_position: 10
+---
+# Introduction
+Brands are a frequently required information in ecommerce. 
+They allow 
+* more comprehensive analytics;
+* They allow your customers to filter products from a certain manufacturer;
+* They are frequently used in product feeds for marketing platforms such as Google Shopping. 
+
+With the integration of Brands inside Solidus all above detailed scenarios are possible. 
+
+# How to Use a Custom Brand Selector
+
+In Solidus, a product's brand is determined using a configurable `brand_selector_class`. By default, this is set to `Spree::TaxonBrandSelector`, which identifies the brand by associating the product with a taxon under the taxonomy named `"Brands"`.
+
+This guide explains how to implement and configure a custom brand selector to suit your application's unique requirements.
+
+## Default Behavior
+
+By default, the `Spree::TaxonBrandSelector` works as follows:
+
+- It fetches all taxons associated with a product.
+- It filters the taxons by checking if they belong to the `"Brands"` taxonomy.
+- It returns the first matching taxon as the brand.
+
+Here is the default configuration:
+
+```ruby
+Spree.config do |config|
+  # ...
+  config.brand_selector_class = 'Spree::TaxonBrandSelector'
+end
+```
+
+# Implementing a Custom Brand Selector
+
+To override the default behavior, you can create a new class that implements the same interface as `Spree::TaxonBrandSelector`.
+
+For example, let's say you want to define brands based on specific product properties rather than taxons. Here's how you can do it:
+
+## Step 1: Create Your Custom Class
+
+```ruby title="app/models/my_store/custom_brand_selector.rb"
+module MyStore
+  class CustomBrandSelector
+    def initialize(product)
+      @product = product
+    end
+
+    def call
+      # Replace this with your custom logic.
+      # For instance, returning a specific brand based on a product's property:
+      @product.custom_brand_property
+    end
+
+    private
+
+    attr_reader :product
+  end
+end
+```
+
+## Step 2: Update the Configuration
+
+To use your custom brand selector, update the initializer to configure the `brand_selector_class`:
+
+```ruby title="config/initializers/spree.rb"
+Spree.config do |config|
+  # ...
+  config.brand_selector_class = 'MyStore::CustomBrandSelector'
+end
+```
+
+
+## Verifying the Custom Behavior
+
+Once you've implemented and configured your custom class, you can verify its behavior by calling the `brand` method on any product. This method will now use your custom selector logic:
+
+```ruby title="Example: Verifying Custom Brand Selector"
+product = Spree::Product.find(1)
+puts product.brand # Outputs the result of your custom logic
+```

@@ -1,0 +1,84 @@
+---
+sidebar_position: -4.8
+---
+
+import MinimalRequirements from "@site/src/theme/MinimalRequirements";
+import PRLink from "@site/src/theme/PRLink";
+
+# Solidus v4.8 (2026-10-09)
+
+<MinimalRequirements ruby="3.2" rails="7.2" />
+
+We're excited to announce the release of Solidus v4.8.0! This release brings the storefront and `solidus_i18n` into the main repository, a long run of performance improvements, and fixes for bugs that have been open for years. Ruby and Rails requirements are unchanged from v4.7.
+
+## 🚀 Key Highlights
+
+### Storefront and I18n Join the Monorepo
+
+The starter storefront (formerly `solidus_starter_frontend`) and `solidus_i18n` now live in the Solidus repository, so they are released in lockstep with core and there is one place to file issues.
+
+Existing stores are unaffected by the storefront move: the storefront is an application template, and your app already owns its copy of the code. If you use `solidus_i18n`, the gem jumps from 2.2.0 to 4.8.0 and now follows the Solidus version. A bare `gem "solidus_i18n"` keeps working; if you pinned `~> 2.0`, change it to `~> 4.8`. It also requires `solidus_support` 0.12.0 or later.
+
+- <PRLink number="6468">Merge solidus_starter_frontend in as "storefront"</PRLink>
+- <PRLink number="6537">Merge solidus_i18n in</PRLink>
+
+### Performance
+
+[ikraamg](https://github.com/ikraamg) and [Martin Meyerhoff](https://github.com/mamhoff) removed N+1 queries and redundant work across the admin, API, taxes, promotions, inventory, and payments. Order recalculation and the admin order and product pages should all issue noticeably fewer queries.
+
+- <PRLink number="6504">Eager load associations in admin and API collection endpoints</PRLink>
+- <PRLink number="6500">Eager load line item details on the admin order page</PRLink>
+- <PRLink number="6525">Preload variants and products in the promotions order adjuster</PRLink>
+- <PRLink number="6524">Reuse the order's line items when building a shipping manifest</PRLink>
+- <PRLink number="6494">Avoid redundant queries when recalculating payment totals</PRLink>
+
+### Long-Standing Bugs, Finally Fixed
+
+This release closes issues going back as far as 2017. Shipping calculators no longer count cancelled items, taxon touching no longer deadlocks, customer returns can't be created for unshipped units, static preferences fall back to their defaults, and calculators always return `BigDecimal`. See the breaking changes below for the two that change behaviour you may depend on.
+
+- <PRLink number="6644">Don't include cancelled items in shipping calculations</PRLink>
+- <PRLink number="6609">Touch taxons one at a time in id order</PRLink>
+- <PRLink number="6614">Prevent customer returns when the order has no shipped units</PRLink>
+- <PRLink number="6616">Fall back to preference defaults for static preference sources</PRLink>
+- <PRLink number="6530">Write log entry details unparsed and validate on read</PRLink>
+
+### Solidus Promotions
+
+A new `PromotionEligibilityChecker` service object checks whether a promotion applies to an order without applying it, replacing the old dry-run flow. The TaxonRevenue condition gained an "exclude" match policy, and the promotion permission sets gained a privilege and category.
+
+- <PRLink number="6430">Promotions: Create PromotionEligibilityChecker</PRLink>
+- <PRLink number="6518">TaxonRevenue condition: Add "exclude" match policy</PRLink>
+- <PRLink number="6554">Add privilege and category to promotion permission sets</PRLink>
+
+## 📦 Component Updates
+
+### Solidus Core
+
+- **Refunds**: Refunding a payment that isn't in a refundable state is deprecated and becomes a validation error in 5.0 (<PRLink number="6565">PR</PRLink>)
+- **Stock coordination**: `create_proposed_shipments` is delegated to `Spree::OrderShipping` (<PRLink number="6509">PR</PRLink>)
+- **Log entries**: `Symbol` and `HashWithIndifferentAccess` are permitted by default (<PRLink number="6529">PR</PRLink>)
+- **Dependencies**: `discard` 2.x is required, `kt-paperclip` 8.0 is allowed, and `kaminari-activerecord` is no longer a dependency of `solidus_core` (<PRLink number="6488">PR</PRLink>, <PRLink number="6571">PR</PRLink>, <PRLink number="6445">PR</PRLink>)
+
+### Solidus Admin
+
+`solidus_admin` is versioned and released separately. The admin work merged this cycle, including new editors for payment methods, tax rates, stores, option types and product taxons, ships in solidus_admin 0.5.0.
+
+## ⚠️ Deprecations
+
+Each of these warns through `Spree.deprecator` and will be removed or enforced in Solidus 5.0.
+
+- **Orphaned preferences**: `allow_return_item_amount_editing`, `alternative_billing_phone`, `auto_capture_exchanges`, `customer_returns_per_page`, and `order_capturing_time_window` have had no effect for years; remove them from your initializer. `allocator_class` was never read; the stock allocator is configured with `Spree::Config.stock.allocator_class` (<PRLink number="6575">PR</PRLink>)
+- **Refunds on non-refundable payments**: creating a refund for a payment outside `Spree::Config.refundable_payment_states` (by default `completed` and `pending`) warns now and fails validation in 5.0. Opt in early with `Spree::Config.require_refundable_payment_state = true` (<PRLink number="6565">PR</PRLink>)
+- **`SimpleCoordinator` positional argument**: pass `inventory_units:` as a keyword, and accept `initialize(order, inventory_units: nil)` in custom coordinators (<PRLink number="6483">PR</PRLink>)
+- **Promotion dry runs**: the `dry_run` and `dry_run_promotion` arguments to `SolidusPromotions::OrderAdjuster`, `LoadPromotions`, `DiscountOrder` and `Benefit#eligible_by_applicable_conditions?`, and `Promotion#eligibility_results`, are deprecated. Use `Spree::Config.promotions.eligibility_checker_class.new(order:, promotion:).call` instead (<PRLink number="6430">PR</PRLink>)
+
+## 🔄 Breaking Changes
+
+- **Shipping calculators ignore cancelled items.** `Spree::Shipment#to_package` excludes cancelled inventory units, and short-shipping refreshes shipment rates. Review custom calculators that relied on seeing cancelled units in `package.contents`.
+- **Log entry deserialization no longer raises.** `Spree::LogEntry#parsed_details` reports failures through `Rails.error` and returns a failed `ActiveMerchant::Billing::Response` instead of raising `DisallowedClass`, `BadAlias` or `SerializationError`. Code that rescued those should check the returned response.
+- **`discard` 2.x is required.** Loosen any 1.x pin. Discard 2 aligns `discard`/`undiscard` callback ordering with ActiveRecord `destroy`; audit custom discard callbacks that assumed the old ordering.
+- **`kaminari-activerecord` is no longer pulled in by `solidus_core`.** `solidus_api` and `solidus_backend` still depend on it, so full-stack stores need nothing. Add it to your Gemfile if you run `solidus_core` alone and paginate in your own code.
+
+---
+
+For the complete list of changes, see the [full changelog](https://github.com/solidusio/solidus/compare/v4.7.0...v4.8.0).

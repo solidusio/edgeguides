@@ -1,0 +1,65 @@
+---
+sidebar_position: -4.4
+---
+
+import PRLink from '@site/src/theme/PRLink';
+import MinimalRequirements from '@site/src/theme/MinimalRequirements';
+
+# Solidus v4.4 (2024-11-12)
+
+<MinimalRequirements ruby="3.1" rails="7.0" />
+
+Solidus v4.4 is out! 🎉
+
+This release continues [the amazing work](https://github.com/solidusio/solidus/pulls?q=is%3Apr+author%3AMadelineCollier+is%3Aclosed) from [Madeline](https://github.com/MadelineCollier) to finalize the new Solidus Admin interface, adds Rails 7.2 support and introduces a new promotion system for new stores.
+
+## <PRLink number="5805">Hello, `solidus_promotions`</PRLink>
+
+A major new development is the release of `solidus_promotions` and `solidus_legacy_promotions`.
+Solidus' promotion system, while very flexible and one of the major selling points of the system,
+has grown over the years and needed a complete overhaul. This overhaul comes with some behavior change
+that reflects our learnings over many years of deploying Spree and Solidus. It comes with performance
+improvements, easier-to-read code and features that were hard or impossible to implement with the legacy
+promotion system (such as stackable discounts).
+
+However, the refactoring introduced changes in behavior to the promotion system, and it turned out to
+be easier to create a new promotion system gem and extract the current one into a gem. The new promotion system,
+[`solidus_promotions`](https://github.com/solidusio/solidus/blob/v4.4/promotions/), will be Solidus' default from
+Solidus 5. The legacy promotion system has been extracted into its own gem, `solidus_legacy_promotions`.
+
+Now, if your store depends on the full `solidus` suite of gems and you are upgrading a store with promotions,
+things should just work. Some of the promotion configuration endpoints have changed, but these will emit friendly
+deprecation messages telling you which changes to make.
+
+If, however, your Gemfile specifies only `solidus_core` and any other gems that might be part of the suite, you *must*
+also add `solidus_legacy_promotions` as a dependency in order for your store to continue to work. Once that is done, your
+store should work as before.
+
+If setting up a new store, we recommend starting out with the new promotion system. Add
+
+```
+gem "solidus_promotions", "~> 4.4"
+```
+
+to your Gemfile and follow the instructions [here](https://github.com/solidusio/solidus/blob/v4.4/promotions/README.md).
+
+If you want to upgrade your store to the new promotion system, follow the instructions [here](https://github.com/solidusio/solidus/blob/v4.4/promotions/MIGRATING.md)
+
+## <PRLink number="5843">Rails 7.2 support</PRLink>
+
+This made it necessary to bump the minimum Ruby version to 3.1 as well. Upgrading your store to Ruby 3.1 should be easy and you probably already have done it.
+
+## Moving `solidus_user_roles` extension into core and admin
+
+We started to move the `solidus_user_roles` extension into core and the new admin. The new migrations check the existence of the tables, so it should be save to install
+even if you have the extension installed, which you still need if you are using the current `solidus_backend` admin.
+
+### PRs
+
+- <PRLink number="5831">5831</PRLink>
+- <PRLink number="5833">5833</PRLink>
+- <PRLink number="5846">5846</PRLink>
+
+## <PRLink number="5883">Deprecate and dashboard code</PRLink>
+
+If you still use dashboards, please copy all controllers and views from `solidus_backend` to your application.

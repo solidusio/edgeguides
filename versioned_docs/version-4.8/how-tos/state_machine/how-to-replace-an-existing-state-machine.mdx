@@ -1,0 +1,46 @@
+---
+sidebar_position: 3
+---
+
+# How to replace an existing state machine
+
+We'll see how you can flat-out replace state machines with your custom
+implementation. Not something you'll need every day, as [it comes with its
+drawbacks][state-machines-customization], but it can bring you a lot of
+flexibility if needed.
+
+A custom state machine can be specified through the `state_machines` option in
+`config/initializers/spree.rb`.
+
+For instance, if you wanted to replace the payment state machine, you could
+create your own one like this:
+
+```ruby title="lib/my_store/state_machines/payment.rb"
+# frozen_string_literal: true
+
+module MyStore
+  class StateMachines
+    module Payment
+      extend ActiveSupport::Concern
+
+      included do
+        state_machine initial: :custom_state do
+          # Event, transition & hook definitions
+        end
+      end
+    end
+  end
+end
+```
+
+And then you'd need to tell Solidus to use it:
+
+```ruby title="config/initializers/spree.rb"
+# ...
+Spree.config do |config|
+  config.state_machines.payment = 'MyStore::StateMachines::Payment'
+  # ...
+end
+```
+
+[state-machines-customization]: /advanced-solidus/state-machines.mdx#customizing-state-machines
